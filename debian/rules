@@ -50,7 +50,8 @@ install: build
 	# Add here commands to install the package into debian/$(PACKAGE).
 	$(MAKE) install DESTDIR=$(DESTDIR)
 
-	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/
+	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/.
+	$(INSTALL) debian/check-initd-order $(DESTDIR)$(pkgdatadir)/.
 
 
 # Build architecture-independent files here.

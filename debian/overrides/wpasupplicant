@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:          wpasupplicant
+# Required-Start:    mountvirtfs $local_fs $remote_fs
+# Required-Stop:     mountvirtfs $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      S 0 1 6
+### END INIT INFO

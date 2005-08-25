@@ -1,9 +1,10 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## debian/patches/05_verbose_doc.dpatch
+## debian/patches/20_overrides.dpatch
 ## by Petter Reinholdtsen <pere@hungry.com>
 ##
 ## All lines beginning with `## DP:' are a description of the patch.
-## DP: No description.
+## DP: Implement support for reading LSB init.d header info from override
+## DP: files.
 
 @DPATCH@
 --- insserv-1.00.8.orig/insserv.c

@@ -1,6 +1,6 @@
 ### BEGIN INIT INFO
 # Provides:          aumix
-# Required-Start:    $local_fs
+# Required-Start:    $local_fs $remote_fs
 # Required-Stop: 
 # Should-Start:      udev devfs
 # Should-Start:

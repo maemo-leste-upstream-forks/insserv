@@ -3,7 +3,8 @@
 ## by Petter Reinholdtsen <pere@hungry.com>
 ##
 ## All lines beginning with `## DP:' are a description of the patch.
-## DP: No description.
+## DP: Adjust some paths and avoid installing LSB install scripts to
+## DP: match Debian policy.
 
 @DPATCH@
 --- insserv-1.00.8.orig/Makefile

@@ -23,3 +23,13 @@ To monitor the boot sequence, the bootchart project is a good choice.
 Debian packages are available from
 <URL:http://www.minet.uni-jena.de/~joergs/bootchart/>, and the project
 itself is available from <URL:http://www.bootchart.org/>.
+
+Background info on alternative boot systems in debian is available
+from
+<URL:http://alioth.debian.org/docman/view.php/30730/38/debconf2-initscripts-bkg.pdf>.
+
+Information on the LSB initscript comment convention is available from
+<URL:http://refspecs.freestandards.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html>
+and <URL:http://wiki.debian.net/?LSBInitScripts>.
+
+<URL:http://www-128.ibm.com/developerworks/linux/library/l-boot.html>

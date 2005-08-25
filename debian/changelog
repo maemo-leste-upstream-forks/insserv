@@ -1,3 +1,11 @@
+insserv (1.00.8-2) unstable; urgency=low
+
+  * Updated and added dependecy override files.
+  * Added script check-initd-order, trying to check the current boot
+    sequence in debian based on the LSB headers present.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 26 Aug 2005 00:20:16 +0200
+
 insserv (1.00.8-1) unstable; urgency=low
 
   * Initial Release. (Closes: #324926)

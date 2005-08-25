@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:          flashhybrid
+# Required-Start:    mountvirtfs $local_fs
+# Required-Stop:     mountvirtfs $local_fs
+# Default-Start:     S 6
+# Default-Stop:
+### END INIT INFO

@@ -1,0 +1,123 @@
+#!/usr/bin/perl
+#
+# Author: Petter Reinholdtsen
+# Date:   2005-08-21
+#
+# Read LSM init.d headers in SysV init.d scripts, and verify correct
+# start order for all runlevels
+
+use strict;
+use warnings;
+
+my $rcbase = "/etc";
+#$rcbase = "/opt/ltsp/i386/etc";
+
+my $debug = 0;
+
+my %rcmap =
+    (
+     'B' => 'rc.boot',
+     'S' => 'rcS.d',
+     '1' => 'rc1.d',
+     '2' => 'rc2.d',
+     '3' => 'rc3.d',
+     '4' => 'rc4.d',
+     '5' => 'rc5.d',
+     '6' => 'rc6.d',
+     );
+
+# Map packages to system metapackages.  These dependencies should
+# probably be more complex
+my %sysmap =
+    (
+     'network'      => '$network',
+     'networking'   => '$network',
+     'syslog'       => '$syslog',
+     'sysklogd'     => '$syslog',
+     'mountall'     => '$local_fs'
+     );
+
+my %scriptorder;
+
+my $bootorder = 0;
+for my $rcdir ($rcmap{S}, $rcmap{2}) {
+    chdir "$rcbase/$rcdir/.";
+    for my $script (<[SK]*>) {
+	$bootorder++;
+	my ($tag, $order, $name) = $script =~ m/^(.)(\d{2})(.+)$/;
+
+	$scriptorder{$tag}{$name} = $bootorder;
+	$scriptorder{$tag}{$sysmap{$name}} = $bootorder
+	    if (exists $sysmap{$name});
+
+#	print "$script\n";
+#	print "T: $tag O: $order N: $name\n";
+	my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script");
+
+	unless (defined $lsbinforef) {
+	    print "LSB header missing in $rcbase/$rcdir/$script\n";
+	    next;
+	}
+	my %lsbinfo = %{$lsbinforef};
+	
+	for my $provide (split(/\s+/, $lsbinfo{'provides'})) {
+	    $scriptorder{$tag}{$provide} = $bootorder;
+	    $scriptorder{$tag}{$sysmap{$provide}} = $bootorder
+		if (exists $sysmap{$provide});
+	}
+
+	if ('S' eq $tag) {
+	    if ($lsbinfo{'required-start'}) {
+		my @depends = split(/\s+/, $lsbinfo{'required-start'});
+		for my $dep (@depends) {
+		    print "Incorrect order $dep\@".$scriptorder{$tag}{$dep}.
+			" > $name\@$order\n"
+			unless (exists $scriptorder{$tag}{$dep}
+				and $scriptorder{$tag}{$dep} < $bootorder);
+		}
+	    }
+	}
+	if ('K' eq $tag) {
+	}
+    }
+}
+
+sub load_lsb_tags {
+    my $initfile = shift;
+    print "Loading $initfile\n" if $debug;
+    ### BEGIN INIT INFO
+    # Provides:          xdebconfigurator
+    # Required-Start:    $syslog
+    # Required-Stop:     $syslog
+    # Default-Start:     2 3 4 5
+    # Default-Stop:      1 6
+    # Short-Description: Genererate xfree86 configuration at boot time
+    # Description:       Preseed X configuration and use dexconf to
+    #                    genereate a new configuration file.
+    ### END INIT INFO
+    open(FILE, "<$initfile") or die "Unable to read $initfile";
+    my $found = 0;
+    my ($provides, $requiredstart, $requiredstop, $shouldstart, $shouldstop);
+    while (<FILE>) {
+	chomp;
+	$found = 1 if (m/\#\#\# BEGIN INIT INFO/);
+	next unless $found;
+	last if (m/\#\#\# END INIT INFO/);
+
+	$provides = $1      if (m/^\# provides:\s+(\S*.*\S+)\s*$/i);
+	$requiredstart = $1 if (m/^\# required-start:\s+(\S*.*\S+)\s*$/i);
+	$requiredstop = $1  if (m/^\# required-stop:\s+(\S*.*\S+)\s*$/i);
+	$shouldstart = $1   if (m/^\# should-start:\s+(\S*.*\S+)\s*$/i);
+	$shouldstop = $1    if (m/^\# should-stop:\s+(\S*.*\S+)\s*$/i);
+    }
+    return undef unless $found;
+    close(FILE);
+#    print "Provides: $provides\n" if $provides;
+    return {
+	    'provides'       => $provides,
+	    'required-start' => $requiredstart,
+	    'required-stop'  => $requiredstop,
+	    'should-start'   => $shouldstart,
+	    'should-stop'    => $shouldstop,
+	    };
+}

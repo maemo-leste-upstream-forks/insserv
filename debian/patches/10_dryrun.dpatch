@@ -2,7 +2,8 @@
 ## debian/patches/misc.dpatch.dpatch by  <pere@localhost>
 ##
 ## All lines beginning with `## DP:' are a description of the patch.
-## DP: No description.
+## DP: Add support for running insserv in an dryrun mode, were it only
+## DP: report what it would do, but do not change anything.
 
 @DPATCH@
 --- insserv-1.00.8.orig/listing.h

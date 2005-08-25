@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          setserial
-# Required-Start:    $local_fs
-# Required-Stop:     $local_fs
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
 # Should-Start:      devfsd udev
 # Should-Stop:       devfsd udev
 # Default-Start:     S 1 2 3 4 5

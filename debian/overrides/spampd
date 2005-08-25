@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:       spampd
+# Required-Start: $syslog $network $time
+# Required-Stop:  $syslog $network $time
+# Default-Start:  2 3 4 5
+# Default-Stop:   S 0 1 6
+### END INIT INFO
