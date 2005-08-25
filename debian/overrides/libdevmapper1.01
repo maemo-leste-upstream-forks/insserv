@@ -1,0 +1,8 @@
+### BEGIN INIT INFO
+# Provides:          libdevmapper1.01
+# Required-Start:    modutils
+# Required-Stop:     modutils
+# Should-Start:      hotplug discover udev devfsd
+# Default-Start:     S 1 2 3 4 5
+# Default-Stop:      0 6
+### END INIT INFO

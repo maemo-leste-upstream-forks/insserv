@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:           rmnologin
+# Required-Start:     $local_fs
+# Required-Stop: 
+# Should-Start:       $time $remote_fs
+# Should-Stop: 
+# Default-Start:      S 1 2 3 4 5
+# Default-Stop:       
+### END INIT INFO

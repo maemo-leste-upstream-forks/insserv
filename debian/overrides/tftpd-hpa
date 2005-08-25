@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:          tftpd-hpa
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      S 0 1 6
+### END INIT INFO

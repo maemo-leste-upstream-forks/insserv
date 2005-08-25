@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          lvm
+# Required-Start:    mountvirtfs
+# Required-Stop:
+# Should-Start:      hotplug discover udev devfsd raid2 mdadm
+# Should-Stop:
+# Default-Start:     S 1 2 3 4 5
+# Default-Stop:      0 6
+### END INIT INFO

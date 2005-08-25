@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          setserial
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Should-Start:      devfsd udev
+# Should-Stop:       devfsd udev
+# Default-Start:     S 1 2 3 4 5
+# Default-Stop:      0 6
+### END INIT INFO

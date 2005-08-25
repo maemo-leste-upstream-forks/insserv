@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:          nfs-kernel-server nfs-server
+# Required-Start:    $network portmap
+# Required-Stop:     $network portmap
+# Default-Start:     2 3 4 5
+# Default-Stop:      S 0 1 6
+### END INIT INFO

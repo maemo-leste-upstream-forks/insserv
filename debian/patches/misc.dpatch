@@ -1,0 +1,4150 @@
+--- insserv-1.00.8.orig/Makefile
++++ insserv-1.00.8/Makefile
+@@ -74,15 +74,15 @@
+ 	$(MKDIR)   $(SBINDIR)
+ 	$(MKDIR)   $(SDOCDIR)
+ 	$(MKDIR)   $(CONFDIR)
+-	$(MKDIR)   $(LSBDIR)
+-	$(MKDIR)   $(DESTDIR)/usr/lib
+-	$(MKDIR)   $(USRLSBDIR)
++#	$(MKDIR)   $(LSBDIR)
++#	$(MKDIR)   $(DESTDIR)/usr/lib
++#	$(MKDIR)   $(USRLSBDIR)
+ 	$(INSTBIN) insserv        $(SBINDIR)/
+ 	$(INSTDOC) insserv.8      $(SDOCDIR)/
+ 	$(INSTCON) insserv.conf   $(CONFDIR)/
+-	$(INSTCON) init-functions $(LSBDIR)/
+-	$(INSTSRP) install_initd  $(USRLSBDIR)/
+-	$(INSTSRP) remove_initd   $(USRLSBDIR)/
++#	$(INSTCON) init-functions $(LSBDIR)/
++#	$(INSTSRP) install_initd  $(USRLSBDIR)/
++#	$(INSTSRP) remove_initd   $(USRLSBDIR)/
+ 
+ #
+ # Make distribution
+--- insserv-1.00.8.orig/insserv.c
++++ insserv-1.00.8/insserv.c
+@@ -1023,15 +1088,15 @@
+ 	struct stat st_script;
+ 
+ 	switch (runlevel) {
+-	    case 0: rcd = "rc0.d/";  break;
+-	    case 1: rcd = "rc1.d/";  break;
+-	    case 2: rcd = "rc2.d/";  break;
+-	    case 3: rcd = "rc3.d/";  break;
+-	    case 4: rcd = "rc4.d/";  break;
+-	    case 5: rcd = "rc5.d/";  break;
+-	    case 6: rcd = "rc6.d/";  break;
+-	    case 7: rcd = "rcS.d/";  break;  /* runlevel S */
+-	    case 8: rcd = "boot.d/"; break;  /* runlevel B */
++	    case 0: rcd = "../rc0.d/";  break;
++	    case 1: rcd = "../rc1.d/";  break;
++	    case 2: rcd = "../rc2.d/";  break;
++	    case 3: rcd = "../rc3.d/";  break;
++	    case 4: rcd = "../rc4.d/";  break;
++	    case 5: rcd = "../rc5.d/";  break;
++	    case 6: rcd = "../rc6.d/";  break;
++	    case 7: rcd = "../rcS.d/";  break;  /* runlevel S */
++	    case 8: rcd = "../rc.boot/"; break;  /* runlevel B */
+ 	    default:
+ 		error("Wrong runlevel %d\n", runlevel);
+ 	}
+@@ -1846,15 +1911,15 @@
+ 	DIR  * rcdir;
+ 
+ 	switch (runlevel) {
+-	    case 0: rcd = "rc0.d/";  break;
+-	    case 1: rcd = "rc1.d/";  break;
+-	    case 2: rcd = "rc2.d/";  break;
+-	    case 3: rcd = "rc3.d/";  break;
+-	    case 4: rcd = "rc4.d/";  break;
+-	    case 5: rcd = "rc5.d/";  break;
+-	    case 6: rcd = "rc6.d/";  break;
+-	    case 7: rcd = "rcS.d/";  break;  /* runlevel S */
+-	    case 8: rcd = "boot.d/"; break;  /* runlevel B */
++	    case 0: rcd = "../rc0.d/";  break;
++	    case 1: rcd = "../rc1.d/";  break;
++	    case 2: rcd = "../rc2.d/";  break;
++	    case 3: rcd = "../rc3.d/";  break;
++	    case 4: rcd = "../rc4.d/";  break;
++	    case 5: rcd = "../rc5.d/";  break;
++	    case 6: rcd = "../rc6.d/";  break;
++	    case 7: rcd = "../rcS.d/";  break;  /* runlevel S */
++	    case 8: rcd = "../rc.boot/"; break;  /* runlevel B */
+ 	    default:
+ 		error("Wrong runlevel %d\n", runlevel);
+ 	}
+@@ -1904,7 +1969,7 @@
+ 	    if (*script == '$')		/* Do not link in virtual dependencies */
+ 		continue;
+ 
+-	    sprintf(olink, "../%s",   script);
++	    sprintf(olink, "../init.d/%s",   script);
+ 	    sprintf(nlink, "S%.2d%s", order, script);
+ 
+ 	    found = false;
+--- insserv-1.00.8.orig/insserv.conf
++++ insserv-1.00.8/insserv.conf
+@@ -1,17 +1,18 @@
+ #
+ # All local filesystems are mounted (done during boot phase)
+ #
+-$local_fs	boot.localfs
++$local_fs	mountall
+ 
+ #
+ # Low level networking (ethernet card)
+ #
+-$network	network +pcmcia +hotplug
++$network	networking
++# +pcmcia +hotplug
+ 
+ #
+ # Named is operational
+ #
+-$named		+named +dnsmasq +lwresd $network
++$named		+named +dnsmasq +lwresd +bind9 $network
+ 
+ #
+ # All remote filesystems are mounted (note in some cases /usr may
+@@ -23,7 +24,7 @@
+ #
+ # System logger is operational
+ #
+-$syslog		syslog
++$syslog		sysklogd klogd
+ 
+ #
+ # All network daemons are running (this entry is OBSOLETE)
+@@ -38,7 +39,7 @@
+ #
+ # The system time has been set correctly
+ #
+-$time		boot.clock +xntpd
++$time		hwclock +ntp-server
+ 
+ #
+ # Services which need to be interactive
+--- insserv-1.00.8.orig/debian/changelog
++++ insserv-1.00.8/debian/changelog
+@@ -0,0 +1,6 @@
++insserv (1.00.8-0.0.pere.1) unstable; urgency=low
++
++  * Initial Release.
++
++ -- Petter Reinholdtsen <pere@debian.org>  Sun, 21 Aug 2005 11:20:54 +0200
++
+--- insserv-1.00.8.orig/debian/compat
++++ insserv-1.00.8/debian/compat
+@@ -0,0 +1 @@
++4
+--- insserv-1.00.8.orig/debian/rc
++++ insserv-1.00.8/debian/rc
+@@ -0,0 +1,168 @@
++#! /bin/sh
++#
++# rc		This file is responsible for starting/stopping
++#		services when the runlevel changes.
++#
++#		Optimization feature:
++#		A startup script is _not_ run when the service was
++#		running in the previous runlevel and it wasn't stopped
++#		in the runlevel transition (most Debian services don't
++#		have K?? links in rc{1,2,3,4,5} )
++#
++# Author:	Miquel van Smoorenburg <miquels@cistron.nl>
++#		Bruce Perens <Bruce@Pixar.com>
++#
++# Version:	@(#)rc  2.78  07-Nov-1999  miquels@cistron.nl
++#
++
++# Un-comment the following for debugging.
++# debug=echo
++
++CONCURRENCY=8
++
++. /etc/default/rcS
++
++runlog=/tmp/bootlog
++rcstart=`date +%s`
++
++#
++# Start script or program.
++#
++startup() {
++  service=$1
++  start=`date +%s`
++  case "$1" in
++	*.sh)
++		$debug sh "$@"
++		;;
++	*)
++		$debug "$@"
++		;;
++  esac
++  stop=`date +%s`
++  spent=$(($stop - $start))
++  echo $stop $spent $service >> $runlog
++}
++
++discover_uniq() {
++  local result=""
++
++  while read word; do
++    if ! ( echo "$result" | grep -q "$word " ); then
++      result="$result $word "
++    fi
++  done
++
++  echo "$result"
++}
++
++  # Ignore CTRL-C only in this shell, so we can interrupt subprocesses.
++  trap ":" INT QUIT TSTP
++
++  # Set onlcr to avoid staircase effect.
++  stty onlcr 0>&1
++
++  # Now find out what the current and what the previous runlevel are.
++
++  runlevel=$RUNLEVEL
++  # Get first argument. Set new runlevel to this argument.
++  [ "$1" != "" ] && runlevel=$1
++  if [ "$runlevel" = "" ]
++  then
++	echo "Usage: $0 <runlevel>" >&2
++	exit 1
++  fi
++  previous=$PREVLEVEL
++  [ "$previous" = "" ] && previous=N
++
++  export runlevel previous
++
++  # Is there an rc directory for this new runlevel?
++  if [ -d /etc/rc$runlevel.d ]
++  then
++	# First, run the KILL scripts.
++	if [ $previous != N ]
++	then
++		# Run all scripts with the same level in parallell
++		for level in `ls /etc/rc$runlevel.d | \
++		              sed 's/^K\([0-9][0-9]\).*/\1/' | \
++		              discover_uniq` ; do
++			pids=""
++			subs=0
++			for i in /etc/rc$runlevel.d/K$level*
++		do
++			# Check if the script is there.
++			[ ! -f $i ] && continue
++
++			# Stop the service.
++				startup $i stop &
++				pids="$pids $!"
++				subs=$(($subs + 1))
++
++		# Enough sub-processes running?
++				if [ "$CONCURRENCY" -le "$subs" ] ; then
++					for pid in $pids ; do
++						wait $pid
++						subs=$(($subs - 1))
++					done
++					pids=""
++				fi
++			done
++			# Wait for all pids.  Does not matter which
++			# pid return first, as we need to wait for all
++			# of them
++			for pid in $pids ; do
++				wait $pid
++			done
++		done
++	fi
++	# Now run the START scripts for this runlevel.
++
++	# Run all scripts with the same level in parallell
++	for level in `ls /etc/rc$runlevel.d | sed 's/^S\([0-9][0-9]\).*/\1/' |\
++	              discover_uniq` ; do
++		pids=""
++		for i in /etc/rc$runlevel.d/S$level*
++	do
++		[ ! -f $i ] && continue
++
++		if [ $previous != N ] && [ $previous != S ]
++		then
++			#
++			# Find start script in previous runlevel and
++			# stop script in this runlevel.
++			#
++			suffix=${i#/etc/rc$runlevel.d/S[0-9][0-9]}
++			stop=/etc/rc$runlevel.d/K[0-9][0-9]$suffix
++			previous_start=/etc/rc$previous.d/S[0-9][0-9]$suffix
++			#
++			# If there is a start script in the previous level
++			# and _no_ stop script in this level, we don't
++			# have to re-start the service.
++			#
++			[ -f $previous_start ] && [ ! -f $stop ] && continue
++		fi
++		case "$runlevel" in
++			0|6)
++					startup $i stop &
++				;;
++			*)
++					startup $i start &
++				;;
++		esac
++			pids="$pids $!"
++		done
++		# Wait for all pids.  Does not matter which
++		# pid return first, as we need to wait for all
++		# of them
++		for pid in $pids ; do
++			wait $pid
++		done
++	done
++  fi
++
++rcstop=`date +%s`
++rcspent=$(($rcstop - $rcstart))
++echo $rcstop $rcspent rc$RUNLEVEL >> $runlog
++
++# eof /etc/init.d/rc
+--- insserv-1.00.8.orig/debian/rcS
++++ insserv-1.00.8/debian/rcS
+@@ -0,0 +1,120 @@
++#! /bin/sh
++#
++# rcS		Call all S??* scripts in /etc/rcS.d in
++#		numerical/alphabetical order.
++#
++# Version:	@(#)/etc/init.d/rcS  2.76  19-Apr-1999  miquels@cistron.nl
++#
++
++PATH=/sbin:/bin:/usr/sbin:/usr/bin
++runlevel=S
++prevlevel=N
++umask 022
++export PATH runlevel prevlevel
++
++set -x
++
++#
++#	See if system needs to be setup. This is ONLY meant to
++#	be used for the initial setup after a fresh installation!
++#
++if [ -x /sbin/unconfigured.sh ]
++then
++  /sbin/unconfigured.sh
++fi
++
++CONCURRENCY=8
++#
++#	Source defaults.
++#
++. /etc/default/rcS
++export VERBOSE
++
++runlog=/tmp/bootlog
++rcstart=`date +%s`
++#
++#	Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
++#
++trap ":" INT QUIT TSTP
++
++#
++# Start script or program.
++#
++startup() {
++  service=$1
++  start=`date +%s`
++  case "$1" in
++	*.sh)
++		$debug sh "$@"
++		;;
++	*)
++		$debug "$@"
++		;;
++  esac
++  stop=`date +%s`
++  spent=$(($stop - $start))
++  echo $stop $spent $service >> $runlog
++}
++
++discover_uniq() {
++  local result=""
++
++  while read word; do
++    if ! ( echo "$result" | grep -q "$word " ); then
++      result="$result $word "
++    fi
++  done
++
++  echo "$result"
++}
++# for level in $(ls /etc/rc$runlevel.d | sed 's/^K\([0-9][0-9]\).*/\1/' ) ; do [ "$level" = "$LAST" ] || echo $level ; LAST=$level ;  done
++
++#
++#	Call all parts in order.
++#
++# Run all scripts with the same level in parallell
++for level in `ls /etc/rcS.d | sed 's/^S\([0-9][0-9]\).*/\1/' | \
++              discover_uniq` ; do
++	pids=""
++	subs=0
++	for i in /etc/rcS.d/S$level*
++	do
++		# Ignore dangling symlinks for now.
++		[ ! -f "$i" ] && continue
++		startup $i start &
++		pids="$pids $!"
++		subs=$(($subs + 1))
++
++		# Enough sub-processes running?
++		if [ "$CONCURRENCY" -le "$subs" ] ; then
++			for pid in $pids ; do
++				wait $pid
++				subs=$(($subs - 1))
++			done
++			pids=""
++		fi
++	done
++	# Wait for all remaining pids.  Does not matter which pid
++	# return first, as we need to wait for all of them
++	for pid in $pids ; do
++		wait $pid
++	done
++done
++
++#
++#	For compatibility, run the files in /etc/rc.boot too.
++#
++[ -d /etc/rc.boot ] && run-parts /etc/rc.boot
++
++#
++#	Finish setup if needed. The comment above about
++#	/sbin/unconfigured.sh applies here as well!
++#
++if [ -x /sbin/setup.sh ]
++then
++  /sbin/setup.sh
++fi
++
++rcstop=`date +%s`
++rcspent=$(($rcstop - $rcstart))
++echo $rcstop $rcspent rcS >> $runlog
+--- insserv-1.00.8.orig/debian/dirs
++++ insserv-1.00.8/debian/dirs
+@@ -0,0 +1,2 @@
++usr/share/insserv/examples
++usr/share/insserv/overrides
+--- insserv-1.00.8.orig/debian/overrides/bootclean.sh
++++ insserv-1.00.8/debian/overrides/bootclean.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          bootclean
++# Required-Start:    $network
++# Required-Stop:     $network
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/bootlogd
++++ insserv-1.00.8/debian/overrides/bootlogd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          bootlogd
++# Required-Start:    mountvirtfs
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/bootmisc.sh
++++ insserv-1.00.8/debian/overrides/bootmisc.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          bootmisc
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/checkfs.sh
++++ insserv-1.00.8/debian/overrides/checkfs.sh
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          checkfs
++# Required-Start:    modutils checkroot
++# Required-Stop: 
++# Should-Start:      lvm
++# Should-Stop:       lvm
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/checkroot.sh
++++ insserv-1.00.8/debian/overrides/checkroot.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          checkroot
++# Required-Start:    keymap hwclockfirst
++# Required-Stop:     
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/console-screen.sh
++++ insserv-1.00.8/debian/overrides/console-screen.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          console-screen
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/devfsd
++++ insserv-1.00.8/debian/overrides/devfsd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          devfsd
++# Required-Start:    
++# Required-Stop:     
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/discover
++++ insserv-1.00.8/debian/overrides/discover
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          discover
++# Required-Start:    mountvirtfs checkroot
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/halt
++++ insserv-1.00.8/debian/overrides/halt
+@@ -0,0 +1,10 @@
++### BEGIN INIT INFO
++# Provides:          halt
++# Required-Start:    
++# Required-Stop:     
++# Should-stop:       lvm
++# Default-Start:     0
++# Default-Stop:       
++# Short-Description: 
++# Description: 
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/hostname.sh
++++ insserv-1.00.8/debian/overrides/hostname.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          hostname
++# Required-Start:
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/hotplug
++++ insserv-1.00.8/debian/overrides/hotplug
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          hotplug
++# Required-Start:    mountvirtfs checkroot
++# Required-Stop:     mountvirtfs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/hotplug-net
++++ insserv-1.00.8/debian/overrides/hotplug-net
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          hotplug-net
++# Required-Start:    $network hotplug
++# Required-Stop:     $network hotplug
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/hwclockfirst.sh
++++ insserv-1.00.8/debian/overrides/hwclockfirst.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          hwclockfirst
++# Required-Start:    
++# Required-Stop:     
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/hwclock.sh
++++ insserv-1.00.8/debian/overrides/hwclock.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          hwclock
++# Required-Start:    console-screen
++# Required-Stop:     console-screen
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ifupdown
++++ insserv-1.00.8/debian/overrides/ifupdown
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          ifupdown
++# Required-Start:    ifupdown-clean
++# Required-Stop:     ifupdown-clean
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ifupdown-clean
++++ insserv-1.00.8/debian/overrides/ifupdown-clean
+@@ -0,0 +1,8 @@
++### BEGIN INIT INFO
++# Provides:          ifupdown-clean
++# Required-Start:    checkroot
++# Required-Stop:     
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
++
+--- insserv-1.00.8.orig/debian/overrides/initrd-tools.sh
++++ insserv-1.00.8/debian/overrides/initrd-tools.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          initrd-tools
++# Required-Start:    bootlogd
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/keymap.sh
++++ insserv-1.00.8/debian/overrides/keymap.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          keymap
++# Required-Start:    initrd-tools
++# Required-Stop:     
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/klogd
++++ insserv-1.00.8/debian/overrides/klogd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          klogd
++# Required-Start:    sysklogd
++# Required-Stop:     sysklogd
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ltsp-client
++++ insserv-1.00.8/debian/overrides/ltsp-client
+@@ -0,0 +1,8 @@
++### BEGIN INIT INFO
++# Provides:          ltsp-client
++# Required-Start:    ltsp-client-setup $network $syslog
++# Required-Stop:     ltsp-client-setup $network $syslog
++# Should-Start:      xdebconfigurator
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ltsp-client-setup
++++ insserv-1.00.8/debian/overrides/ltsp-client-setup
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          ltsp-client-setup
++# Required-Start:    mountvirtfs $local_fs
++# Required-Stop:     mountvirtfs $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/makedev
++++ insserv-1.00.8/debian/overrides/makedev
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          makedev
++# Required-Start:    $local_fs
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/modutils
++++ insserv-1.00.8/debian/overrides/modutils
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          modutils
++# Required-Start:    hwclockfirst
++# Required-Stop:     hwclockfirst
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/mountall.sh
++++ insserv-1.00.8/debian/overrides/mountall.sh
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          mountall
++# Required-Start:    checkfs
++# Required-Stop: 
++# Should-Start:      lvm
++# Should-Stop:       lvm
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/mountnfs.sh
++++ insserv-1.00.8/debian/overrides/mountnfs.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          mountnfs nfs
++# Required-Start:    $network $local_fs
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/mountvirtfs
++++ insserv-1.00.8/debian/overrides/mountvirtfs
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          mountvirtfs
++# Required-Start:    devfsd
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nbd-client
++++ insserv-1.00.8/debian/overrides/nbd-client
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          nbd-client
++# Required-Start:    $network
++# Required-Stop:     $network
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/networking
++++ insserv-1.00.8/debian/overrides/networking
+@@ -0,0 +1,8 @@
++### BEGIN INIT INFO
++# Provides:          networking
++# Required-Start:    mountvirtfs ifupdown $local_fs
++# Required-Stop:     mountvirtfs
++# Should-Start:      hotplug discover
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/openbsd-inetd
++++ insserv-1.00.8/debian/overrides/openbsd-inetd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          openbsd-inetd
++# Required-Start:    $network
++# Required-Stop:     $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/procps.sh
++++ insserv-1.00.8/debian/overrides/procps.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          procps
++# Required-Start:    mountvirtfs
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/reboot
++++ insserv-1.00.8/debian/overrides/reboot
+@@ -0,0 +1,8 @@
++### BEGIN INIT INFO
++# Provides:          reboot
++# Required-Start:    
++# Required-Stop:     
++# Should-stop:       lvm raid2
++# Default-Start:     
++# Default-Stop:      6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/rmnologin
++++ insserv-1.00.8/debian/overrides/rmnologin
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:           rmnologin
++# Required-Start:     $local_fs
++# Required-Stop: 
++# Should-Start:       $time $remote_fs
++# Should-Stop: 
++# Default-Start:      S 1 2 3 4 5
++# Default-Stop:       
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/sendsigs
++++ insserv-1.00.8/debian/overrides/sendsigs
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          sendsigs
++# Required-Start:    
++# Required-Stop: 
++# Default-Start:      6
++# Default-Stop:       
++# Short-Description: 
++# Description: 
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/single
++++ insserv-1.00.8/debian/overrides/single
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          single
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     S
++# Default-Stop:      0 1 2 3 4 5 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/umountfs
++++ insserv-1.00.8/debian/overrides/umountfs
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          umountfs
++# Required-Start:    
++# Required-Stop: 
++# Default-Start:      6
++# Default-Stop:       
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ssh
++++ insserv-1.00.8/debian/overrides/ssh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          sshd
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/courier-ldap
++++ insserv-1.00.8/debian/overrides/courier-ldap
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          courier-ldap
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Should-Start:      slapd
++# Should-Stop:       slapd
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/sysklogd
++++ insserv-1.00.8/debian/overrides/sysklogd
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          syslog sysklogd
++# Required-Start:    $local_fs $time
++# Required-Stop:     $local_fs $time
++# Should-Start:      $network $named
++# Should-Stop:       $network $named
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/udev
++++ insserv-1.00.8/debian/overrides/udev
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          udev
++# Required-Start:    mountvirtfs
++# Required-Stop:     
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/udev-mtab
++++ insserv-1.00.8/debian/overrides/udev-mtab
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          udev-mtab
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/slapd
++++ insserv-1.00.8/debian/overrides/slapd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          slapd
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/umountnfs.sh
++++ insserv-1.00.8/debian/overrides/umountnfs.sh
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          umountnfs
++# Required-Start:    
++# Required-Stop: 
++# Default-Start:      6
++# Default-Stop:       
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/urandom
++++ insserv-1.00.8/debian/overrides/urandom
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          urandom
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/xdebconfigurator
++++ insserv-1.00.8/debian/overrides/xdebconfigurator
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# provides:          xdebconfigurator
++# required-start:    $syslog
++# required-stop:     $syslog
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/xfree86-common
++++ insserv-1.00.8/debian/overrides/xfree86-common
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          xfree86-common
++# Required-Start:    $local_fs $remote_fs
++# Required-Stop:     $local_fs $remote_fs
++# Should-Start:      $named
++# Should-Stop:       $named
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/portmap
++++ insserv-1.00.8/debian/overrides/portmap
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          portmap
++# Required-Start:    $network
++# Required-Stop:     $network
++# Should-Start:      $named
++# Should-Stop:       $named
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/sudo
++++ insserv-1.00.8/debian/overrides/sudo
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          sudu
++# Required-Start:    $local_fs
++# Required-Stop: 
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/gdm
++++ insserv-1.00.8/debian/overrides/gdm
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          gdm
++# Required-Start:    $syslog $local_fs
++# Required-Stop:     $syslog $local_fs
++# Should-Start:      xfs
++# Should-Stop:       xfs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/lvm
++++ insserv-1.00.8/debian/overrides/lvm
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          lvm
++# Required-Start:    mountvirtfs
++# Required-Stop:
++# Should-Start:      hotplug discover udev devfsd raid2 mdadm
++# Should-Stop:
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/exim
++++ insserv-1.00.8/debian/overrides/exim
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          exim
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/kdm
++++ insserv-1.00.8/debian/overrides/kdm
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          kdm
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Should-Start:      xfs $named slapd
++# Should-Stop:       xfs $named slapd
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/inetd
++++ insserv-1.00.8/debian/overrides/inetd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          inetd
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ntpdate
++++ insserv-1.00.8/debian/overrides/ntpdate
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          ntpdate
++# Required-Start:    $network hwclock
++# Required-Stop:     $network hwclock
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/cron
++++ insserv-1.00.8/debian/overrides/cron
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          cron
++# Required-Start:    $syslog $time
++# Required-Stop:     $syslog $time
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/atd
++++ insserv-1.00.8/debian/overrides/atd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          atd
++# Required-Start:    $syslog $time $local_fs
++# Required-Stop:     $syslog $time $local_fs
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/fam
++++ insserv-1.00.8/debian/overrides/fam
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          fam
++# Required-Start:    $network portmap
++# Required-Stop:     $network portmap
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/alsa
++++ insserv-1.00.8/debian/overrides/alsa
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          alsa
++# Required-Start:    $syslog
++# Required-Stop:     $syslog
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/gpsd
++++ insserv-1.00.8/debian/overrides/gpsd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          gpsd
++# Required-Start:    $syslog $network
++# Required-Stop:     $syslog $network
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/xfs
++++ insserv-1.00.8/debian/overrides/xfs
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          xfs
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Should-Start:      $network
++# Should-Stop:       $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/lpd
++++ insserv-1.00.8/debian/overrides/lpd
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          lpd
++# Required-Start:    $syslog
++# Required-Stop:     $syslog
++# Should-Start:      $network
++# Should-Stop:       $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/apmd
++++ insserv-1.00.8/debian/overrides/apmd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          apmd
++# Required-Start:    mountvirtfs $syslog
++# Required-Stop:     mountvirtfs $syslog
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nstxd
++++ insserv-1.00.8/debian/overrides/nstxd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          nstxd
++# Required-Start:    $network
++# Required-Stop:     $network
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nstxcd
++++ insserv-1.00.8/debian/overrides/nstxcd
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          nstxcd
++# Required-Start:    $network
++# Required-Stop:     $network
++# Should-Start:      nstxd
++# Should-Stop:       nstxd
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/enable-nat
++++ insserv-1.00.8/debian/overrides/enable-nat
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          enable-nat
++# Required-Start:    $network
++# Required-Stop:     $network
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/pcmcia
++++ insserv-1.00.8/debian/overrides/pcmcia
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          pcmcia
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/acpid
++++ insserv-1.00.8/debian/overrides/acpid
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          acpid
++# Required-Start:    mountvirtfs $syslog
++# Required-Stop:     mountvirtfs $syslog
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ppp
++++ insserv-1.00.8/debian/overrides/ppp
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          ppp
++# Required-Start:    $syslog 
++# Required-Stop:     $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nscd
++++ insserv-1.00.8/debian/overrides/nscd
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          nscd
++# Required-Start:    $syslog
++# Required-Stop:     $syslog
++# Should-Start:      $network slapd $named
++# Should-Stop:       $network slapd $named
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/exim4
++++ insserv-1.00.8/debian/overrides/exim4
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          exim4 exim
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/anacron
++++ insserv-1.00.8/debian/overrides/anacron
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          anacron
++# Required-Start:    $syslog $time
++# Required-Stop:     $syslog $time
++# Default-Start:     1 2 3 4 5
++# Default-Stop:      S 0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nfs-common
++++ insserv-1.00.8/debian/overrides/nfs-common
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          nfs-common
++# Required-Start:    $network portmap
++# Required-Stop:     $network portmap
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/irda-utils
++++ insserv-1.00.8/debian/overrides/irda-utils
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          irda-utils
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/webmin
++++ insserv-1.00.8/debian/overrides/webmin
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          webmin
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/irda
++++ insserv-1.00.8/debian/overrides/irda
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          irda
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nfs-kernel-server
++++ insserv-1.00.8/debian/overrides/nfs-kernel-server
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          nfs-kernel-server nfs-server
++# Required-Start:    $network portmap
++# Required-Stop:     $network portmap
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/hdparm
++++ insserv-1.00.8/debian/overrides/hdparm
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          hdparm
++# Required-Start:    mountvirtfs
++# Required-Stop:
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/dbus-1
++++ insserv-1.00.8/debian/overrides/dbus-1
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          dbus-1
++# Required-Start:    $local_fs $syslog
++# Required-Stop:     $local_fs $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ntp-server
++++ insserv-1.00.8/debian/overrides/ntp-server
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          ntp-server
++# Required-Start:    $network ntpdate
++# Required-Stop:     $network ntpdate
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/postgresql
++++ insserv-1.00.8/debian/overrides/postgresql
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          postgresql
++# Required-Start:    $local_fs $network
++# Required-Stop:     $local_fs $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/samba
++++ insserv-1.00.8/debian/overrides/samba
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          samba
++# Required-Start:    $network
++# Required-Stop:     $network
++# Should-Start:      $named
++# Should-Stop:       $named
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/tftpd-hpa
++++ insserv-1.00.8/debian/overrides/tftpd-hpa
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          tftpd-hpa
++# Required-Start:    $local_fs $network
++# Required-Stop:     $local_fs $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/atftpd
++++ insserv-1.00.8/debian/overrides/atftpd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          atftpd
++# Required-Start:    $local_fs $network
++# Required-Stop:     $local_fs $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/dns-clean
++++ insserv-1.00.8/debian/overrides/dns-clean
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          dns-clean
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/apache
++++ insserv-1.00.8/debian/overrides/apache
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          apache
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/mrouted
++++ insserv-1.00.8/debian/overrides/mrouted
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          mrouted
++# Required-Start:    $syslog $network
++# Required-Stop:     $syslog $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/update-hostname
++++ insserv-1.00.8/debian/overrides/update-hostname
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          update-hostname
++# Required-Start:    ifupdown hostname
++# Required-Stop:
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/smartmontools
++++ insserv-1.00.8/debian/overrides/smartmontools
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          smartmontools
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/bind9
++++ insserv-1.00.8/debian/overrides/bind9
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          bind9
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/courier-imap
++++ insserv-1.00.8/debian/overrides/courier-imap
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          courier-imap
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/mplayer
++++ insserv-1.00.8/debian/overrides/mplayer
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          mplayer
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nviboot
++++ insserv-1.00.8/debian/overrides/nviboot
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          nviboot
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/aumix
++++ insserv-1.00.8/debian/overrides/aumix
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          aumix
++# Required-Start:    $local_fs
++# Required-Stop: 
++# Should-Start:      udev devfs
++# Should-Start:
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/apache-perl
++++ insserv-1.00.8/debian/overrides/apache-perl
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          apache-perl
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/sysstat
++++ insserv-1.00.8/debian/overrides/sysstat
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          sysstat
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/netenv
++++ insserv-1.00.8/debian/overrides/netenv
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          netenv
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nfs-user-server
++++ insserv-1.00.8/debian/overrides/nfs-user-server
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          nfs-user-server nfs-server
++# Required-Start:    $network portmap
++# Required-Stop:     $network portmap
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/cupsys
++++ insserv-1.00.8/debian/overrides/cupsys
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          cupsys
++# Required-Start:    $syslog
++# Required-Stop:     $syslog
++# Should-Start:      $network
++# Should-Stop:       $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/libdevmapper1.01
++++ insserv-1.00.8/debian/overrides/libdevmapper1.01
+@@ -0,0 +1,8 @@
++### BEGIN INIT INFO
++# Provides:          libdevmapper1.01
++# Required-Start:    modutils
++# Required-Stop:     modutils
++# Should-Start:      hotplug discover udev devfsd
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/libdevmapper1.00
++++ insserv-1.00.8/debian/overrides/libdevmapper1.00
+@@ -0,0 +1,8 @@
++### BEGIN INIT INFO
++# Provides:          libdevmapper1.00
++# Required-Start:    modutils
++# Required-Stop:     modutils
++# Should-Start:      hotplug discover udev devfsd
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/freevo
++++ insserv-1.00.8/debian/overrides/freevo
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          freevo
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/pppd-dns
++++ insserv-1.00.8/debian/overrides/pppd-dns
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          pppd-dns
++# Required-Start:    $local_fs dns-clean
++# Required-Stop:     $local_fs
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/rsync
++++ insserv-1.00.8/debian/overrides/rsync
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          rsync
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/raid2
++++ insserv-1.00.8/debian/overrides/raid2
+@@ -0,0 +1,8 @@
++### BEGIN INIT INFO
++# Provides:          raid2
++# Required-Start:    modutils
++# Required-Stop:     modutils
++# Should-Start:      devfsd udev discover hotplug
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/laptop-netconf
++++ insserv-1.00.8/debian/overrides/laptop-netconf
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          laptop-netconf
++# Required-Start:    $network
++# Required-Stop:     $network
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/dirmngr
++++ insserv-1.00.8/debian/overrides/dirmngr
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          dirmngr
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/mdadm
++++ insserv-1.00.8/debian/overrides/mdadm
+@@ -0,0 +1,8 @@
++### BEGIN INIT INFO
++# Provides:          mdadm
++# Required-Start:    mountvirtfs
++# Required-Stop:     mountvirtfs
++# Should-Start:      devfsd udev discover hotplug
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/autofs
++++ insserv-1.00.8/debian/overrides/autofs
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          autofs
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Should-Start:      $network $named slapd
++# Should-Stop:       $network $named slapd
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/report-reboot
++++ insserv-1.00.8/debian/overrides/report-reboot
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          report-reboot
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Should-Start:      $network
++# Should-Stop:       $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/open-backdoor
++++ insserv-1.00.8/debian/overrides/open-backdoor
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          open-backdoor
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Should-Start:      $network
++# Should-Stop:       $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/munin-node
++++ insserv-1.00.8/debian/overrides/munin-node
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          munin-node
++# Required-Start:    $local_fs $remote_fs
++# Required-Stop:     $local_fs $remote_fs
++# Should-Start:      $network
++# Should-Stop:       $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/cfengine2
++++ insserv-1.00.8/debian/overrides/cfengine2
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          cfengine2
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Should-Start:      $network
++# Should-Stop:       $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/courier-imap-ssl
++++ insserv-1.00.8/debian/overrides/courier-imap-ssl
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          courier-imap-ssl
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/setserial
++++ insserv-1.00.8/debian/overrides/setserial
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          setserial
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Should-Start:      devfsd udev
++# Should-Stop:       devfsd udev
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/dhcp3-server
++++ insserv-1.00.8/debian/overrides/dhcp3-server
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          dhcp3-server
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/etc-setserial
++++ insserv-1.00.8/debian/overrides/etc-setserial
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          etc-setserial
++# Required-Start:    
++# Required-Stop:
++# Should-Start:      devfsd udev
++# Should-Stop:       devfsd udev
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/squid
++++ insserv-1.00.8/debian/overrides/squid
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          squid
++# Required-Start:    $network $syslog $time
++# Required-Stop:     $network $syslog $time
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/pptpd
++++ insserv-1.00.8/debian/overrides/pptpd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          pptpd
++# Required-Start:    $syslog
++# Required-Stop:     $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/mdnsresponder
++++ insserv-1.00.8/debian/overrides/mdnsresponder
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          mdnsresponder
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/ifplugd
++++ insserv-1.00.8/debian/overrides/ifplugd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          ifplugd
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/powertweakd
++++ insserv-1.00.8/debian/overrides/powertweakd
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          powertweakd
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nethack-common
++++ insserv-1.00.8/debian/overrides/nethack-common
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          nethack-common
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/uml-utilities
++++ insserv-1.00.8/debian/overrides/uml-utilities
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          uml-utilities
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/nagios
++++ insserv-1.00.8/debian/overrides/nagios
+@@ -0,0 +1,9 @@
++### BEGIN INIT INFO
++# Provides:          nagios
++# Required-Start:    $local_fs $remote_fs
++# Required-Stop:     $local_fs $remote_fs
++# Should-Start:      $network
++# Should-Stop:       $network
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/tpctl
++++ insserv-1.00.8/debian/overrides/tpctl
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          tpctl
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/bluez-utils
++++ insserv-1.00.8/debian/overrides/bluez-utils
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          bluez-utils
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/udftools
++++ insserv-1.00.8/debian/overrides/udftools
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          udftools
++# Required-Start:    $local_fs
++# Required-Stop:     $local_fs
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/courier-authdaemon
++++ insserv-1.00.8/debian/overrides/courier-authdaemon
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          courier-ldap
++# Required-Start:    $network $syslog
++# Required-Stop:     $network $syslog
++# Default-Start:     2 3 4 5
++# Default-Stop:      S 0 1 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/overrides/module-init-tools
++++ insserv-1.00.8/debian/overrides/module-init-tools
+@@ -0,0 +1,7 @@
++### BEGIN INIT INFO
++# Provides:          module-init-tools
++# Required-Start:    hwclockfirst
++# Required-Stop:     hwclockfirst
++# Default-Start:     S 1 2 3 4 5
++# Default-Stop:      0 6
++### END INIT INFO
+--- insserv-1.00.8.orig/debian/patches/misc.dpatch
++++ insserv-1.00.8/debian/patches/misc.dpatch
+@@ -0,0 +1,2038 @@
++--- insserv-1.00.8.orig/Makefile
+++++ insserv-1.00.8/Makefile
++@@ -74,15 +74,15 @@
++ 	$(MKDIR)   $(SBINDIR)
++ 	$(MKDIR)   $(SDOCDIR)
++ 	$(MKDIR)   $(CONFDIR)
++-	$(MKDIR)   $(LSBDIR)
++-	$(MKDIR)   $(DESTDIR)/usr/lib
++-	$(MKDIR)   $(USRLSBDIR)
+++#	$(MKDIR)   $(LSBDIR)
+++#	$(MKDIR)   $(DESTDIR)/usr/lib
+++#	$(MKDIR)   $(USRLSBDIR)
++ 	$(INSTBIN) insserv        $(SBINDIR)/
++ 	$(INSTDOC) insserv.8      $(SDOCDIR)/
++ 	$(INSTCON) insserv.conf   $(CONFDIR)/
++-	$(INSTCON) init-functions $(LSBDIR)/
++-	$(INSTSRP) install_initd  $(USRLSBDIR)/
++-	$(INSTSRP) remove_initd   $(USRLSBDIR)/
+++#	$(INSTCON) init-functions $(LSBDIR)/
+++#	$(INSTSRP) install_initd  $(USRLSBDIR)/
+++#	$(INSTSRP) remove_initd   $(USRLSBDIR)/
++ 
++ #
++ # Make distribution
++--- insserv-1.00.8.orig/insserv.c
+++++ insserv-1.00.8/insserv.c
++@@ -875,7 +898,7 @@
++     regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
++ }
++ 
++-static boolean scan_script_defaults(const char *const path)
+++static boolean scan_lsb_headers(const char *const path)
++ {
++     regmatch_t subloc[SUBNUM_SHD+1], *val = &subloc[SUBNUM-1], *shl = &subloc[SUBNUM_SHD-1];
++     FILE *script;
++@@ -892,6 +915,7 @@
++ #define default_stop	script_inf.default_stop
++ #define description	script_inf.description
++ 
+++    /* info("scanning script '%s' for LSB tags\n", path); */
++     script = fopen(path, "r");
++     if (!script)
++ 	error("fopen(%s): %s\n", path, strerror(errno));
++@@ -991,10 +1015,74 @@
++ #undef default_start
++ #undef default_stop
++ #undef description
+++    return ret;
+++}
+++
+++/*
+++ * Follow symlinks, return the basename of the file pointed to by
+++ * symlinks or the basename of the current path if no symlink.
+++ */
+++static char *scriptname(const char *path)
+++{
+++    char linkbuf[1024];
+++    char *script;
+++    strncpy(linkbuf, path, sizeof(linkbuf));
++ 
+++    int linklen = readlink(path, linkbuf, sizeof(linkbuf));
+++
+++    while (-1 != linklen) {
+++        char *newpath = strdup(linkbuf);
+++	linklen = readlink(newpath, linkbuf, sizeof(linkbuf));
+++	free(newpath);
+++    }
+++    script = basename(linkbuf);
+++    return strdup(script);
+++}
+++
+++static boolean load_overrides(const char *const dir,
+++			      const char *const name)
+++{
+++    boolean ret = 0;
+++
+++    char fullpath[1024];
+++    snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, name);
+++    struct stat statbuf;
+++    if (0 == stat(fullpath, &statbuf) && S_ISREG(statbuf.st_mode)) {
+++        ret = scan_lsb_headers(fullpath);
+++    }
++     return ret;
++ }
++ 
+++static boolean scan_script_defaults(const char *const path)
+++{
+++    boolean ret = 0;
+++    boolean override = 0;
+++    char *name = scriptname(path);
+++
+++    /*
+++     * XXX Should handle bad override files (with no LSB tags) without
+++     * endless recursive call
+++     */
+++
+++    /* Load values if the override file exist */
+++    override = load_overrides("/usr/share/insserv/overrides", name);
+++
+++    /* Replace with headers from the script itself */
+++    ret = scan_lsb_headers(path);
+++
+++    /* Allow host-specific overrides to replace the content in the
+++       init.d scripts */
+++    override |= load_overrides("/etc/insserv/overrides", name);
+++
+++    if (!ret) {
+++        warn("warning: script '%s' missing LSB tags\n", path);
+++    }
+++    if (!override) {
+++        warn("warning: script '%s' missing override too\n", name);
+++    }
+++    return ret | override;
+++}
+++
++ static inline void scan_script_regfree()
++ {
++     regfree(&reg.prov);
++@@ -1023,15 +1111,15 @@
++ 	struct stat st_script;
++ 
++ 	switch (runlevel) {
++-	    case 0: rcd = "rc0.d/";  break;
++-	    case 1: rcd = "rc1.d/";  break;
++-	    case 2: rcd = "rc2.d/";  break;
++-	    case 3: rcd = "rc3.d/";  break;
++-	    case 4: rcd = "rc4.d/";  break;
++-	    case 5: rcd = "rc5.d/";  break;
++-	    case 6: rcd = "rc6.d/";  break;
++-	    case 7: rcd = "rcS.d/";  break;  /* runlevel S */
++-	    case 8: rcd = "boot.d/"; break;  /* runlevel B */
+++	    case 0: rcd = "../rc0.d/";  break;
+++	    case 1: rcd = "../rc1.d/";  break;
+++	    case 2: rcd = "../rc2.d/";  break;
+++	    case 3: rcd = "../rc3.d/";  break;
+++	    case 4: rcd = "../rc4.d/";  break;
+++	    case 5: rcd = "../rc5.d/";  break;
+++	    case 6: rcd = "../rc6.d/";  break;
+++	    case 7: rcd = "../rcS.d/";  break;  /* runlevel S */
+++	    case 8: rcd = "../rc.boot/"; break;  /* runlevel B */
++ 	    default:
++ 		error("Wrong runlevel %d\n", runlevel);
++ 	}
++@@ -1258,6 +1346,7 @@
++ static struct option long_options[] =
++ {
++     {"verbose",	0, NULL, 'v'},
+++    {"dryrun",	0, NULL, 'n'},
++     {"default",	0, NULL, 'd'},
++     {"remove",	0, NULL, 'r'},
++     {"force",	0, NULL, 'f'},
++@@ -1272,6 +1361,8 @@
++     printf("  -h, --help       This help.\n");
++     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
++     printf("  -f, --force      Ignore if a required service is missed.\n");
+++    printf("  -v, --verbose    Provide information on what is being done.\n");
+++    printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
++     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
++ }
++ 
++@@ -1846,15 +1941,15 @@
++ 	DIR  * rcdir;
++ 
++ 	switch (runlevel) {
++-	    case 0: rcd = "rc0.d/";  break;
++-	    case 1: rcd = "rc1.d/";  break;
++-	    case 2: rcd = "rc2.d/";  break;
++-	    case 3: rcd = "rc3.d/";  break;
++-	    case 4: rcd = "rc4.d/";  break;
++-	    case 5: rcd = "rc5.d/";  break;
++-	    case 6: rcd = "rc6.d/";  break;
++-	    case 7: rcd = "rcS.d/";  break;  /* runlevel S */
++-	    case 8: rcd = "boot.d/"; break;  /* runlevel B */
+++	    case 0: rcd = "../rc0.d/";  break;
+++	    case 1: rcd = "../rc1.d/";  break;
+++	    case 2: rcd = "../rc2.d/";  break;
+++	    case 3: rcd = "../rc3.d/";  break;
+++	    case 4: rcd = "../rc4.d/";  break;
+++	    case 5: rcd = "../rc5.d/";  break;
+++	    case 6: rcd = "../rc6.d/";  break;
+++	    case 7: rcd = "../rcS.d/";  break;  /* runlevel S */
+++	    case 8: rcd = "../rc.boot/"; break;  /* runlevel B */
++ 	    default:
++ 		error("Wrong runlevel %d\n", runlevel);
++ 	}
++@@ -1904,7 +1999,7 @@
++ 	    if (*script == '$')		/* Do not link in virtual dependencies */
++ 		continue;
++ 
++-	    sprintf(olink, "../%s",   script);
+++	    sprintf(olink, "../init.d/%s",   script);
++ 	    sprintf(nlink, "S%.2d%s", order, script);
++ 
++ 	    found = false;
++--- insserv-1.00.8.orig/insserv.conf
+++++ insserv-1.00.8/insserv.conf
++@@ -1,17 +1,18 @@
++ #
++ # All local filesystems are mounted (done during boot phase)
++ #
++-$local_fs	boot.localfs
+++$local_fs	mountall
++ 
++ #
++ # Low level networking (ethernet card)
++ #
++-$network	network +pcmcia +hotplug
+++$network	networking
+++# +pcmcia +hotplug
++ 
++ #
++ # Named is operational
++ #
++-$named		+named +dnsmasq +lwresd $network
+++$named		+named +dnsmasq +lwresd +bind9 $network
++ 
++ #
++ # All remote filesystems are mounted (note in some cases /usr may
++@@ -23,7 +24,7 @@
++ #
++ # System logger is operational
++ #
++-$syslog		syslog
+++$syslog		sysklogd klogd
++ 
++ #
++ # All network daemons are running (this entry is OBSOLETE)
++@@ -38,7 +39,7 @@
++ #
++ # The system time has been set correctly
++ #
++-$time		boot.clock +xntpd
+++$time		hwclock +ntp-server
++ 
++ #
++ # Services which need to be interactive
++--- insserv-1.00.8.orig/debian/changelog
+++++ insserv-1.00.8/debian/changelog
++@@ -0,0 +1,6 @@
+++insserv (1.00.8-0.0.pere.1) unstable; urgency=low
+++
+++  * Initial Release.
+++
+++ -- Petter Reinholdtsen <pere@debian.org>  Sun, 21 Aug 2005 11:20:54 +0200
+++
++--- insserv-1.00.8.orig/debian/compat
+++++ insserv-1.00.8/debian/compat
++@@ -0,0 +1 @@
+++4
++--- insserv-1.00.8.orig/debian/rc
+++++ insserv-1.00.8/debian/rc
++@@ -0,0 +1,168 @@
+++#! /bin/sh
+++#
+++# rc		This file is responsible for starting/stopping
+++#		services when the runlevel changes.
+++#
+++#		Optimization feature:
+++#		A startup script is _not_ run when the service was
+++#		running in the previous runlevel and it wasn't stopped
+++#		in the runlevel transition (most Debian services don't
+++#		have K?? links in rc{1,2,3,4,5} )
+++#
+++# Author:	Miquel van Smoorenburg <miquels@cistron.nl>
+++#		Bruce Perens <Bruce@Pixar.com>
+++#
+++# Version:	@(#)rc  2.78  07-Nov-1999  miquels@cistron.nl
+++#
+++
+++# Un-comment the following for debugging.
+++# debug=echo
+++
+++CONCURRENCY=8
+++
+++. /etc/default/rcS
+++
+++runlog=/tmp/bootlog
+++rcstart=`date +%s`
+++
+++#
+++# Start script or program.
+++#
+++startup() {
+++  service=$1
+++  start=`date +%s`
+++  case "$1" in
+++	*.sh)
+++		$debug sh "$@"
+++		;;
+++	*)
+++		$debug "$@"
+++		;;
+++  esac
+++  stop=`date +%s`
+++  spent=$(($stop - $start))
+++  echo $stop $spent $service >> $runlog
+++}
+++
+++discover_uniq() {
+++  local result=""
+++
+++  while read word; do
+++    if ! ( echo "$result" | grep -q "$word " ); then
+++      result="$result $word "
+++    fi
+++  done
+++
+++  echo "$result"
+++}
+++
+++  # Ignore CTRL-C only in this shell, so we can interrupt subprocesses.
+++  trap ":" INT QUIT TSTP
+++
+++  # Set onlcr to avoid staircase effect.
+++  stty onlcr 0>&1
+++
+++  # Now find out what the current and what the previous runlevel are.
+++
+++  runlevel=$RUNLEVEL
+++  # Get first argument. Set new runlevel to this argument.
+++  [ "$1" != "" ] && runlevel=$1
+++  if [ "$runlevel" = "" ]
+++  then
+++	echo "Usage: $0 <runlevel>" >&2
+++	exit 1
+++  fi
+++  previous=$PREVLEVEL
+++  [ "$previous" = "" ] && previous=N
+++
+++  export runlevel previous
+++
+++  # Is there an rc directory for this new runlevel?
+++  if [ -d /etc/rc$runlevel.d ]
+++  then
+++	# First, run the KILL scripts.
+++	if [ $previous != N ]
+++	then
+++		# Run all scripts with the same level in parallell
+++		for level in `ls /etc/rc$runlevel.d | \
+++		              sed 's/^K\([0-9][0-9]\).*/\1/' | \
+++		              discover_uniq` ; do
+++			pids=""
+++			subs=0
+++			for i in /etc/rc$runlevel.d/K$level*
+++		do
+++			# Check if the script is there.
+++			[ ! -f $i ] && continue
+++
+++			# Stop the service.
+++				startup $i stop &
+++				pids="$pids $!"
+++				subs=$(($subs + 1))
+++
+++		# Enough sub-processes running?
+++				if [ "$CONCURRENCY" -le "$subs" ] ; then
+++					for pid in $pids ; do
+++						wait $pid
+++						subs=$(($subs - 1))
+++					done
+++					pids=""
+++				fi
+++			done
+++			# Wait for all pids.  Does not matter which
+++			# pid return first, as we need to wait for all
+++			# of them
+++			for pid in $pids ; do
+++				wait $pid
+++			done
+++		done
+++	fi
+++	# Now run the START scripts for this runlevel.
+++
+++	# Run all scripts with the same level in parallell
+++	for level in `ls /etc/rc$runlevel.d | sed 's/^S\([0-9][0-9]\).*/\1/' |\
+++	              discover_uniq` ; do
+++		pids=""
+++		for i in /etc/rc$runlevel.d/S$level*
+++	do
+++		[ ! -f $i ] && continue
+++
+++		if [ $previous != N ] && [ $previous != S ]
+++		then
+++			#
+++			# Find start script in previous runlevel and
+++			# stop script in this runlevel.
+++			#
+++			suffix=${i#/etc/rc$runlevel.d/S[0-9][0-9]}
+++			stop=/etc/rc$runlevel.d/K[0-9][0-9]$suffix
+++			previous_start=/etc/rc$previous.d/S[0-9][0-9]$suffix
+++			#
+++			# If there is a start script in the previous level
+++			# and _no_ stop script in this level, we don't
+++			# have to re-start the service.
+++			#
+++			[ -f $previous_start ] && [ ! -f $stop ] && continue
+++		fi
+++		case "$runlevel" in
+++			0|6)
+++					startup $i stop &
+++				;;
+++			*)
+++					startup $i start &
+++				;;
+++		esac
+++			pids="$pids $!"
+++		done
+++		# Wait for all pids.  Does not matter which
+++		# pid return first, as we need to wait for all
+++		# of them
+++		for pid in $pids ; do
+++			wait $pid
+++		done
+++	done
+++  fi
+++
+++rcstop=`date +%s`
+++rcspent=$(($rcstop - $rcstart))
+++echo $rcstop $rcspent rc$RUNLEVEL >> $runlog
+++
+++# eof /etc/init.d/rc
++--- insserv-1.00.8.orig/debian/rcS
+++++ insserv-1.00.8/debian/rcS
++@@ -0,0 +1,120 @@
+++#! /bin/sh
+++#
+++# rcS		Call all S??* scripts in /etc/rcS.d in
+++#		numerical/alphabetical order.
+++#
+++# Version:	@(#)/etc/init.d/rcS  2.76  19-Apr-1999  miquels@cistron.nl
+++#
+++
+++PATH=/sbin:/bin:/usr/sbin:/usr/bin
+++runlevel=S
+++prevlevel=N
+++umask 022
+++export PATH runlevel prevlevel
+++
+++set -x
+++
+++#
+++#	See if system needs to be setup. This is ONLY meant to
+++#	be used for the initial setup after a fresh installation!
+++#
+++if [ -x /sbin/unconfigured.sh ]
+++then
+++  /sbin/unconfigured.sh
+++fi
+++
+++CONCURRENCY=8
+++#
+++#	Source defaults.
+++#
+++. /etc/default/rcS
+++export VERBOSE
+++
+++runlog=/tmp/bootlog
+++rcstart=`date +%s`
+++#
+++#	Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
+++#
+++trap ":" INT QUIT TSTP
+++
+++#
+++# Start script or program.
+++#
+++startup() {
+++  service=$1
+++  start=`date +%s`
+++  case "$1" in
+++	*.sh)
+++		$debug sh "$@"
+++		;;
+++	*)
+++		$debug "$@"
+++		;;
+++  esac
+++  stop=`date +%s`
+++  spent=$(($stop - $start))
+++  echo $stop $spent $service >> $runlog
+++}
+++
+++discover_uniq() {
+++  local result=""
+++
+++  while read word; do
+++    if ! ( echo "$result" | grep -q "$word " ); then
+++      result="$result $word "
+++    fi
+++  done
+++
+++  echo "$result"
+++}
+++# for level in $(ls /etc/rc$runlevel.d | sed 's/^K\([0-9][0-9]\).*/\1/' ) ; do [ "$level" = "$LAST" ] || echo $level ; LAST=$level ;  done
+++
+++#
+++#	Call all parts in order.
+++#
+++# Run all scripts with the same level in parallell
+++for level in `ls /etc/rcS.d | sed 's/^S\([0-9][0-9]\).*/\1/' | \
+++              discover_uniq` ; do
+++	pids=""
+++	subs=0
+++	for i in /etc/rcS.d/S$level*
+++	do
+++		# Ignore dangling symlinks for now.
+++		[ ! -f "$i" ] && continue
+++		startup $i start &
+++		pids="$pids $!"
+++		subs=$(($subs + 1))
+++
+++		# Enough sub-processes running?
+++		if [ "$CONCURRENCY" -le "$subs" ] ; then
+++			for pid in $pids ; do
+++				wait $pid
+++				subs=$(($subs - 1))
+++			done
+++			pids=""
+++		fi
+++	done
+++	# Wait for all remaining pids.  Does not matter which pid
+++	# return first, as we need to wait for all of them
+++	for pid in $pids ; do
+++		wait $pid
+++	done
+++done
+++
+++#
+++#	For compatibility, run the files in /etc/rc.boot too.
+++#
+++[ -d /etc/rc.boot ] && run-parts /etc/rc.boot
+++
+++#
+++#	Finish setup if needed. The comment above about
+++#	/sbin/unconfigured.sh applies here as well!
+++#
+++if [ -x /sbin/setup.sh ]
+++then
+++  /sbin/setup.sh
+++fi
+++
+++rcstop=`date +%s`
+++rcspent=$(($rcstop - $rcstart))
+++echo $rcstop $rcspent rcS >> $runlog
++--- insserv-1.00.8.orig/debian/dirs
+++++ insserv-1.00.8/debian/dirs
++@@ -0,0 +1,2 @@
+++usr/share/insserv/examples
+++usr/share/insserv/overrides
++--- insserv-1.00.8.orig/debian/overrides/bootclean.sh
+++++ insserv-1.00.8/debian/overrides/bootclean.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          bootclean
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/bootlogd
+++++ insserv-1.00.8/debian/overrides/bootlogd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          bootlogd
+++# Required-Start:    mountvirtfs
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/bootmisc.sh
+++++ insserv-1.00.8/debian/overrides/bootmisc.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          bootmisc
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/checkfs.sh
+++++ insserv-1.00.8/debian/overrides/checkfs.sh
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          checkfs
+++# Required-Start:    modutils checkroot
+++# Required-Stop: 
+++# Should-Start:      lvm
+++# Should-Stop:       lvm
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/checkroot.sh
+++++ insserv-1.00.8/debian/overrides/checkroot.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          checkroot
+++# Required-Start:    keymap hwclockfirst
+++# Required-Stop:     
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/console-screen.sh
+++++ insserv-1.00.8/debian/overrides/console-screen.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          console-screen
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/devfsd
+++++ insserv-1.00.8/debian/overrides/devfsd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          devfsd
+++# Required-Start:    
+++# Required-Stop:     
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/discover
+++++ insserv-1.00.8/debian/overrides/discover
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          discover
+++# Required-Start:    mountvirtfs checkroot
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/halt
+++++ insserv-1.00.8/debian/overrides/halt
++@@ -0,0 +1,10 @@
+++### BEGIN INIT INFO
+++# Provides:          halt
+++# Required-Start:    
+++# Required-Stop:     
+++# Should-stop:       lvm
+++# Default-Start:     0
+++# Default-Stop:       
+++# Short-Description: 
+++# Description: 
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/hostname.sh
+++++ insserv-1.00.8/debian/overrides/hostname.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          hostname
+++# Required-Start:
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/hotplug
+++++ insserv-1.00.8/debian/overrides/hotplug
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          hotplug
+++# Required-Start:    mountvirtfs checkroot
+++# Required-Stop:     mountvirtfs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/hotplug-net
+++++ insserv-1.00.8/debian/overrides/hotplug-net
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          hotplug-net
+++# Required-Start:    $network hotplug
+++# Required-Stop:     $network hotplug
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/hwclockfirst.sh
+++++ insserv-1.00.8/debian/overrides/hwclockfirst.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          hwclockfirst
+++# Required-Start:    
+++# Required-Stop:     
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/hwclock.sh
+++++ insserv-1.00.8/debian/overrides/hwclock.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          hwclock
+++# Required-Start:    console-screen
+++# Required-Stop:     console-screen
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ifupdown
+++++ insserv-1.00.8/debian/overrides/ifupdown
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          ifupdown
+++# Required-Start:    ifupdown-clean
+++# Required-Stop:     ifupdown-clean
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ifupdown-clean
+++++ insserv-1.00.8/debian/overrides/ifupdown-clean
++@@ -0,0 +1,8 @@
+++### BEGIN INIT INFO
+++# Provides:          ifupdown-clean
+++# Required-Start:    checkroot
+++# Required-Stop:     
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
+++
++--- insserv-1.00.8.orig/debian/overrides/initrd-tools.sh
+++++ insserv-1.00.8/debian/overrides/initrd-tools.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          initrd-tools
+++# Required-Start:    bootlogd
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/keymap.sh
+++++ insserv-1.00.8/debian/overrides/keymap.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          keymap
+++# Required-Start:    initrd-tools
+++# Required-Stop:     
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/klogd
+++++ insserv-1.00.8/debian/overrides/klogd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          klogd
+++# Required-Start:    sysklogd
+++# Required-Stop:     sysklogd
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ltsp-client
+++++ insserv-1.00.8/debian/overrides/ltsp-client
++@@ -0,0 +1,8 @@
+++### BEGIN INIT INFO
+++# Provides:          ltsp-client
+++# Required-Start:    ltsp-client-setup $network $syslog
+++# Required-Stop:     ltsp-client-setup $network $syslog
+++# Should-Start:      xdebconfigurator
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ltsp-client-setup
+++++ insserv-1.00.8/debian/overrides/ltsp-client-setup
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          ltsp-client-setup
+++# Required-Start:    mountvirtfs $local_fs
+++# Required-Stop:     mountvirtfs $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/makedev
+++++ insserv-1.00.8/debian/overrides/makedev
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          makedev
+++# Required-Start:    $local_fs
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/modutils
+++++ insserv-1.00.8/debian/overrides/modutils
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          modutils
+++# Required-Start:    hwclockfirst
+++# Required-Stop:     hwclockfirst
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/mountall.sh
+++++ insserv-1.00.8/debian/overrides/mountall.sh
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          mountall
+++# Required-Start:    checkfs
+++# Required-Stop: 
+++# Should-Start:      lvm
+++# Should-Stop:       lvm
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/mountnfs.sh
+++++ insserv-1.00.8/debian/overrides/mountnfs.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          mountnfs nfs
+++# Required-Start:    $network $local_fs
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/mountvirtfs
+++++ insserv-1.00.8/debian/overrides/mountvirtfs
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          mountvirtfs
+++# Required-Start:    devfsd
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nbd-client
+++++ insserv-1.00.8/debian/overrides/nbd-client
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          nbd-client
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/networking
+++++ insserv-1.00.8/debian/overrides/networking
++@@ -0,0 +1,8 @@
+++### BEGIN INIT INFO
+++# Provides:          networking
+++# Required-Start:    mountvirtfs ifupdown $local_fs
+++# Required-Stop:     mountvirtfs
+++# Should-Start:      hotplug discover
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/openbsd-inetd
+++++ insserv-1.00.8/debian/overrides/openbsd-inetd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          openbsd-inetd
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/procps.sh
+++++ insserv-1.00.8/debian/overrides/procps.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          procps
+++# Required-Start:    mountvirtfs
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/reboot
+++++ insserv-1.00.8/debian/overrides/reboot
++@@ -0,0 +1,8 @@
+++### BEGIN INIT INFO
+++# Provides:          reboot
+++# Required-Start:    
+++# Required-Stop:     
+++# Should-stop:       lvm raid2
+++# Default-Start:     
+++# Default-Stop:      6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/rmnologin
+++++ insserv-1.00.8/debian/overrides/rmnologin
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:           rmnologin
+++# Required-Start:     $local_fs
+++# Required-Stop: 
+++# Should-Start:       $time $remote_fs
+++# Should-Stop: 
+++# Default-Start:      S 1 2 3 4 5
+++# Default-Stop:       
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/sendsigs
+++++ insserv-1.00.8/debian/overrides/sendsigs
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          sendsigs
+++# Required-Start:    
+++# Required-Stop: 
+++# Default-Start:      6
+++# Default-Stop:       
+++# Short-Description: 
+++# Description: 
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/single
+++++ insserv-1.00.8/debian/overrides/single
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          single
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     S
+++# Default-Stop:      0 1 2 3 4 5 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/umountfs
+++++ insserv-1.00.8/debian/overrides/umountfs
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          umountfs
+++# Required-Start:    
+++# Required-Stop: 
+++# Default-Start:      6
+++# Default-Stop:       
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ssh
+++++ insserv-1.00.8/debian/overrides/ssh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          sshd
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/courier-ldap
+++++ insserv-1.00.8/debian/overrides/courier-ldap
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          courier-ldap
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Should-Start:      slapd
+++# Should-Stop:       slapd
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/sysklogd
+++++ insserv-1.00.8/debian/overrides/sysklogd
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          syslog sysklogd
+++# Required-Start:    $local_fs $time
+++# Required-Stop:     $local_fs $time
+++# Should-Start:      $network $named
+++# Should-Stop:       $network $named
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/udev
+++++ insserv-1.00.8/debian/overrides/udev
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          udev
+++# Required-Start:    mountvirtfs
+++# Required-Stop:     
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/udev-mtab
+++++ insserv-1.00.8/debian/overrides/udev-mtab
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          udev-mtab
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/slapd
+++++ insserv-1.00.8/debian/overrides/slapd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          slapd
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/umountnfs.sh
+++++ insserv-1.00.8/debian/overrides/umountnfs.sh
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          umountnfs
+++# Required-Start:    
+++# Required-Stop: 
+++# Default-Start:      6
+++# Default-Stop:       
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/urandom
+++++ insserv-1.00.8/debian/overrides/urandom
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          urandom
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/xdebconfigurator
+++++ insserv-1.00.8/debian/overrides/xdebconfigurator
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# provides:          xdebconfigurator
+++# required-start:    $syslog
+++# required-stop:     $syslog
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/xfree86-common
+++++ insserv-1.00.8/debian/overrides/xfree86-common
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          xfree86-common
+++# Required-Start:    $local_fs $remote_fs
+++# Required-Stop:     $local_fs $remote_fs
+++# Should-Start:      $named
+++# Should-Stop:       $named
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/portmap
+++++ insserv-1.00.8/debian/overrides/portmap
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          portmap
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Should-Start:      $named
+++# Should-Stop:       $named
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/sudo
+++++ insserv-1.00.8/debian/overrides/sudo
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          sudu
+++# Required-Start:    $local_fs
+++# Required-Stop: 
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/gdm
+++++ insserv-1.00.8/debian/overrides/gdm
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          gdm
+++# Required-Start:    $syslog $local_fs
+++# Required-Stop:     $syslog $local_fs
+++# Should-Start:      xfs
+++# Should-Stop:       xfs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/lvm
+++++ insserv-1.00.8/debian/overrides/lvm
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          lvm
+++# Required-Start:    mountvirtfs
+++# Required-Stop:
+++# Should-Start:      hotplug discover udev devfsd raid2 mdadm
+++# Should-Stop:
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/exim
+++++ insserv-1.00.8/debian/overrides/exim
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          exim
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/kdm
+++++ insserv-1.00.8/debian/overrides/kdm
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          kdm
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Should-Start:      xfs $named slapd
+++# Should-Stop:       xfs $named slapd
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/inetd
+++++ insserv-1.00.8/debian/overrides/inetd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          inetd
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ntpdate
+++++ insserv-1.00.8/debian/overrides/ntpdate
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          ntpdate
+++# Required-Start:    $network hwclock
+++# Required-Stop:     $network hwclock
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/cron
+++++ insserv-1.00.8/debian/overrides/cron
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          cron
+++# Required-Start:    $syslog $time
+++# Required-Stop:     $syslog $time
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/atd
+++++ insserv-1.00.8/debian/overrides/atd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          atd
+++# Required-Start:    $syslog $time $local_fs
+++# Required-Stop:     $syslog $time $local_fs
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/fam
+++++ insserv-1.00.8/debian/overrides/fam
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          fam
+++# Required-Start:    $network portmap
+++# Required-Stop:     $network portmap
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/alsa
+++++ insserv-1.00.8/debian/overrides/alsa
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          alsa
+++# Required-Start:    $syslog
+++# Required-Stop:     $syslog
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/gpsd
+++++ insserv-1.00.8/debian/overrides/gpsd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          gpsd
+++# Required-Start:    $syslog $network
+++# Required-Stop:     $syslog $network
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/xfs
+++++ insserv-1.00.8/debian/overrides/xfs
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          xfs
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Should-Start:      $network
+++# Should-Stop:       $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/lpd
+++++ insserv-1.00.8/debian/overrides/lpd
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          lpd
+++# Required-Start:    $syslog
+++# Required-Stop:     $syslog
+++# Should-Start:      $network
+++# Should-Stop:       $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/apmd
+++++ insserv-1.00.8/debian/overrides/apmd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          apmd
+++# Required-Start:    mountvirtfs $syslog
+++# Required-Stop:     mountvirtfs $syslog
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nstxd
+++++ insserv-1.00.8/debian/overrides/nstxd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          nstxd
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nstxcd
+++++ insserv-1.00.8/debian/overrides/nstxcd
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          nstxcd
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Should-Start:      nstxd
+++# Should-Stop:       nstxd
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/enable-nat
+++++ insserv-1.00.8/debian/overrides/enable-nat
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          enable-nat
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/pcmcia
+++++ insserv-1.00.8/debian/overrides/pcmcia
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          pcmcia
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/acpid
+++++ insserv-1.00.8/debian/overrides/acpid
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          acpid
+++# Required-Start:    mountvirtfs $syslog
+++# Required-Stop:     mountvirtfs $syslog
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ppp
+++++ insserv-1.00.8/debian/overrides/ppp
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          ppp
+++# Required-Start:    $syslog 
+++# Required-Stop:     $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nscd
+++++ insserv-1.00.8/debian/overrides/nscd
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          nscd
+++# Required-Start:    $syslog
+++# Required-Stop:     $syslog
+++# Should-Start:      $network slapd $named
+++# Should-Stop:       $network slapd $named
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/exim4
+++++ insserv-1.00.8/debian/overrides/exim4
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          exim4 exim
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/anacron
+++++ insserv-1.00.8/debian/overrides/anacron
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          anacron
+++# Required-Start:    $syslog $time
+++# Required-Stop:     $syslog $time
+++# Default-Start:     1 2 3 4 5
+++# Default-Stop:      S 0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nfs-common
+++++ insserv-1.00.8/debian/overrides/nfs-common
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          nfs-common
+++# Required-Start:    $network portmap
+++# Required-Stop:     $network portmap
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/irda-utils
+++++ insserv-1.00.8/debian/overrides/irda-utils
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          irda-utils
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/webmin
+++++ insserv-1.00.8/debian/overrides/webmin
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          webmin
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/irda
+++++ insserv-1.00.8/debian/overrides/irda
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          irda
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nfs-kernel-server
+++++ insserv-1.00.8/debian/overrides/nfs-kernel-server
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          nfs-kernel-server nfs-server
+++# Required-Start:    $network portmap
+++# Required-Stop:     $network portmap
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/hdparm
+++++ insserv-1.00.8/debian/overrides/hdparm
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          hdparm
+++# Required-Start:    mountvirtfs
+++# Required-Stop:
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/dbus-1
+++++ insserv-1.00.8/debian/overrides/dbus-1
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          dbus-1
+++# Required-Start:    $local_fs $syslog
+++# Required-Stop:     $local_fs $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ntp-server
+++++ insserv-1.00.8/debian/overrides/ntp-server
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          ntp-server
+++# Required-Start:    $network ntpdate
+++# Required-Stop:     $network ntpdate
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/postgresql
+++++ insserv-1.00.8/debian/overrides/postgresql
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          postgresql
+++# Required-Start:    $local_fs $network
+++# Required-Stop:     $local_fs $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/samba
+++++ insserv-1.00.8/debian/overrides/samba
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          samba
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Should-Start:      $named
+++# Should-Stop:       $named
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/tftpd-hpa
+++++ insserv-1.00.8/debian/overrides/tftpd-hpa
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          tftpd-hpa
+++# Required-Start:    $local_fs $network
+++# Required-Stop:     $local_fs $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/atftpd
+++++ insserv-1.00.8/debian/overrides/atftpd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          atftpd
+++# Required-Start:    $local_fs $network
+++# Required-Stop:     $local_fs $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/dns-clean
+++++ insserv-1.00.8/debian/overrides/dns-clean
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          dns-clean
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/apache
+++++ insserv-1.00.8/debian/overrides/apache
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          apache
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/mrouted
+++++ insserv-1.00.8/debian/overrides/mrouted
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          mrouted
+++# Required-Start:    $syslog $network
+++# Required-Stop:     $syslog $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/update-hostname
+++++ insserv-1.00.8/debian/overrides/update-hostname
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          update-hostname
+++# Required-Start:    ifupdown hostname
+++# Required-Stop:
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/smartmontools
+++++ insserv-1.00.8/debian/overrides/smartmontools
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          smartmontools
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/bind9
+++++ insserv-1.00.8/debian/overrides/bind9
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          bind9
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/courier-imap
+++++ insserv-1.00.8/debian/overrides/courier-imap
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          courier-imap
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/mplayer
+++++ insserv-1.00.8/debian/overrides/mplayer
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          mplayer
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nviboot
+++++ insserv-1.00.8/debian/overrides/nviboot
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          nviboot
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/aumix
+++++ insserv-1.00.8/debian/overrides/aumix
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          aumix
+++# Required-Start:    $local_fs
+++# Required-Stop: 
+++# Should-Start:      udev devfs
+++# Should-Start:
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/apache-perl
+++++ insserv-1.00.8/debian/overrides/apache-perl
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          apache-perl
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/sysstat
+++++ insserv-1.00.8/debian/overrides/sysstat
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          sysstat
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/netenv
+++++ insserv-1.00.8/debian/overrides/netenv
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          netenv
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nfs-user-server
+++++ insserv-1.00.8/debian/overrides/nfs-user-server
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          nfs-user-server nfs-server
+++# Required-Start:    $network portmap
+++# Required-Stop:     $network portmap
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/cupsys
+++++ insserv-1.00.8/debian/overrides/cupsys
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          cupsys
+++# Required-Start:    $syslog
+++# Required-Stop:     $syslog
+++# Should-Start:      $network
+++# Should-Stop:       $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/libdevmapper1.01
+++++ insserv-1.00.8/debian/overrides/libdevmapper1.01
++@@ -0,0 +1,8 @@
+++### BEGIN INIT INFO
+++# Provides:          libdevmapper1.01
+++# Required-Start:    modutils
+++# Required-Stop:     modutils
+++# Should-Start:      hotplug discover udev devfsd
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/libdevmapper1.00
+++++ insserv-1.00.8/debian/overrides/libdevmapper1.00
++@@ -0,0 +1,8 @@
+++### BEGIN INIT INFO
+++# Provides:          libdevmapper1.00
+++# Required-Start:    modutils
+++# Required-Stop:     modutils
+++# Should-Start:      hotplug discover udev devfsd
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/freevo
+++++ insserv-1.00.8/debian/overrides/freevo
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          freevo
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/pppd-dns
+++++ insserv-1.00.8/debian/overrides/pppd-dns
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          pppd-dns
+++# Required-Start:    $local_fs dns-clean
+++# Required-Stop:     $local_fs
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/rsync
+++++ insserv-1.00.8/debian/overrides/rsync
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          rsync
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/raid2
+++++ insserv-1.00.8/debian/overrides/raid2
++@@ -0,0 +1,8 @@
+++### BEGIN INIT INFO
+++# Provides:          raid2
+++# Required-Start:    modutils
+++# Required-Stop:     modutils
+++# Should-Start:      devfsd udev discover hotplug
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/laptop-netconf
+++++ insserv-1.00.8/debian/overrides/laptop-netconf
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          laptop-netconf
+++# Required-Start:    $network
+++# Required-Stop:     $network
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/dirmngr
+++++ insserv-1.00.8/debian/overrides/dirmngr
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          dirmngr
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/mdadm
+++++ insserv-1.00.8/debian/overrides/mdadm
++@@ -0,0 +1,8 @@
+++### BEGIN INIT INFO
+++# Provides:          mdadm
+++# Required-Start:    mountvirtfs
+++# Required-Stop:     mountvirtfs
+++# Should-Start:      devfsd udev discover hotplug
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/autofs
+++++ insserv-1.00.8/debian/overrides/autofs
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          autofs
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Should-Start:      $network $named slapd
+++# Should-Stop:       $network $named slapd
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/report-reboot
+++++ insserv-1.00.8/debian/overrides/report-reboot
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          report-reboot
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Should-Start:      $network
+++# Should-Stop:       $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/open-backdoor
+++++ insserv-1.00.8/debian/overrides/open-backdoor
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          open-backdoor
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Should-Start:      $network
+++# Should-Stop:       $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/munin-node
+++++ insserv-1.00.8/debian/overrides/munin-node
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          munin-node
+++# Required-Start:    $local_fs $remote_fs
+++# Required-Stop:     $local_fs $remote_fs
+++# Should-Start:      $network
+++# Should-Stop:       $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/cfengine2
+++++ insserv-1.00.8/debian/overrides/cfengine2
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          cfengine2
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Should-Start:      $network
+++# Should-Stop:       $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/courier-imap-ssl
+++++ insserv-1.00.8/debian/overrides/courier-imap-ssl
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          courier-imap-ssl
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/setserial
+++++ insserv-1.00.8/debian/overrides/setserial
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          setserial
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Should-Start:      devfsd udev
+++# Should-Stop:       devfsd udev
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/dhcp3-server
+++++ insserv-1.00.8/debian/overrides/dhcp3-server
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          dhcp3-server
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/etc-setserial
+++++ insserv-1.00.8/debian/overrides/etc-setserial
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          etc-setserial
+++# Required-Start:    
+++# Required-Stop:
+++# Should-Start:      devfsd udev
+++# Should-Stop:       devfsd udev
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/squid
+++++ insserv-1.00.8/debian/overrides/squid
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          squid
+++# Required-Start:    $network $syslog $time
+++# Required-Stop:     $network $syslog $time
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/pptpd
+++++ insserv-1.00.8/debian/overrides/pptpd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          pptpd
+++# Required-Start:    $syslog
+++# Required-Stop:     $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/mdnsresponder
+++++ insserv-1.00.8/debian/overrides/mdnsresponder
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          mdnsresponder
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/ifplugd
+++++ insserv-1.00.8/debian/overrides/ifplugd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          ifplugd
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/powertweakd
+++++ insserv-1.00.8/debian/overrides/powertweakd
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          powertweakd
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nethack-common
+++++ insserv-1.00.8/debian/overrides/nethack-common
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          nethack-common
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/uml-utilities
+++++ insserv-1.00.8/debian/overrides/uml-utilities
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          uml-utilities
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/nagios
+++++ insserv-1.00.8/debian/overrides/nagios
++@@ -0,0 +1,9 @@
+++### BEGIN INIT INFO
+++# Provides:          nagios
+++# Required-Start:    $local_fs $remote_fs
+++# Required-Stop:     $local_fs $remote_fs
+++# Should-Start:      $network
+++# Should-Stop:       $network
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/tpctl
+++++ insserv-1.00.8/debian/overrides/tpctl
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          tpctl
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/bluez-utils
+++++ insserv-1.00.8/debian/overrides/bluez-utils
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          bluez-utils
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/udftools
+++++ insserv-1.00.8/debian/overrides/udftools
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          udftools
+++# Required-Start:    $local_fs
+++# Required-Stop:     $local_fs
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/courier-authdaemon
+++++ insserv-1.00.8/debian/overrides/courier-authdaemon
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          courier-ldap
+++# Required-Start:    $network $syslog
+++# Required-Stop:     $network $syslog
+++# Default-Start:     2 3 4 5
+++# Default-Stop:      S 0 1 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/overrides/module-init-tools
+++++ insserv-1.00.8/debian/overrides/module-init-tools
++@@ -0,0 +1,7 @@
+++### BEGIN INIT INFO
+++# Provides:          module-init-tools
+++# Required-Start:    hwclockfirst
+++# Required-Stop:     hwclockfirst
+++# Default-Start:     S 1 2 3 4 5
+++# Default-Stop:      0 6
+++### END INIT INFO
++--- insserv-1.00.8.orig/debian/control
+++++ insserv-1.00.8/debian/control
++@@ -0,0 +1,12 @@
+++Source: insserv
+++Section: misc
+++Priority: optional
+++Maintainer: Petter Reinholdtsen <pere@debian.org>
+++Build-Depends: debhelper (>= 4.0.0)
+++Standards-Version: 3.6.2
+++
+++Package: insserv
+++Architecture: any
+++Depends: ${shlibs:Depends}, ${misc:Depends}
+++Description: Check LSB init.d script dependencies, and generate boot sequence
+++ <insert long description, indented with spaces>
++--- insserv-1.00.8.orig/debian/copyright
+++++ insserv-1.00.8/debian/copyright
++@@ -0,0 +1,21 @@
+++This package was debianized by Petter Reinholdtsen <pere@hungry.com> on
+++Sun, 21 Aug 2005 11:20:54 +0200.
+++
+++It was downloaded from
+++<URL: ftp://ftp.suse.com/pub/suse/i386/current/suse/src/insserv-1.00.8-4.src.rpm >
+++
+++Copyright Holder: Werner Fink <werner@suse.de> and SuSE LINUX AG.
+++
+++License:
+++
+++ Copyright 2000-2004 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany,
+++                                  2003 SuSE Linux AG, Germany.
+++                                  2004 SuSE LINUX AG, Germany.
+++
+++ This program is free software; you can redistribute it and/or modify
+++ it under the terms of the GNU General Public License as published by
+++ the Free Software Foundation; either version 2 of the License, or
+++ (at your option) any later version.
+++
+++On Debian systems, a copy of the GNU General Public License version 2
+++may be found in the file /usr/share/common-licenses/GPL-2.
++--- insserv-1.00.8.orig/debian/rules
+++++ insserv-1.00.8/debian/rules
++@@ -0,0 +1,87 @@
+++#!/usr/bin/make -f
+++# -*- makefile -*-
+++
+++# Uncomment this to turn on verbose mode.
+++#export DH_VERBOSE=1
+++
+++PACKAGE = insserv
+++
+++CFLAGS = -Wall -g
+++
+++ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+++	CFLAGS += -O0
+++else
+++	CFLAGS += -O2
+++endif
+++
+++INSTALL = install
+++INSTALL_DATA = $(INSTALL) -m644
+++DESTDIR = $(CURDIR)/debian/$(PACKAGE)
+++
+++pkgdatadir = /usr/share/$(PACKAGE)
+++
+++configure: configure-stamp
+++configure-stamp:
+++	dh_testdir
+++	# Add here commands to configure the package.
+++
+++	touch configure-stamp
+++
+++
+++build: build-stamp
+++
+++build-stamp: configure-stamp 
+++	dh_testdir
+++
+++	# Add here commands to compile the package.
+++	$(MAKE)
+++
+++	touch build-stamp
+++
+++clean:
+++	dh_testdir
+++	rm -f build-stamp configure-stamp
+++
+++	# Add here commands to clean up after the build process.
+++	-$(MAKE) clean
+++
+++	dh_clean 
+++
+++install: build
+++	dh_testdir
+++	dh_testroot
+++	dh_clean -k 
+++	dh_installdirs
+++
+++	# Add here commands to install the package into debian/$(PACKAGE).
+++	$(MAKE) install DESTDIR=$(DESTDIR)
+++
+++	$(INSTALL) debian/rc debian/rcS $(DESTDIR)$(pkgdatadir)/examples
+++	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/
+++
+++
+++# Build architecture-independent files here.
+++binary-indep: build install
+++# We have nothing to do by default.
+++
+++# Build architecture-dependent files here.
+++binary-arch: build install
+++	dh_testdir
+++	dh_testroot
+++	dh_installchangelogs CHANGES
+++	dh_installdocs
+++	dh_installexamples
+++#	dh_install
+++	dh_installman
+++	dh_link
+++	dh_strip
+++	dh_compress
+++	dh_fixperms
+++	dh_installdeb
+++	dh_shlibdeps
+++	dh_gencontrol
+++	dh_md5sums
+++	dh_builddeb
+++
+++binary: binary-indep binary-arch
+++.PHONY: build clean binary-indep binary-arch binary install configure
++--- insserv-1.00.8.orig/debian/watch
+++++ insserv-1.00.8/debian/watch
++@@ -0,0 +1,6 @@
+++# Run the "uscan" command to check for upstream updates and more.
+++# See uscan(1) for format
+++
+++version=2
+++
+++ftp://ftp.suse.com/pub/suse/i386/current/suse/src/insserv-(.*)\.src\.rpm debian uupdate
++--- insserv-1.00.8.orig/debian/insserv.examples
+++++ insserv-1.00.8/debian/insserv.examples
++@@ -0,0 +1,2 @@
+++debian/rc
+++debian/rcS
++--- insserv-1.00.8.orig/debian/docs
+++++ insserv-1.00.8/debian/docs
++@@ -0,0 +1 @@
+++README
+--- insserv-1.00.8.orig/debian/patches/10_dryrun.dpatch
++++ insserv-1.00.8/debian/patches/10_dryrun.dpatch
+@@ -0,0 +1,152 @@
++#! /bin/sh /usr/share/dpatch/dpatch-run
++## debian/patches/misc.dpatch.dpatch by  <pere@localhost>
++##
++## All lines beginning with `## DP:' are a description of the patch.
++## DP: No description.
++
++@DPATCH@
++--- insserv-1.00.8.orig/listing.h
+++++ insserv-1.00.8/listing.h
++@@ -91,6 +91,7 @@
++ extern const char *const delimeter;
++ extern void error (const char *fmt, ...);
++ extern void warn (const char *fmt, ...);
+++extern void info (const char *fmt, ...);
++ 
++ static inline char * xstrdup(const char *s)
++ {
++@@ -104,14 +105,14 @@
++ 
++ #define xreset(ptr)	\
++ 	{char * tmp = (char *)ptr; if (ptr && *tmp) free(ptr);} ptr = NULL
++-#define xremove(x) ({ if (remove(x) < 0) \
+++#define xremove(x) ({ if (dryrun ? 0 : (remove(x) < 0)) \
++ 	warn ("can not remove(%s%s): %s\n", rcd, x, strerror(errno)); \
++ 	else \
++-	if (verbose) printf("remove service %s%s%s\n", path, rcd, x); })
++-#define xsymlink(x,y) ({ if (symlink(x, y) < 0) \
+++	info("remove service %s/%s%s\n", path, rcd, x); })
+++#define xsymlink(x,y) ({ if (dryrun ? 0 : (symlink(x, y) < 0)) \
++ 	warn ("can not symlink(%s, %s%s): %s\n", x, rcd, y, strerror(errno)); \
++ 	else \
++-	if (verbose) printf("enable service %s -> %s%s%s\n", x, path, rcd, y); })
+++	info("enable service %s -> %s/%s%s\n", x, path, rcd, y); })
++ 
++ /*
++  * Bits of the runlevels
++--- insserv-1.00.8.orig/insserv.8
+++++ insserv-1.00.8/insserv.8
++@@ -152,6 +152,9 @@
++ .BR \-v ,\  \-\-verbose
++ Write out what is currently going on.
++ .TP
+++.BR \-n ,\  \-\-dryrun
+++Do not update symlinks.
+++.TP
++ .BR \-r ,\  \-\-remove
++ Remove the listed scripts from all runlevels.
++ .TP
++--- insserv-1.00.8.orig/insserv.c
+++++ insserv-1.00.8/insserv.c
++@@ -72,6 +72,9 @@
++ /* When to be verbose */
++ static boolean verbose = false;
++ 
+++/* When to be verbose */
+++static boolean dryrun = false;
+++
++ /* Search results points here */
++ typedef struct lsb_struct {
++     char *provides;
++@@ -584,10 +587,15 @@
++     FILE *boot, *start, *stop, *out;
++     const char *name;
++ 
+++    if (dryrun) {
+++        info("dryrun, not creating .depend.boot, .depend.start and .depend.stop\n");
+++	return;
+++    }
++     if (!(boot  = fopen(".depend.boot",  "w"))) {
++ 	warn("fopen(.depend.stop): %s\n", strerror(errno));
++ 	return;
++     }
+++    info("creating .depend.start\n");
++     if (!(start = fopen(".depend.start", "w"))) {
++ 	warn("fopen(.depend.start): %s\n", strerror(errno));
++ 	fclose(boot);
++@@ -710,6 +718,7 @@
++     fclose(boot);
++     fclose(start);
++ 
+++    info("creating .depend.stop\n");
++     if (!(stop  = fopen(".depend.stop",  "w"))) {
++ 	warn("fopen(.depend.stop): %s\n", strerror(errno));
++ 	return;
++@@ -805,6 +814,17 @@
++     va_end(ap);
++     return;
++ }
+++/*
+++ * Print message when verbose is enabled
+++ */
+++void info(const char *fmt, ...) {
+++    va_list ap;
+++    va_start(ap, fmt);
+++    if (verbose) 
+++        _logger(fmt, ap);
+++    va_end(ap);
+++    return;
+++}
++ 
++ /*
++  * Open a runlevel directory, if it not
++@@ -816,8 +836,11 @@
++    struct stat st;
++ 
++     if (stat(rcpath, &st) < 0) {
++-	if (errno == ENOENT)
++-	    mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
+++	if (errno == ENOENT) {
+++	    info("creating directory '%s'\n", rcpath);
+++	    if (!dryrun)
+++	        mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
+++	}
++ 	else
++ 	    error("can not stat(%s): %s\n", rcpath, strerror(errno));
++     }
++@@ -1258,6 +1346,7 @@
++ static struct option long_options[] =
++ {
++     {"verbose",	0, NULL, 'v'},
+++    {"dryrun",	0, NULL, 'n'},
++     {"default",	0, NULL, 'd'},
++     {"remove",	0, NULL, 'r'},
++     {"force",	0, NULL, 'f'},
++@@ -1272,6 +1361,7 @@
++     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
++     printf("  -f, --force      Ignore if a required service is missed.\n");
++     printf("  -v, --verbose    Provide information on what is being done.\n");
+++    printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
++     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
++ }
++ 
++@@ -1296,7 +1387,7 @@
++     for (c = 0; c < argc; c++)
++ 	argr[c] = NULL;
++ 
++-    while ((c = getopt_long(argc, argv, "dfrhv", long_options, NULL)) != -1) {
+++    while ((c = getopt_long(argc, argv, "dfrhvn", long_options, NULL)) != -1) {
++ 	switch (c) {
++ 	    case 'd':
++ 		defaults = true;
++@@ -1310,6 +1401,10 @@
++ 	    case 'v':
++ 		verbose = true;
++ 		break;
+++	    case 'n':
+++		verbose = true;
+++		dryrun = true;
+++		break;
++ 	    case '?':
++ 		error("For help use: %s -h\n", myname);
++ 	    case 'h':
+--- insserv-1.00.8.orig/debian/patches/05_verbose_doc.dpatch
++++ insserv-1.00.8/debian/patches/05_verbose_doc.dpatch
+@@ -0,0 +1,18 @@
++#! /bin/sh /usr/share/dpatch/dpatch-run
++## debian/patches/05_verbose_doc.dpatch
++## by Petter Reinholdtsen <pere@hungry.com>
++##
++## All lines beginning with `## DP:' are a description of the patch.
++## DP: No description.
++
++@DPATCH@
++--- insserv-1.00.8.orig/insserv.c
+++++ insserv-1.00.8/insserv.c
++@@ -1272,6 +1361,7 @@
++     printf("  -h, --help       This help.\n");
++     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
++     printf("  -f, --force      Ignore if a required service is missed.\n");
+++    printf("  -v, --verbose    Provide information on what is being done.\n");
++     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
++ }
++ 
+--- insserv-1.00.8.orig/debian/control
++++ insserv-1.00.8/debian/control
+@@ -0,0 +1,14 @@
++Source: insserv
++Section: misc
++Priority: optional
++Maintainer: Petter Reinholdtsen <pere@debian.org>
++Build-Depends: debhelper (>= 4.0.0)
++Standards-Version: 3.6.2
++
++Package: insserv
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Description: Check LSB init.d script dependencies, and generate boot sequence
++ Reorder the boot order based on init.d script dependencies are
++ documented in comment headers in the script or in override files
++ included in the package or in /etc/.
+--- insserv-1.00.8.orig/debian/copyright
++++ insserv-1.00.8/debian/copyright
+@@ -0,0 +1,21 @@
++This package was debianized by Petter Reinholdtsen <pere@hungry.com> on
++Sun, 21 Aug 2005 11:20:54 +0200.
++
++It was downloaded from
++<URL: ftp://ftp.suse.com/pub/suse/i386/current/suse/src/insserv-1.00.8-4.src.rpm >
++
++Copyright Holder: Werner Fink <werner@suse.de> and SuSE LINUX AG.
++
++License:
++
++ Copyright 2000-2004 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany,
++                                  2003 SuSE Linux AG, Germany.
++                                  2004 SuSE LINUX AG, Germany.
++
++ This program is free software; you can redistribute it and/or modify
++ it under the terms of the GNU General Public License as published by
++ the Free Software Foundation; either version 2 of the License, or
++ (at your option) any later version.
++
++On Debian systems, a copy of the GNU General Public License version 2
++may be found in the file /usr/share/common-licenses/GPL-2.
+--- insserv-1.00.8.orig/debian/rules
++++ insserv-1.00.8/debian/rules
+@@ -0,0 +1,89 @@
++#!/usr/bin/make -f
++# -*- makefile -*-
++
++# Uncomment this to turn on verbose mode.
++#export DH_VERBOSE=1
++
++PACKAGE = insserv
++
++CFLAGS = -Wall -g
++
++ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
++	CFLAGS += -O0
++else
++	CFLAGS += -O2
++endif
++
++INSTALL = install
++INSTALL_DATA = $(INSTALL) -m644
++DESTDIR = $(CURDIR)/debian/$(PACKAGE)
++
++pkgdatadir = /usr/share/$(PACKAGE)
++
++include /usr/share/dpatch/dpatch.make
++
++configure: configure-stamp
++configure-stamp: patch-stamp
++	dh_testdir
++	# Add here commands to configure the package.
++
++	touch configure-stamp
++
++
++build: build-stamp
++
++build-stamp: configure-stamp 
++	dh_testdir
++
++	# Add here commands to compile the package.
++	$(MAKE)
++
++	touch build-stamp
++
++clean: unpatch
++	dh_testdir
++	rm -f build-stamp configure-stamp
++
++	# Add here commands to clean up after the build process.
++	-$(MAKE) clean
++
++	dh_clean 
++
++install: build
++	dh_testdir
++	dh_testroot
++	dh_clean -k 
++	dh_installdirs
++
++	# Add here commands to install the package into debian/$(PACKAGE).
++	$(MAKE) install DESTDIR=$(DESTDIR)
++
++	$(INSTALL) debian/rc debian/rcS $(DESTDIR)$(pkgdatadir)/examples
++	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/
++
++
++# Build architecture-independent files here.
++binary-indep: build install
++# We have nothing to do by default.
++
++# Build architecture-dependent files here.
++binary-arch: build install
++	dh_testdir
++	dh_testroot
++	dh_installchangelogs CHANGES
++	dh_installdocs
++	dh_installexamples
++#	dh_install
++	dh_installman
++	dh_link
++	dh_strip
++	dh_compress
++	dh_fixperms
++	dh_installdeb
++	dh_shlibdeps
++	dh_gencontrol
++	dh_md5sums
++	dh_builddeb
++
++binary: binary-indep binary-arch
++.PHONY: build clean binary-indep binary-arch binary install configure
+--- insserv-1.00.8.orig/debian/watch
++++ insserv-1.00.8/debian/watch
+@@ -0,0 +1,6 @@
++# Run the "uscan" command to check for upstream updates and more.
++# See uscan(1) for format
++
++version=2
++
++ftp://ftp.suse.com/pub/suse/i386/current/suse/src/insserv-(.*)\.src\.rpm debian uupdate
+--- insserv-1.00.8.orig/debian/insserv.examples
++++ insserv-1.00.8/debian/insserv.examples
+@@ -0,0 +1,2 @@
++debian/rc
++debian/rcS
+--- insserv-1.00.8.orig/debian/docs
++++ insserv-1.00.8/debian/docs
+@@ -0,0 +1 @@
++README

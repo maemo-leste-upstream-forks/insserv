@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:          ppp
+# Required-Start:    $syslog 
+# Required-Stop:     $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      S 0 1 6
+### END INIT INFO

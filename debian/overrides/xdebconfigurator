@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# provides:          xdebconfigurator
+# required-start:    $syslog
+# required-stop:     $syslog
+# Default-Start:     S 1 2 3 4 5
+# Default-Stop:      0 6
+### END INIT INFO

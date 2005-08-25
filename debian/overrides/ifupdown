@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:          ifupdown
+# Required-Start:    ifupdown-clean
+# Required-Stop:     ifupdown-clean
+# Default-Start:     S 1 2 3 4 5
+# Default-Stop:      0 6
+### END INIT INFO

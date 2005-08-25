@@ -1,0 +1,25 @@
+To test this, install the package, copy the parallelizing rc scripts
+in place, run the script to reorganize all rc#.d/ symlinks, and
+reboot.
+
+In short:
+
+  cp /usr/share/doc/insserv/examples/rc /etc/init.d/rc
+  cp /usr/share/doc/insserv/examples/rcS /etc/init.d/rcS
+
+  insserv -v
+  # At this point, I recommend examining the order in /etc/rcS.d/ and
+  # /etc/rc2.d/ carefully, to verify that the configuration actually
+  # will boot.  Update /etc/insserv/overrides/ or
+  # /usr/share/insserv/overrides/ with better dependency information
+  # if the boot order is incorrect.
+
+  shutdown -r now
+
+The next boot should then start services in parallel, as early as
+possible during the boot process.
+
+To monitor the boot sequence, the bootchart project is a good choice.
+Debian packages are available from
+<URL:http://www.minet.uni-jena.de/~joergs/bootchart/>, and the project
+itself is available from <URL:http://www.bootchart.org/>.

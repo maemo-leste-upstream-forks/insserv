@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:          hotplug-net
+# Required-Start:    $network hotplug
+# Required-Stop:     $network hotplug
+# Default-Start:     S 1 2 3 4 5
+# Default-Stop:      0 6
+### END INIT INFO

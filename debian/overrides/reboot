@@ -1,0 +1,8 @@
+### BEGIN INIT INFO
+# Provides:          reboot
+# Required-Start:    
+# Required-Stop:     
+# Should-Stop:       lvm raid2
+# Default-Start:     
+# Default-Stop:      6
+### END INIT INFO

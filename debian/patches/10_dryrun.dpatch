@@ -1,0 +1,152 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## debian/patches/misc.dpatch.dpatch by  <pere@localhost>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+--- insserv-1.00.8.orig/listing.h
++++ insserv-1.00.8/listing.h
+@@ -91,6 +91,7 @@
+ extern const char *const delimeter;
+ extern void error (const char *fmt, ...);
+ extern void warn (const char *fmt, ...);
++extern void info (const char *fmt, ...);
+ 
+ static inline char * xstrdup(const char *s)
+ {
+@@ -104,14 +105,14 @@
+ 
+ #define xreset(ptr)	\
+ 	{char * tmp = (char *)ptr; if (ptr && *tmp) free(ptr);} ptr = NULL
+-#define xremove(x) ({ if (remove(x) < 0) \
++#define xremove(x) ({ if (dryrun ? 0 : (remove(x) < 0)) \
+ 	warn ("can not remove(%s%s): %s\n", rcd, x, strerror(errno)); \
+ 	else \
+-	if (verbose) printf("remove service %s%s%s\n", path, rcd, x); })
+-#define xsymlink(x,y) ({ if (symlink(x, y) < 0) \
++	info("remove service %s/%s%s\n", path, rcd, x); })
++#define xsymlink(x,y) ({ if (dryrun ? 0 : (symlink(x, y) < 0)) \
+ 	warn ("can not symlink(%s, %s%s): %s\n", x, rcd, y, strerror(errno)); \
+ 	else \
+-	if (verbose) printf("enable service %s -> %s%s%s\n", x, path, rcd, y); })
++	info("enable service %s -> %s/%s%s\n", x, path, rcd, y); })
+ 
+ /*
+  * Bits of the runlevels
+--- insserv-1.00.8.orig/insserv.8
++++ insserv-1.00.8/insserv.8
+@@ -152,6 +152,9 @@
+ .BR \-v ,\  \-\-verbose
+ Write out what is currently going on.
+ .TP
++.BR \-n ,\  \-\-dryrun
++Do not update symlinks.
++.TP
+ .BR \-r ,\  \-\-remove
+ Remove the listed scripts from all runlevels.
+ .TP
+--- insserv-1.00.8.orig/insserv.c
++++ insserv-1.00.8/insserv.c
+@@ -72,6 +72,9 @@
+ /* When to be verbose */
+ static boolean verbose = false;
+ 
++/* When to be verbose */
++static boolean dryrun = false;
++
+ /* Search results points here */
+ typedef struct lsb_struct {
+     char *provides;
+@@ -584,10 +587,15 @@
+     FILE *boot, *start, *stop, *out;
+     const char *name;
+ 
++    if (dryrun) {
++        info("dryrun, not creating .depend.boot, .depend.start and .depend.stop\n");
++	return;
++    }
+     if (!(boot  = fopen(".depend.boot",  "w"))) {
+ 	warn("fopen(.depend.stop): %s\n", strerror(errno));
+ 	return;
+     }
++    info("creating .depend.start\n");
+     if (!(start = fopen(".depend.start", "w"))) {
+ 	warn("fopen(.depend.start): %s\n", strerror(errno));
+ 	fclose(boot);
+@@ -710,6 +718,7 @@
+     fclose(boot);
+     fclose(start);
+ 
++    info("creating .depend.stop\n");
+     if (!(stop  = fopen(".depend.stop",  "w"))) {
+ 	warn("fopen(.depend.stop): %s\n", strerror(errno));
+ 	return;
+@@ -805,6 +814,17 @@
+     va_end(ap);
+     return;
+ }
++/*
++ * Print message when verbose is enabled
++ */
++void info(const char *fmt, ...) {
++    va_list ap;
++    va_start(ap, fmt);
++    if (verbose) 
++        _logger(fmt, ap);
++    va_end(ap);
++    return;
++}
+ 
+ /*
+  * Open a runlevel directory, if it not
+@@ -816,8 +836,11 @@
+    struct stat st;
+ 
+     if (stat(rcpath, &st) < 0) {
+-	if (errno == ENOENT)
+-	    mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
++	if (errno == ENOENT) {
++	    info("creating directory '%s'\n", rcpath);
++	    if (!dryrun)
++	        mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
++	}
+ 	else
+ 	    error("can not stat(%s): %s\n", rcpath, strerror(errno));
+     }
+@@ -1258,6 +1346,7 @@
+ static struct option long_options[] =
+ {
+     {"verbose",	0, NULL, 'v'},
++    {"dryrun",	0, NULL, 'n'},
+     {"default",	0, NULL, 'd'},
+     {"remove",	0, NULL, 'r'},
+     {"force",	0, NULL, 'f'},
+@@ -1272,6 +1361,7 @@
+     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
+     printf("  -f, --force      Ignore if a required service is missed.\n");
+     printf("  -v, --verbose    Provide information on what is being done.\n");
++    printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
+     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
+ }
+ 
+@@ -1296,7 +1387,7 @@
+     for (c = 0; c < argc; c++)
+ 	argr[c] = NULL;
+ 
+-    while ((c = getopt_long(argc, argv, "dfrhv", long_options, NULL)) != -1) {
++    while ((c = getopt_long(argc, argv, "dfrhvn", long_options, NULL)) != -1) {
+ 	switch (c) {
+ 	    case 'd':
+ 		defaults = true;
+@@ -1310,6 +1401,10 @@
+ 	    case 'v':
+ 		verbose = true;
+ 		break;
++	    case 'n':
++		verbose = true;
++		dryrun = true;
++		break;
+ 	    case '?':
+ 		error("For help use: %s -h\n", myname);
+ 	    case 'h':

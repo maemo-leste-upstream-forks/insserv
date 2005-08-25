@@ -1,0 +1,109 @@
+#! /bin/sh
+#
+# rcS		Call all S??* scripts in /etc/rcS.d in
+#		numerical/alphabetical order.
+#
+# Version:	@(#)/etc/init.d/rcS  2.76  19-Apr-1999  miquels@cistron.nl
+#
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+runlevel=S
+prevlevel=N
+umask 022
+export PATH runlevel prevlevel
+
+#
+#	See if system needs to be setup. This is ONLY meant to
+#	be used for the initial setup after a fresh installation!
+#
+if [ -x /sbin/unconfigured.sh ]
+then
+  /sbin/unconfigured.sh
+fi
+
+CONCURRENCY=8
+#
+#	Source defaults.
+#
+. /etc/default/rcS
+export VERBOSE
+
+#
+#	Trap CTRL-C &c only in this shell so we can interrupt subprocesses.
+#
+trap ":" INT QUIT TSTP
+
+#
+# Start script or program.
+#
+startup() {
+  service=$1
+  case "$1" in
+	*.sh)
+		$debug sh "$@"
+		;;
+	*)
+		$debug "$@"
+		;;
+  esac
+}
+
+discover_uniq() {
+  local result=""
+
+  while read word; do
+    if ! ( echo "$result" | grep -q "$word " ); then
+      result="$result $word "
+    fi
+  done
+
+  echo "$result"
+}
+# for level in $(ls /etc/rc$runlevel.d | sed 's/^K\([0-9][0-9]\).*/\1/' ) ; do [ "$level" = "$LAST" ] || echo $level ; LAST=$level ;  done
+
+#
+#	Call all parts in order.
+#
+# Run all scripts with the same level in parallell
+for level in `ls /etc/rcS.d | sed 's/^S\([0-9][0-9]\).*/\1/' | \
+              discover_uniq` ; do
+	pids=""
+	subs=0
+	for i in /etc/rcS.d/S$level*
+	do
+		# Ignore dangling symlinks for now.
+		[ ! -f "$i" ] && continue
+		startup $i start &
+		pids="$pids $!"
+		subs=$(($subs + 1))
+
+		# Enough sub-processes running?
+		if [ "$CONCURRENCY" -le "$subs" ] ; then
+			for pid in $pids ; do
+				wait $pid
+				subs=$(($subs - 1))
+			done
+			pids=""
+		fi
+	done
+	# Wait for all remaining pids.  Does not matter which pid
+	# return first, as we need to wait for all of them
+	for pid in $pids ; do
+		wait $pid
+	done
+done
+
+#
+#	For compatibility, run the files in /etc/rc.boot too.
+#
+[ -d /etc/rc.boot ] && run-parts /etc/rc.boot
+
+#
+#	Finish setup if needed. The comment above about
+#	/sbin/unconfigured.sh applies here as well!
+#
+if [ -x /sbin/setup.sh ]
+then
+  /sbin/setup.sh
+fi
+

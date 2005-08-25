@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          kdm
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Should-Start:      xfs $named slapd
+# Should-Stop:       xfs $named slapd
+# Default-Start:     2 3 4 5
+# Default-Stop:      S 0 1 6
+### END INIT INFO

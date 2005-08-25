@@ -1,0 +1,18 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## debian/patches/05_verbose_doc.dpatch
+## by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+--- insserv-1.00.8.orig/insserv.c
++++ insserv-1.00.8/insserv.c
+@@ -1272,6 +1361,7 @@
+     printf("  -h, --help       This help.\n");
+     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
+     printf("  -f, --force      Ignore if a required service is missed.\n");
++    printf("  -v, --verbose    Provide information on what is being done.\n");
+     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
+ }
+ 

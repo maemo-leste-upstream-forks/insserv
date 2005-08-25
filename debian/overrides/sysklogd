@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          syslog sysklogd
+# Required-Start:    $local_fs $time
+# Required-Stop:     $local_fs $time
+# Should-Start:      $network $named
+# Should-Stop:       $network $named
+# Default-Start:     S 1 2 3 4 5
+# Default-Stop:      0 6
+### END INIT INFO

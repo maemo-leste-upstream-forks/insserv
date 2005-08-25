@@ -1,0 +1,7 @@
+### BEGIN INIT INFO
+# Provides:          umountfs
+# Required-Start:    
+# Required-Stop: 
+# Default-Start:      6
+# Default-Stop:       
+### END INIT INFO
