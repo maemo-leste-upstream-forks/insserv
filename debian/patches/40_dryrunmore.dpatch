@@ -1,0 +1,42 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## debian/patches/40_dryrunmore.dpatch
+## by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Make sure dryrun mode keep running even if one of the expected
+## DP: rc directories (on debian typically /etc/rc.boot/) is missing.
+
+
+@DPATCH@
+--- insserv-1.00.8.orig/insserv.c
++++ insserv-1.00.8/insserv.c
+@@ -822,8 +822,9 @@
+ 	    error("can not stat(%s): %s\n", rcpath, strerror(errno));
+     }
+ 
+-    if ((rcdir = opendir(rcpath)) == NULL)
+-	error("can not opendir(%s): %s\n", rcpath, strerror(errno));
++    if ((rcdir = opendir(rcpath)) == NULL) {
++	warn("can not opendir(%s): %s\n", rcpath, strerror(errno));
++    }
+ 
+     return rcdir;
+ }
+@@ -1037,6 +1038,8 @@
+ 	}
+ 
+ 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
++	if (rcdir == NULL)
++	    break;
+ 	pushd(rcd);
+ 	while ((d = readdir(rcdir)) != NULL) {
+ 	    char * ptr = d->d_name;
+@@ -1861,6 +1864,8 @@
+ 
+ 	script = NULL;
+ 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
++	if (rcdir == NULL)
++	    break;
+ 	pushd(rcd);
+ 
+ 	/*

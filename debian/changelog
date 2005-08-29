@@ -1,3 +1,16 @@
+insserv (1.00.8-3) unstable; urgency=low
+
+  * Added dependecy override files (nullmailer, binfmt-support).
+  * Add suggests on bootchart, a great tool to debug the boot
+    sequence.
+  * New patch to get dryrun mode working also when /etc/rc.boot is
+    missing. (40_dryrunmore.dpatch)
+  * Added more information about the dangers of reorganizing the boot
+    sequence in README.Debian.
+  * Some package cleanup.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 30 Aug 2005 00:20:16 +0200
+
 insserv (1.00.8-2) unstable; urgency=low
 
   * Updated and added dependecy override files.

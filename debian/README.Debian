@@ -1,13 +1,19 @@
 To test this, install the package, copy the parallelizing rc scripts
 in place, run the script to reorganize all rc#.d/ symlinks, and
-reboot.
+reboot.  Be careful to verify the boot sequence before rebooting, as
+an incorrect boot sequence can render the system completely
+unbootable.
 
 In short:
+
+  # Take a backup of the existing boot script order
+  (cd /etc; tar zcf ~/initdbackup.tar.gz init.d rc*.d)
 
   cp /usr/share/doc/insserv/examples/rc /etc/init.d/rc
   cp /usr/share/doc/insserv/examples/rcS /etc/init.d/rcS
 
   insserv -v
+
   # At this point, I recommend examining the order in /etc/rcS.d/ and
   # /etc/rc2.d/ carefully, to verify that the configuration actually
   # will boot.  Update /etc/insserv/overrides/ or
@@ -24,12 +30,13 @@ Debian packages are available from
 <URL:http://www.minet.uni-jena.de/~joergs/bootchart/>, and the project
 itself is available from <URL:http://www.bootchart.org/>.
 
-Background info on alternative boot systems in debian is available
-from
+Background info on alternative boot systems in debian is available from
 <URL:http://alioth.debian.org/docman/view.php/30730/38/debconf2-initscripts-bkg.pdf>.
 
 Information on the LSB initscript comment convention is available from
 <URL:http://refspecs.freestandards.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html>
 and <URL:http://wiki.debian.net/?LSBInitScripts>.
 
-<URL:http://www-128.ibm.com/developerworks/linux/library/l-boot.html>
+Information on an alternative approach to parallelism during boot is
+available from
+<URL:http://www-128.ibm.com/developerworks/linux/library/l-boot.html>.
