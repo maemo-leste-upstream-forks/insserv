@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          ntpdate
-# Required-Start:    $network hwclock
-# Required-Stop:     $network hwclock
+# Required-Start:    $remote_fs $network hwclock
+# Required-Stop:     $remote_fs $network hwclock
 # Default-Start:     S 1 2 3 4 5
 # Default-Stop:      0 6
 ### END INIT INFO

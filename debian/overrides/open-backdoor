@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          open-backdoor
-# Required-Start:    $local_fs
-# Required-Stop:     $local_fs
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
 # Should-Start:      $network
 # Should-Stop:       $network
 # Default-Start:     2 3 4 5

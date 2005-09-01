@@ -1,0 +1,24 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## debian/patches/25_overrides.dpatch
+## by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Fix override support to only warn about missing overrides when
+## DP: the init.d script was missing LSB tags.
+
+@DPATCH@
+--- insserv-1.00.8.orig/insserv.c	2005-09-01 22:13:52.000000000 +0200
++++ insserv-1.00.8/insserv.c	2005-09-01 22:14:04.000000000 +0200
+@@ -1071,9 +1071,9 @@
+ 
+     if (!ret) {
+         warn("warning: script '%s' missing LSB tags\n", path);
+-    }
+-    if (!override) {
+-        warn("warning: script '%s' missing override too\n", name);
++	if (!override) {
++	  warn("warning: script '%s' missing override too\n", name);
++	}
+     }
+     return ret | override;
+ }

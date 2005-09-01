@@ -1,5 +1,5 @@
 ### BEGIN INIT INFO
-# Provides:          gdm
+# Provides:          xdm
 # Required-Start:    $local_fs $remote_fs rmnologin
 # Required-Stop:     $local_fs $remote_fs
 # Should-Start:      xfs $named slapd

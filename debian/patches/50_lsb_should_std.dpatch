@@ -1,0 +1,23 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## debian/patches/25_overrides.dpatch
+## by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Rewrite the manual to list the LSB headers Should-Start/Stop
+## DP: instead of X-UnitedLinux-Should-Start/Stop, as the former are
+## DP: the ones that are supported.
+
+@DPATCH@
+--- insserv-1.00.8.orig/insserv.8
++++ insserv-1.00.8/insserv.8
+@@ -49,8 +49,8 @@
+  # Provides:       boot_facility_1 [ boot_facility_2 ...]
+  # Required-Start: boot_facility_1 [ boot_facility_2 ...]
+  # Required-Stop:  boot_facility_1 [ boot_facility_2 ...]
+- # X-UnitedLinux-Should-Start: boot_facility_1 [ boot_facility_2 ...]
+- # X-UnitedLinux-Should-Stop:  boot_facility_1 [ boot_facility_2 ...]
++ # Should-Start:   boot_facility_1 [ boot_facility_2 ...]
++ # Should-Stop:    boot_facility_1 [ boot_facility_2 ...]
+  # Default-Start:  run_level_1 [ run_level_2 ...]
+  # Default-Stop:   run_level_1 [ run_level_2 ...]
+  # Description:    multiline_description

@@ -1,5 +1,7 @@
 05_verbose_doc
 10_dryrun
 20_overrides
+25_overrides
 30_debian
 40_dryrunmore
+50_lsb_should_std

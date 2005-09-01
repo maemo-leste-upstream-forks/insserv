@@ -1,3 +1,17 @@
+insserv (1.00.8-4) unstable; urgency=low
+
+  * Added dependecy override files (xdm, irqbalance).
+  * Updated dependency info for a few override files (devfsd,
+    discover, hotplug, hotplug-net, hwclock.sh, keymap.sh, rmnologin,
+    sudo, gdm, lvm, ntpdate, xfs, aumix, freevo, laptop-netconf,
+    report-reboot, open-backdoor).
+  * New patch to avoid warning about missing override files if the
+    init.d file already contain LSB tags.  (25_override.dpatch)
+  * Correct header example in the insserv(8) manual page.
+    (50_lsb_should_std.dpatch)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu,  1 Sep 2005 22:24:51 +0200
+
 insserv (1.00.8-3) unstable; urgency=low
 
   * Added dependecy override files (nullmailer, binfmt-support).

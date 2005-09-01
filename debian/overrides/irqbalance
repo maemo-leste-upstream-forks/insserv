@@ -1,5 +1,5 @@
 ### BEGIN INIT INFO
-# Provides:          hwclock
+# Provides:          irqbalance
 # Required-Start:    $local_fs $remote_fs
 # Required-Stop:     $local_fs $remote_fs
 # Default-Start:     S 1 2 3 4 5

@@ -1,6 +1,6 @@
 ### BEGIN INIT INFO
 # Provides:          discover
-# Required-Start:    mountvirtfs checkroot
+# Required-Start:    mountvirtfs checkroot $local_fs
 # Required-Stop: 
 # Default-Start:     S 1 2 3 4 5
 # Default-Stop:      0 6

@@ -2,6 +2,6 @@
 # Provides:          inetd
 # Required-Start:    $network $syslog
 # Required-Stop:     $network $syslog
-# Default-Start:     1 2 3 4 5
-# Default-Stop:      S 0 6
+# Default-Start:     2 3 4 5
+# Default-Stop:      S 1 0 6
 ### END INIT INFO
