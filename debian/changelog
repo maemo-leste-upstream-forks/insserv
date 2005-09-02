@@ -1,3 +1,10 @@
+insserv (1.00.8-5) unstable; urgency=low
+
+  * Updated dependency info for (module-init-tools, modutils, raid2, mdadm)
+  * Added dependency override files (noflushd, laptop-net, whereami, pcscd)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri,  2 Sep 2005 09:21:25 +0200
+
 insserv (1.00.8-4) unstable; urgency=low
 
   * Added dependecy override files (xdm, irqbalance).

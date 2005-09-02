@@ -2,7 +2,7 @@
 # Provides:          mdadm
 # Required-Start:    mountvirtfs
 # Required-Stop:     mountvirtfs
-# Should-Start:      devfsd udev discover hotplug
+# Should-Start:      devfsd udev
 # Default-Start:     S 1 2 3 4 5
 # Default-Stop:      0 6
 ### END INIT INFO
