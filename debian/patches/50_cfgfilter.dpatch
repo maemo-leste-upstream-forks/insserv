@@ -1,0 +1,55 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 50_cfgfilter.dpatch by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Fix typos in 'rpm' comment, and make sure all code looking
+## DP: for conffiles use the cfgfile_filter() function.
+
+@DPATCH@
+--- insserv-1.02.0.orig/insserv.c
++++ insserv-1.02.0/insserv.c
+@@ -1256,7 +1260,7 @@
+     if ((end = strrchr(d->d_name, '.'))) {
+ 	end++;
+ 	if (!strcmp(end,  "local")	||
+-	    !strncmp(end, "rpm", 3)	|| /* .rmporig, .rpmnew, .rmpsave, ... */
++	    !strncmp(end, "rpm", 3)	|| /* .rpmorig, .rpmnew, .rpmsave, ... */
+ 	    !strncmp(end, "ba", 2)	|| /* .bak, .backup, ... */
+ 	    !strcmp(end,  "old")	||
+ 	    !strcmp(end,  "new")	||
+@@ -1526,7 +1530,6 @@
+     pushd(path);
+     while ((d = readdir(initdir)) != NULL) {
+ 	serv_t * service = NULL;
+-	char * end;
+ 	char * token;
+ 	char* begin = (char*)NULL;  /* Remember address of ptr handled by strsep() */
+ 	boolean lsb = false;
+@@ -1578,22 +1581,11 @@
+ 		warn("script name %s is not valid, skipped!\n", d->d_name);
+ 	    continue;
+ 	}
+-
+-	if ((end = strrchr(d->d_name, '.'))) {
+-	    end++;
+-	    if (!strcmp(end,  "local")	||
+-		!strncmp(end, "rpm", 3)	|| /* .rmporig, .rpmnew, .rmpsave, ... */
+-		!strncmp(end, "ba", 2)	|| /* .bak, .backup, ... */
+-		!strcmp(end,  "old")	||
+-		!strcmp(end,  "new")	||
+-		!strcmp(end,  "save")	||
+-		!strcmp(end,  "swp")	|| /* Used by vi like editors */
+-		!strcmp(end,  "core"))	   /* modern core dump */
+-	    {
+-		if (chkfor(d->d_name, argv, argc))
+-		    warn("script name %s is not valid, skipped!\n", d->d_name);
+-		continue;
+-	    }
++	if (0 == cfgfile_filter(d))
++	{
++	    if (chkfor(d->d_name, argv, argc))
++	        warn("script name %s is not valid, skipped!\n", d->d_name);
++	    continue;
+ 	}
+ 
+ 	/* Leaved by emacs like editors */

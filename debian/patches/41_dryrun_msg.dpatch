@@ -1,0 +1,23 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 41_dryrun_msg.dpatch by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Make sure the dryrun messages include correct path.
+
+@DPATCH@
+--- insserv-1.02.0.orig/listing.h
++++ insserv-1.02.0/listing.h
+@@ -109,11 +109,11 @@
+ #define xremove(x) ({ if ((dryrun ? 0 : (remove(x) < 0))) \
+ 	warn ("can not remove(%s%s): %s\n", rcd, x, strerror(errno)); \
+ 	else \
+-	info("remove service %s%s%s\n", path, rcd, x); })
++	info("remove service %s/%s%s\n", path, rcd, x); })
+ #define xsymlink(x,y) ({ if ((dryrun ? 0 : (symlink(x, y) < 0))) \
+ 	warn ("can not symlink(%s, %s%s): %s\n", x, rcd, y, strerror(errno)); \
+ 	else \
+-	info("enable service %s -> %s%s%s\n", x, path, rcd, y); })
++	info("enable service %s -> %s/%s%s\n", x, path, rcd, y); })
+ 
+ /*
+  * Bits of the runlevels

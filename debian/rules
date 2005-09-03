@@ -19,6 +19,7 @@ INSTALL_DATA = $(INSTALL) -m644
 DESTDIR = $(CURDIR)/debian/$(PACKAGE)
 
 pkgdatadir = /usr/share/$(PACKAGE)
+sbindir = /usr/sbin
 
 include /usr/share/dpatch/dpatch.make
 
@@ -28,7 +29,7 @@ build-stamp: patch-stamp
 	dh_testdir
 
 	# Add here commands to compile the package.
-	$(MAKE)
+	$(MAKE) # ISSUSE=""
 
 	touch build-stamp
 
@@ -48,10 +49,11 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/$(PACKAGE).
-	$(MAKE) install DESTDIR=$(DESTDIR)
+	$(MAKE) install DESTDIR=$(DESTDIR) # ISSUSE=""
 
 	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/.
 	$(INSTALL) debian/check-initd-order $(DESTDIR)$(pkgdatadir)/.
+	$(INSTALL) debian/update-bootsystem-insserv $(DESTDIR)$(sbindir)/.
 
 
 # Build architecture-independent files here.

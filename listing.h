@@ -82,6 +82,7 @@ extern boolean notincluded(const char * script, const int runlevel);
 extern boolean foreach(const char ** script, int * order, const int runlevel);
 extern void virtprov(const char * virt, const char * real);
 extern const char * getscript(const char * prov);
+extern const char * getprovides(const char * script);
 extern boolean listscripts(const char ** script, const int lvl);
 extern int maxorder;
 
@@ -91,6 +92,7 @@ extern int maxorder;
 extern const char *const delimeter;
 extern void error (const char *fmt, ...);
 extern void warn (const char *fmt, ...);
+extern void info (const char *fmt, ...);
 
 static inline char * xstrdup(const char *s)
 {
@@ -104,14 +106,14 @@ static inline char * xstrdup(const char *s)
 
 #define xreset(ptr)	\
 	{char * tmp = (char *)ptr; if (ptr && *tmp) free(ptr);} ptr = NULL
-#define xremove(x) ({ if (remove(x) < 0) \
+#define xremove(x) ({ if ((dryrun ? 0 : (remove(x) < 0))) \
 	warn ("can not remove(%s%s): %s\n", rcd, x, strerror(errno)); \
 	else \
-	if (verbose) printf("remove service %s%s%s\n", path, rcd, x); })
-#define xsymlink(x,y) ({ if (symlink(x, y) < 0) \
+	info("remove service %s%s%s\n", path, rcd, x); })
+#define xsymlink(x,y) ({ if ((dryrun ? 0 : (symlink(x, y) < 0))) \
 	warn ("can not symlink(%s, %s%s): %s\n", x, rcd, y, strerror(errno)); \
 	else \
-	if (verbose) printf("enable service %s -> %s%s%s\n", x, path, rcd, y); })
+	info("enable service %s -> %s%s%s\n", x, path, rcd, y); })
 
 /*
  * Bits of the runlevels
@@ -125,3 +127,13 @@ static inline char * xstrdup(const char *s)
 #define LVL_REBOOT	0x040
 #define LVL_SINGLE	0x080
 #define LVL_BOOT	0x100
+
+/*
+ * LVL_BOOT is already done if one of the LVL_ALL will be entered.
+ */
+#define LVL_ALL		(LVL_HALT|LVL_ONE|LVL_TWO|LVL_THREE|LVL_FOUR|LVL_FIVE|LVL_REBOOT|LVL_SINGLE)
+
+/*
+ * Normal runlevels which are _direct_ available by shutdown/reboot/halt
+ */
+#define LVL_NORM	(LVL_HALT|LVL_ONE|LVL_TWO|LVL_THREE|LVL_FOUR|LVL_FIVE|LVL_REBOOT)

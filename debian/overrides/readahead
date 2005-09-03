@@ -1,9 +1,7 @@
 ### BEGIN INIT INFO
-# Provides:          aumix
+# Provides:          readahead
 # Required-Start:    $local_fs $remote_fs
 # Required-Stop:     $local_fs $remote_fs
-# Should-Start:      udev devfsd
-# Should-Stop:
-# Default-Start:     S 1 2 3 4 5
+# Default-Start:     S
 # Default-Stop:      0 6
 ### END INIT INFO

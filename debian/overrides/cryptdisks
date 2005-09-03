@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          cryptdisks
+# Required-Start:    checkroot
+# Required-Stop:     umountroot
+# Should-Start:      udev devfsd raid2 mdadm lvm
+# Should-Stop:
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO

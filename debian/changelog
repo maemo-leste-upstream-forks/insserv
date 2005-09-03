@@ -1,3 +1,28 @@
+insserv (1.02.0-1) unstable; urgency=low
+
+  * New upstream version.
+    - Rewritten to handle non-SuSe systems better.
+    - Patches 05_verbose_doc, 10_dryrun, and 50_lsb_shold_std removed,
+      as they are included upstream.
+    - Updated patch 40_dryrunmore to match new version, and extend it to
+      also cover SuSe code.
+  * Still building with -DSUSE as the new non-SuSe features are still
+    buggy.
+  * Changed download URL in copyright file to
+    <URL:ftp://ftp.suse.com/pub/projects/init/>.
+  * Removed rc and rcS, as a version of sysvinit
+    with equivalent patches is in sid and etch now.
+  * Added and updated init.d dependency info override files.
+    The provided dependencies is tested to work on my test machines
+    with 2.4 and 2.6 installs. (Closes: #325798)
+  * New script update-bootsystem-insserv to reorder
+    the boot scripts with a backup.
+  * Avoid initscripts with .dpkg* in the name.
+    (51_cfgfilter_dpkg.dpatch) (Closes: #326445)
+  * Add dependency on sysv-rc. (Closes: #329279)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat,  3 Sep 2005 13:18:51 +0200
+
 insserv (1.00.8-5) unstable; urgency=low
 
   * Updated dependency info for (module-init-tools, modutils, raid2, mdadm)

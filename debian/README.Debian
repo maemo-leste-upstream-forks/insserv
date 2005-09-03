@@ -6,19 +6,13 @@ unbootable.
 
 In short:
 
-  # Take a backup of the existing boot script order
-  (cd /etc; tar zcf ~/initdbackup.tar.gz init.d rc*.d)
-
-  cp /usr/share/doc/insserv/examples/rc /etc/init.d/rc
-  cp /usr/share/doc/insserv/examples/rcS /etc/init.d/rcS
-
-  insserv -v
+  update-bootsystem-insserv
 
   # At this point, I recommend examining the order in /etc/rcS.d/ and
   # /etc/rc2.d/ carefully, to verify that the configuration actually
   # will boot.  Update /etc/insserv/overrides/ or
   # /usr/share/insserv/overrides/ with better dependency information
-  # if the boot order is incorrect.
+  # if the boot order is incorrect, and rerun insserv -v
 
   shutdown -r now
 

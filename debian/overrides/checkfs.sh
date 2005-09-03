@@ -2,8 +2,8 @@
 # Provides:          checkfs
 # Required-Start:    modutils checkroot
 # Required-Stop: 
-# Should-Start:      lvm
-# Should-Stop:       lvm
-# Default-Start:     S 1 2 3 4 5
-# Default-Stop:      0 6
+# Should-Start:      lvm cryptdisks
+# Should-Stop:       lvm cryptdisks
+# Default-Start:     S
+# Default-Stop:
 ### END INIT INFO

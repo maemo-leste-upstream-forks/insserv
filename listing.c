@@ -22,12 +22,6 @@
 
 #define MAX_DEEP 99
 
-/*
- * LVL_BOOT is already done if  one of the LVL_ALL will be entered.
- */
-#define LVL_ALL		\
-(LVL_HALT|LVL_ONE|LVL_TWO|LVL_THREE|LVL_FOUR|LVL_FIVE|LVL_REBOOT|LVL_SINGLE)
-
 int maxorder = 0;  /* Maximum order of runlevels 0 upto 6 and S */
 
 /* See listing.c for list_t and list_entry() macro */
@@ -785,4 +779,17 @@ boolean listscripts(const char ** script, const int lvl)
     } while (!*script || !(dir->lvl & lvl));
 
     return ret;
+}
+
+/*
+ * Return the level bits of a given script
+ */
+const char * getprovides(const char * script)
+{
+    char * prov = NULL;
+    dir_t * dir = findscript(script);
+
+    if (dir)
+	prov = dir->name;
+    return prov;
 }

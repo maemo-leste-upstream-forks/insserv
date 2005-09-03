@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# Author: Petter Reinholdtsen
+# Date: 2005-09-03
+#
+# Update the boot order based on init.d script dependency info
+
+set -e
+
+now=`date +%Y%m%dT%H%M`
+logdir=/var/log
+backupfile=$logdir/insserv-bootscripts-$now.tar.gz
+
+if [ restore = "$1" ] ; then
+    for backup in $logdir/insserv-bootscripts-*.tar.gz ; do
+	file=$backup
+    done
+    if [ -f "$file" ] ; then
+	(cd /etc; rm -rf init.d rc*.d; tar zxf $file)
+	echo "info: successfully restored backup of init.d scripts"
+    else
+	echo "error: Unable to locate backup file"
+	exit 1
+    fi
+else
+    echo "info: Backing up existing boot scripts in $backupfile"
+    (cd /etc; tar zcf $backupfile init.d rc*.d)
+
+    echo "info: Reordering boot system"
+    insserv -v > $logdir/insserv-run-$now.log 2>&1
+fi

@@ -1,7 +1,9 @@
 ### BEGIN INIT INFO
 # Provides:          checkroot
-# Required-Start:    keymap hwclockfirst
+# Required-Start:    mountvirtfs
 # Required-Stop:     
-# Default-Start:     S 1 2 3 4 5
-# Default-Stop:      0 6
+# Should-Start:      keymap hwclockfirst
+# Should-stop:
+# Default-Start:     S
+# Default-Stop:
 ### END INIT INFO

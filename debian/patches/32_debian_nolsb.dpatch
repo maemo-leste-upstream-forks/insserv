@@ -1,0 +1,33 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 32_debian_nolsb.dpatch
+## by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Make sure to not install the LSB init.d include file and
+## DP: functions.  These are in other packages on debian.
+
+@DPATCH@
+--- insserv-1.00.8.orig/Makefile
++++ insserv-1.00.8/Makefile
+@@ -74,15 +74,15 @@
+ 	$(MKDIR)   $(SBINDIR)
+ 	$(MKDIR)   $(SDOCDIR)
+ 	$(MKDIR)   $(CONFDIR)
+-	$(MKDIR)   $(LSBDIR)
+-	$(MKDIR)   $(DESTDIR)/usr/lib
+-	$(MKDIR)   $(USRLSBDIR)
++#	$(MKDIR)   $(LSBDIR)
++#	$(MKDIR)   $(DESTDIR)/usr/lib
++#	$(MKDIR)   $(USRLSBDIR)
+ 	$(INSTBIN) insserv        $(SBINDIR)/
+ 	$(INSTDOC) insserv.8      $(SDOCDIR)/
+ 	$(INSTCON) insserv.conf   $(CONFDIR)/
+-	$(INSTCON) init-functions $(LSBDIR)/
+-	$(INSTSRP) install_initd  $(USRLSBDIR)/
+-	$(INSTSRP) remove_initd   $(USRLSBDIR)/
++#	$(INSTCON) init-functions $(LSBDIR)/
++#	$(INSTSRP) install_initd  $(USRLSBDIR)/
++#	$(INSTSRP) remove_initd   $(USRLSBDIR)/
+ 
+ #
+ # Make distribution

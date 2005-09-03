@@ -1,0 +1,187 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 30_debian_new.dpatch by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Adjust some paths to get this working on debian.
+
+@DPATCH@
+--- insserv-1.02.0.orig/insserv.c
++++ insserv-1.02.0/insserv.c
+@@ -920,6 +920,7 @@
+ #define default_stop	script_inf.default_stop
+ #define description	script_inf.description
+ 
++    info("Loading %s\n", path);
+     script = fopen(path, "r");
+     if (!script)
+ 	error("fopen(%s): %s\n", path, strerror(errno));
+@@ -1055,15 +1056,15 @@
+ 	struct stat st_script;
+ 
+ 	switch (runlevel) {
+-	    case 0: rcd = "rc0.d/";  break;
+-	    case 1: rcd = "rc1.d/";  break;
+-	    case 2: rcd = "rc2.d/";  break;
+-	    case 3: rcd = "rc3.d/";  break;
+-	    case 4: rcd = "rc4.d/";  break;
+-	    case 5: rcd = "rc5.d/";  break;
+-	    case 6: rcd = "rc6.d/";  break;
+-	    case 7: rcd = "rcS.d/";  break;  /* runlevel S */
+-	    case 8: rcd = "boot.d/"; break;  /* runlevel B */
++	    case 0: rcd = "../rc0.d/";  break;
++	    case 1: rcd = "../rc1.d/";  break;
++	    case 2: rcd = "../rc2.d/";  break;
++	    case 3: rcd = "../rc3.d/";  break;
++	    case 4: rcd = "../rc4.d/";  break;
++	    case 5: rcd = "../rc5.d/";  break;
++	    case 6: rcd = "../rc6.d/";  break;
++	    case 7: rcd = "../rcS.d/";  break;  /* runlevel S */
++	    case 8: rcd = "../rc.boot/"; break;  /* runlevel B */
+ 	    default:
+ 		error("Wrong runlevel %d\n", runlevel);
+ 	}
+@@ -1164,6 +1165,8 @@
+     regcompiler(&reg_conf,  CONFLINE,  REG_EXTENDED|REG_ICASE);
+     regcompiler(&reg_conf2, CONFLINE2, REG_EXTENDED|REG_ICASE);
+ 
++    info("Loading %s\n", file);
++
+     do {
+ 	const char * fptr = file;
+ 	if (*fptr == '/')
+@@ -1573,7 +1576,8 @@
+ 	    continue;
+ 	}
+ 
+-	if (!strcmp(d->d_name, "boot") || !strcmp(d->d_name, "rc")) {
++	if (!strcmp(d->d_name, "boot") || !strcmp(d->d_name, "rc")
++	    || !strcmp(d->d_name, "rcS")) {
+ 	    if (chkfor(d->d_name, argv, argc))
+ 		warn("script name %s is not valid, skipped!\n", d->d_name);
+ 	    continue;
+@@ -1844,14 +1848,17 @@
+ 			    service->lvlk = deflvlk;
+ 
+ 		    } else {
+-			if (service->lvlk)
++			if (service->lvlk) {
+ 			    /*
+ 			     * Could be a none LSB script, use info from current link scheme.
+ 			     */
+-			    script_inf.default_stop = lvl2str(service->lvlk);
++			    char *foo = lvl2str(service->lvlk);
++			    if (NULL != foo)
++			        script_inf.default_stop = foo;
+ 			/*
+ 			 * Do _not_ set default stop levels
+ 			 */
++			}
+ 		    }
+ #endif
+ 		}
+@@ -1859,11 +1866,16 @@
+ 	    free(begin);
+ 	}
+ 
++#ifdef SUSE
+ 	/* Ahh ... set default multiuser with network */
+ 	if (!script_inf.default_start)
+ 	    script_inf.default_start = xstrdup("3 5");
+-#ifndef SUSE
+-	/* Do _not_ set default stop levels */
++#else /* not SUSE */
++	/* Do _not_ set default start levels */
++	if (!script_inf.default_start)
++	    script_inf.default_start = xstrdup("2 3 4 5"); /* for Debian*/
++	if (!script_inf.default_stop)
++	    script_inf.default_stop = xstrdup("S 0 1 6"); /* for Debian*/
+ #endif
+ 
+ 	if (chkfor(d->d_name, argv, argc) && !defaults) {
+@@ -1906,15 +1918,19 @@
+ 
+ 	    if (service && del)
+ 		runlevels(token, lvl2str(service->lvls));
+-	    else
++	    else {
++#ifdef SUSE
+ 		runlevels(token, script_inf.default_start);
+-#ifndef SUSE
+-	    /*
+-	     * default_stop arn't used in SuSE Linux.
+-	     */
+-	    if (!service || !del)
+-		service->lvlk = str2lvl(script_inf.default_stop);
++#else /* not SUSE */
++		/*
++		 * default_stop aren't used in SuSE Linux.
++		 */
++		info("Adding runlevel for token %s: %s\n", token,
++		     script_inf.default_stop);
++		if (script_inf.default_stop)
++		    runlevels(token, script_inf.default_stop);
+ #endif
++	    }
+ 	}
+ 	script_inf.provides = begin;
+ 
+@@ -2005,15 +2021,15 @@
+ 	DIR  * rcdir;
+ 
+ 	switch (runlevel) {
+-	    case 0: rcd = "rc0.d/";  break;
+-	    case 1: rcd = "rc1.d/";  break;
+-	    case 2: rcd = "rc2.d/";  break;
+-	    case 3: rcd = "rc3.d/";  break;
+-	    case 4: rcd = "rc4.d/";  break;
+-	    case 5: rcd = "rc5.d/";  break;
+-	    case 6: rcd = "rc6.d/";  break;
+-	    case 7: rcd = "rcS.d/";  break;  /* runlevel S */
+-	    case 8: rcd = "boot.d/"; break;  /* runlevel B */
++	    case 0: rcd = "../rc0.d/";  break;
++	    case 1: rcd = "../rc1.d/";  break;
++	    case 2: rcd = "../rc2.d/";  break;
++	    case 3: rcd = "../rc3.d/";  break;
++	    case 4: rcd = "../rc4.d/";  break;
++	    case 5: rcd = "../rc5.d/";  break;
++	    case 6: rcd = "../rc6.d/";  break;
++	    case 7: rcd = "../rcS.d/";  break;  /* runlevel S */
++	    case 8: rcd = "../rc.boot/"; break;  /* runlevel B */
+ 	    default:
+ 		error("Wrong runlevel %d\n", runlevel);
+ 	}
+@@ -2063,7 +2079,7 @@
+ 	    if (*script == '$')		/* Do not link in virtual dependencies */
+ 		continue;
+ 
+-	    sprintf(olink, "../%s",   script);
++	    sprintf(olink, "../init.d/%s",   script);
+ 	    sprintf(nlink, "S%.2d%s", order, script);
+ 
+ 	    found = false;
+@@ -2164,16 +2180,16 @@
+ 	DIR  * rcdir;
+ 
+ 	switch (runlevel) {		/* LVL_NORM:  nearly all but not BOOT and not SINGLE */
+-	    case 0: rcd = "rc0.d/";  lvl = LVL_HALT;   seek = LVL_NORM; break;
+-	    case 1: rcd = "rc1.d/";  lvl = LVL_ONE;    seek = LVL_NORM; break;
+-	    case 2: rcd = "rc2.d/";  lvl = LVL_TWO;    seek = LVL_NORM; break;
+-	    case 3: rcd = "rc3.d/";  lvl = LVL_THREE;  seek = LVL_NORM; break;
+-	    case 4: rcd = "rc4.d/";  lvl = LVL_FOUR;   seek = LVL_NORM; break;
+-	    case 5: rcd = "rc5.d/";  lvl = LVL_FIVE;   seek = LVL_NORM; break;
+-	    case 6: rcd = "rc6.d/";  lvl = LVL_REBOOT; seek = LVL_NORM; break;
+-	    case 7: rcd = "rcS.d/";  lvl = LVL_SINGLE; seek = LVL_NORM; break; /* runlevel S */
++	    case 0: rcd = "../rc0.d/";  lvl = LVL_HALT;   seek = LVL_NORM; break;
++	    case 1: rcd = "../rc1.d/";  lvl = LVL_ONE;    seek = LVL_NORM; break;
++	    case 2: rcd = "../rc2.d/";  lvl = LVL_TWO;    seek = LVL_NORM; break;
++	    case 3: rcd = "../rc3.d/";  lvl = LVL_THREE;  seek = LVL_NORM; break;
++	    case 4: rcd = "../rc4.d/";  lvl = LVL_FOUR;   seek = LVL_NORM; break;
++	    case 5: rcd = "../rc5.d/";  lvl = LVL_FIVE;   seek = LVL_NORM; break;
++	    case 6: rcd = "../rc6.d/";  lvl = LVL_REBOOT; seek = LVL_NORM; break;
++	    case 7: rcd = "../rcS.d/";  lvl = LVL_SINGLE; seek = LVL_NORM; break; /* runlevel S */
+ #  if defined(RUNLEVLES) && (RUNLEVLES > 8)
+-	    case 8: rcd = "boot.d/"; lvl = LVL_BOOT;   seek = LVL_BOOT; break; /* runlevel B */
++	    case 8: rcd = "../rc.boot/"; lvl = LVL_BOOT;   seek = LVL_BOOT; break; /* runlevel B */
+ #  endif
+ 	    default:
+ 		error("Wrong runlevel %d\n", runlevel);

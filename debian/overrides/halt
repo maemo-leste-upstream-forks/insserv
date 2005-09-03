@@ -1,10 +1,10 @@
 ### BEGIN INIT INFO
 # Provides:          halt
-# Required-Start:    
-# Required-Stop:     
+# Required-Start:
+# Required-Stop:
 # Should-stop:       lvm
 # Default-Start:     0
-# Default-Stop:       
-# Short-Description: 
-# Description: 
+# Default-Stop:
+# Short-Description:
+# Description:
 ### END INIT INFO

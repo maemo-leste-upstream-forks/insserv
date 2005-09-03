@@ -1,0 +1,16 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 51_cfgfilter_dpkg.dpatch by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Ignore tempfiles from dpkg.  Fixes bug #326445.
+
+--- insserv-1.02.0.orig/insserv.c
++++ insserv-1.02.0/insserv.c
+@@ -1290,6 +1293,7 @@
+ 	    !strncmp(end, "ba", 2)	|| /* .bak, .backup, ... */
+ 	    !strcmp(end,  "old")	||
+ 	    !strcmp(end,  "new")	||
++	    !strncmp(end,  "dpkg", 3)	|| /* .dpkg-old, .dpkg-new ... */
+ 	    !strcmp(end,  "save")	||
+ 	    !strcmp(end,  "swp")	|| /* Used by vi like editors */
+ 	    !strcmp(end,  "core"))	   /* modern core dump */

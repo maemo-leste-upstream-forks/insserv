@@ -34,7 +34,8 @@ my %sysmap =
      'networking'   => '$network',
      'syslog'       => '$syslog',
      'sysklogd'     => '$syslog',
-     'mountall'     => '$local_fs'
+     'mountall'     => '$local_fs',
+     'mountnfs'     => '$remote_fs',
      );
 
 my %scriptorder;

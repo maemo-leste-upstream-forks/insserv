@@ -1,0 +1,51 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 31_debian_conf_doc.dpatch
+## by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Adjust the insserv configuration to match the debian init.d
+## DP: script names.
+
+@DPATCH@
+--- insserv-1.00.8.orig/insserv.conf
++++ insserv-1.00.8/insserv.conf
+@@ -1,17 +1,18 @@
+ #
+ # All local filesystems are mounted (done during boot phase)
+ #
+-$local_fs	boot.localfs
++$local_fs	mountall
+ 
+ #
+ # Low level networking (ethernet card)
+ #
+-$network	network +pcmcia +hotplug
++$network	networking
++# +pcmcia +hotplug
+ 
+ #
+ # Named is operational
+ #
+-$named		+named +dnsmasq +lwresd $network
++$named		+named +dnsmasq +lwresd +bind9 $network
+ 
+ #
+ # All remote filesystems are mounted (note in some cases /usr may
+@@ -23,7 +24,7 @@
+ #
+ # System logger is operational
+ #
+-$syslog		syslog
++$syslog		sysklogd klogd
+ 
+ #
+ # All network daemons are running (this entry is OBSOLETE)
+@@ -38,7 +39,7 @@
+ #
+ # The system time has been set correctly
+ #
+-$time		boot.clock +xntpd
++$time		hwclock +ntp-server
+ 
+ #
+ # Services which need to be interactive
