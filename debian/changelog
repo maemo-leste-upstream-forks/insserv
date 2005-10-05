@@ -1,3 +1,13 @@
+insserv (1.02.0-2) unstable; urgency=low
+
+  * Added init.d override files for hibernate, mdadm-raid, start-wlan
+    and x11-common.
+  * Corrected sysklogd override file, to only provide sysklogd.
+  * Document BTS bug numbers in the override file for the init.d
+    dependency headers I've submitted to the package maintainer.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed,  5 Oct 2005 17:04:01 +0200
+
 insserv (1.02.0-1) unstable; urgency=low
 
   * New upstream version.
