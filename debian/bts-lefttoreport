@@ -1,0 +1,6 @@
+#!/bin/sh
+
+ls overrides |sort > bts-total.txt
+(cd overrides ; egrep -l 'BTS|Already present' *) |sort> bts-reported.txt
+comm -23 bts-total.txt bts-reported.txt
+rm bts-total.txt bts-reported.txt

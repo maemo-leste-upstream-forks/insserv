@@ -1,0 +1,30 @@
+.\" Copyright 2005 Petter Reinholdtsen
+.\" May be distributed under the GNU General Public License
+.TH "update-bootsystem-insserv" "8" "9 October 2005" "Petter Reinholdtsen" ""
+.SH "NAME"
+update\-bootsystem\-insserv \- reorder boot system based on dependency information
+in the init.d scripts
+.SH "SYNOPSIS"
+.B update\-bootsystem\-insserv
+
+.B update\-bootsystem\-insserv restore
+.SH "DESCRIPTION"
+.B update\-bootsystem\-insserv
+can be used to change the sysv\-rc boot order based on dependency
+information available in LSB init.d format in the init.d scripts or
+in override files in /usr/share/insserv/overrides/* and
+/etc/insserv/overrides/*.
+.SH "OPTIONS"
+.TP 
+.I "restore"
+Restore the boot order to the state it had before update\-bootsystem\-insserv
+was executed the last time.
+.SH "FILES"
+/etc/insserv.conf
+/etc/insserv/overrides/*
+/usr/share/insserv/overrides/*
+.SH "SEE ALSO"
+update\-rc.d(8), insserv(8)
+.SH "AUTHOR"
+Petter Reinholdtsen, <pere@hungry.com>
+

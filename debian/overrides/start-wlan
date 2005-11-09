@@ -5,3 +5,4 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      S 1 0 6
 ### END INIT INFO
+# Already present in package

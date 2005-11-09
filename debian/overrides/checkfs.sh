@@ -1,9 +1,10 @@
 ### BEGIN INIT INFO
 # Provides:          checkfs
-# Required-Start:    modutils checkroot
+# Required-Start:    checkroot
 # Required-Stop: 
-# Should-Start:      lvm cryptdisks
-# Should-Stop:       lvm cryptdisks
+# Should-Start:      lvm cryptdisks modutils module-init-tools
+# Should-Stop:       lvm cryptdisks modutils module-init-tools
 # Default-Start:     S
 # Default-Stop:
 ### END INIT INFO
+# Already present in package

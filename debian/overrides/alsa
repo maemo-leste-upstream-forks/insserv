@@ -1,7 +1,8 @@
 ### BEGIN INIT INFO
 # Provides:          alsa
-# Required-Start:    $syslog
-# Required-Stop:     $syslog
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
 # Default-Start:     1 2 3 4 5
 # Default-Stop:      S 0 6
 ### END INIT INFO
+# Reported to Debian BTS as #337638, updated deps after reporting

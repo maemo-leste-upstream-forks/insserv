@@ -45,7 +45,7 @@
  # The system time has been set correctly
  #
 -$time		boot.clock +xntpd
-+$time		hwclock +ntp-server
++$time		hwclock +ntpdate +ntp-server
  
  #
  # Services which need to be interactive

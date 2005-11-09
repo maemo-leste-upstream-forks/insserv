@@ -9,7 +9,8 @@ set -e
 
 now=`date +%Y%m%dT%H%M`
 logdir=/var/log
-backupfile=$logdir/insserv-bootscripts-$now.tar.gz
+backupfile="$logdir/insserv-bootscripts-$now.tar.gz"
+logfile="$logdir/insserv-run-$now.log 2>&1"
 
 if [ restore = "$1" ] ; then
     for backup in $logdir/insserv-bootscripts-*.tar.gz ; do
@@ -26,6 +27,7 @@ else
     echo "info: Backing up existing boot scripts in $backupfile"
     (cd /etc; tar zcf $backupfile init.d rc*.d)
 
-    echo "info: Reordering boot system"
-    insserv -v > $logdir/insserv-run-$now.log 2>&1
+    echo "info: Reordering boot system, log to $logfile"
+    insserv -v > $logfile
+    echo "info: Use '$0 restore' to restore the old boot sequence."
 fi

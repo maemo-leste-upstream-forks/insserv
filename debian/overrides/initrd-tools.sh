@@ -1,6 +1,6 @@
 ### BEGIN INIT INFO
 # Provides:          initrd-tools
-# Required-Start:    bootlogd
+# Required-Start:    mountvirtfs
 # Required-Stop: 
 # Default-Start:     S 1 2 3 4 5
 # Default-Stop:      0 6

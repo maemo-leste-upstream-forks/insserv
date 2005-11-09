@@ -5,3 +5,5 @@
 # Default-Start:     S 1 2 3 4 5
 # Default-Stop:      0 6
 ### END INIT INFO
+# Discover v2 reported to BTS as #335322
+# Discover v1 reported to BTS as #335323

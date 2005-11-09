@@ -2,6 +2,7 @@
 # Provides:          gpsd
 # Required-Start:    $syslog $network
 # Required-Stop:     $syslog $network
-# Default-Start:     S 1 2 3 4 5
-# Default-Stop:      0 6
+# Default-Start:     2 3 4 5
+# Default-Stop:      S 1 0 6
 ### END INIT INFO
+# Reported to BTS as #335347

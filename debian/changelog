@@ -1,3 +1,20 @@
+insserv (1.02.0-3) unstable; urgency=low
+
+  * Added init.d override files for acct, apache2, snmpd and snmptrapfmt.
+  * Updated and corrected override file for alsa, apache, atd, cron,
+    gdm, gpsd, initrd-tools, udev-mtab and xdm.
+  * Wrote graphviz dotty graph generation support for check-init-order (-g).
+  * Updated README.Debian to reflect the current status in Debian, and
+    included some instructions on how to use this package.
+  * Documented in the override files which dependency information I've
+    reported to BTS.
+  * Add 'ntpdate' as a optional dependency for the $time virtual
+    facility, to make sure NTP update is done on machines without
+    their own NFS server
+  * Wrote manual page for update-bootsystem-insserv(8).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 10 Nov 2005 00:18:49 +0100
+
 insserv (1.02.0-2) unstable; urgency=low
 
   * Added init.d override files for hibernate, mdadm-raid, start-wlan

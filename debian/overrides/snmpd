@@ -1,5 +1,5 @@
 ### BEGIN INIT INFO
-# Provides:          tftpd-hpa
+# Provides:          snmpd
 # Required-Start:    $local_fs $remote_fs $network
 # Required-Stop:     $local_fs $remote_fs $network
 # Default-Start:     2 3 4 5

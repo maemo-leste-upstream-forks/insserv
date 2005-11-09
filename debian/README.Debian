@@ -1,30 +1,36 @@
-To test this, install the package, copy the parallelizing rc scripts
-in place, run the script to reorganize all rc#.d/ symlinks, and
-reboot.  Be careful to verify the boot sequence before rebooting, as
-an incorrect boot sequence can render the system completely
-unbootable.
+To test dependency based reordering of the boot sequence, install the
+package, enable parallel booting, and run update-bootsystems-insserv
+to make a backup of the boot sequence and reorder the boot scripts.
+Be careful to verify the boot sequence before rebooting, as an
+incorrect boot sequence can render the system completely unbootable.
 
 In short:
 
+  # Enable parallel booting
+  echo CONCURRENCY=shell >> /etc/default/rcS
+
+  # Update boot sequence
   update-bootsystem-insserv
 
   # At this point, I recommend examining the order in /etc/rcS.d/ and
   # /etc/rc2.d/ carefully, to verify that the configuration actually
   # will boot.  Update /etc/insserv/overrides/ or
   # /usr/share/insserv/overrides/ with better dependency information
-  # if the boot order is incorrect, and rerun insserv -v
+  # if the boot order is incorrect, and run insserv -v to update the
+  # boot order.
 
+  # Ready to reboot
   shutdown -r now
 
 The next boot should then start services in parallel, as early as
-possible during the boot process.
+possible during the boot process based on the dependency information
+provided.
 
 To monitor the boot sequence, the bootchart project is a good choice.
-Debian packages are available from
-<URL:http://www.minet.uni-jena.de/~joergs/bootchart/>, and the project
-itself is available from <URL:http://www.bootchart.org/>.
+Debian packages are available in etch and sid.  The project itself is
+available from <URL:http://www.bootchart.org/>.
 
-Background info on alternative boot systems in debian is available from
+Background info on alternative boot systems in Debian is available from
 <URL:http://alioth.debian.org/docman/view.php/30730/38/debconf2-initscripts-bkg.pdf>.
 
 Information on the LSB initscript comment convention is available from

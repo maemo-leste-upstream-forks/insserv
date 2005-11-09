@@ -4,10 +4,16 @@
 # Date:   2005-08-21
 #
 # Read LSM init.d headers in SysV init.d scripts, and verify correct
-# start order for all runlevels
+# start order for all runlevels.  It can also provide a graph.
+#
+# To generate a graph, run it like this
+#
+#   check-initd-order -g > initorder.dotty && dotty initorder.dotty 
 
 use strict;
 use warnings;
+use Getopt::Std;
+use File::Basename;
 
 my $rcbase = "/etc";
 #$rcbase = "/opt/ltsp/i386/etc";
@@ -34,58 +40,132 @@ my %sysmap =
      'networking'   => '$network',
      'syslog'       => '$syslog',
      'sysklogd'     => '$syslog',
+     'klogd'        => '$syslog',
      'mountall'     => '$local_fs',
      'mountnfs'     => '$remote_fs',
+     'hwclock'      => '$time',
+     'ntpdate'      => '$time',
+     'bind9'        => '$named',
+     'portmap'      => '$portmap',
      );
 
 my %scriptorder;
+my %opts;
 
-my $bootorder = 0;
-for my $rcdir ($rcmap{S}, $rcmap{2}) {
-    chdir "$rcbase/$rcdir/.";
-    for my $script (<[SK]*>) {
-	$bootorder++;
-	my ($tag, $order, $name) = $script =~ m/^(.)(\d{2})(.+)$/;
+getopts('dg', \%opts);
 
-	$scriptorder{$tag}{$name} = $bootorder;
-	$scriptorder{$tag}{$sysmap{$name}} = $bootorder
-	    if (exists $sysmap{$name});
+$debug = $opts{'d'};
 
-#	print "$script\n";
-#	print "T: $tag O: $order N: $name\n";
-	my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script");
+if ($opts{'g'}) {
+    graph_generate();
+    exit 0;
+}
 
-	unless (defined $lsbinforef) {
-	    print "LSB header missing in $rcbase/$rcdir/$script\n";
-	    next;
+check_bootorder();
+
+sub graph_addnode {
+    my %lsbinfo = @_;
+
+    my @provides = split(/\s+/, $lsbinfo{'provides'});
+    for my $name (@provides) {
+	if (exists $sysmap{$name}) {
+	    graph_addnode('provides'       => $sysmap{$name},
+			  'required-start' => $name);
 	}
-	my %lsbinfo = %{$lsbinforef};
-	
-	for my $provide (split(/\s+/, $lsbinfo{'provides'})) {
-	    $scriptorder{$tag}{$provide} = $bootorder;
-	    $scriptorder{$tag}{$sysmap{$provide}} = $bootorder
-		if (exists $sysmap{$provide});
-	}
+    }
 
-	if ('S' eq $tag) {
-	    if ($lsbinfo{'required-start'}) {
-		my @depends = split(/\s+/, $lsbinfo{'required-start'});
-		for my $dep (@depends) {
-		    print "Incorrect order $dep\@".$scriptorder{$tag}{$dep}.
-			" > $name\@$order\n"
-			unless (exists $scriptorder{$tag}{$dep}
-				and $scriptorder{$tag}{$dep} < $bootorder);
+    if (1 < @provides) {
+	print STDERR "Unable to properly handle multiple provides: @provides\n";
+    }
+    
+
+    if ($lsbinfo{'required-start'}) {
+	my @depends = split(/\s+/, $lsbinfo{'required-start'});
+	for my $pkg (@depends) {
+	    print "\"$provides[0]\" -> \"$pkg\"[color=blue];\n";
+	}
+    }
+    if ($lsbinfo{'should-start'}) {
+	my @depends = split(/\s+/, $lsbinfo{'should-start'});
+	for my $pkg (@depends) {
+	    print "\"$provides[0]\" -> \"$pkg\"[color=springgreen];\n";
+	}
+    }
+    print "\"$provides[0]\" [shape=box];\n";
+}
+
+sub graph_generate {
+    print "# Generating graph\n";
+    print <<EOF;
+digraph packages {
+concentrate=true;
+EOF
+    for my $rcdir ($rcmap{S}, $rcmap{2}) {
+	chdir "$rcbase/$rcdir/.";
+	for my $script (<[SK]*>) {
+	    my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script");
+	    
+	    unless (defined $lsbinforef) {
+		print STDERR "LSB header missing in $rcbase/$rcdir/$script\n";
+		next;
+	    }
+	    my %lsbinfo = %{$lsbinforef};
+	    graph_addnode %lsbinfo;
+	}
+    }
+    print <<EOF;
+}
+EOF
+}
+
+sub check_bootorder {
+    my $bootorder = 0;
+    for my $rcdir ($rcmap{S}, $rcmap{2}) {
+	chdir "$rcbase/$rcdir/.";
+	for my $script (<[SK]*>) {
+	    $bootorder++;
+	    my ($tag, $order, $name) = $script =~ m/^(.)(\d{2})(.+)$/;
+
+	    $scriptorder{$tag}{$name} = $bootorder;
+	    $scriptorder{$tag}{$sysmap{$name}} = $bootorder
+		if (exists $sysmap{$name});
+
+#	    print "$script\n";
+#	    print "T: $tag O: $order N: $name\n";
+	    my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script");
+
+	    unless (defined $lsbinforef) {
+		print STDERR "LSB header missing in $rcbase/$rcdir/$script\n";
+		next;
+	    }
+	    my %lsbinfo = %{$lsbinforef};
+
+	    for my $provide (split(/\s+/, $lsbinfo{'provides'})) {
+		$scriptorder{$tag}{$provide} = $bootorder;
+		$scriptorder{$tag}{$sysmap{$provide}} = $bootorder
+		    if (exists $sysmap{$provide});
+	    }
+
+	    if ('S' eq $tag) {
+		if ($lsbinfo{'required-start'}) {
+		    my @depends = split(/\s+/, $lsbinfo{'required-start'});
+		    for my $dep (@depends) {
+			print "Incorrect order $dep\@".$scriptorder{$tag}{$dep}.
+			    " > $name\@$order\n"
+			    unless (exists $scriptorder{$tag}{$dep}
+				    and $scriptorder{$tag}{$dep} < $bootorder);
+		    }
 		}
 	    }
-	}
-	if ('K' eq $tag) {
+	    if ('K' eq $tag) {
+	    }
 	}
     }
 }
 
 sub load_lsb_tags {
-    my $initfile = shift;
-    print "Loading $initfile\n" if $debug;
+    my ($initfile, $override) = @_;
+    print STDERR "Loading $initfile\n" if $debug;
     ### BEGIN INIT INFO
     # Provides:          xdebconfigurator
     # Required-Start:    $syslog
@@ -111,8 +191,21 @@ sub load_lsb_tags {
 	$shouldstart = $1   if (m/^\# should-start:\s+(\S*.*\S+)\s*$/i);
 	$shouldstop = $1    if (m/^\# should-stop:\s+(\S*.*\S+)\s*$/i);
     }
-    return undef unless $found;
     close(FILE);
+
+    # Try override file
+    $initfile = readlink($initfile) if (-l $initfile);
+    my $basename = basename($initfile);
+    
+    if (!$found) {
+	print STDERR "Override /usr/share/insserv/overrides/$basename\n"
+	    if $debug;
+	if (!$override && -f "/usr/share/insserv/overrides/$basename") {
+	    return load_lsb_tags("/usr/share/insserv/overrides/$basename", 1);
+	}
+    }
+    return undef unless ($found);
+
 #    print "Provides: $provides\n" if $provides;
     return {
 	    'provides'       => $provides,
