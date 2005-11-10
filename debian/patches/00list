@@ -1,11 +1,7 @@
+10_readme
 20_overrides
-25_overrides
-#
-#30_debian
-30_debian_new
+30_non_suse
 31_debian_conf
 32_debian_nolsb
-40_dryrunmore
-41_dryrun_msg
-50_cfgfilter
+34_debian
 51_cfgfilter_dpkg

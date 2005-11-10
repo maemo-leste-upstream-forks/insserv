@@ -2,7 +2,7 @@
 # Provides:          keymap
 # Required-Start:    mountvirtfs
 # Required-Stop:     
-# Default-Start:     S 1 2 3 4 5
-# Default-Stop:      0 6
+# Default-Start:     S
+# Default-Stop:
 ### END INIT INFO
 # Reported to BTS as bug #330231

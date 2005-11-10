@@ -1,3 +1,22 @@
+insserv (1.04.0-1) unstable; urgency=low
+
+  * New upstream release.
+    - Start building without -DSUSE, to enable processing of *-stop headers.
+  * Updated upstream URL in copyright file to match the latest location.
+  * Remove 40_dryrunmore.dpatch, applied upstream.
+  * Remove 41_dryrun_msg.dpatch, applied upstream.
+  * Remove 50_cfgfilter.dpatch, applied upstream.
+  * Merged 20_overrides.dpatch and 25_overrides.dpatch into one patch
+    20_overrides.dpatch.
+  * New 34_debian.dpatch modifying the paths from rc#.d/, getting
+    non-SUSE case working on Debian.
+  * New patch 30_non_suse.dpatch fixing segfault in the non-SUSE case.
+  * Updated init.d override files for hwclockfirst, ifupdown,
+    ifupdwon-clean, initrd-tools, keymap, networking, procps and
+    udev-mtab.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 10 Nov 2005 22:50:14 +0100
+
 insserv (1.02.0-3) unstable; urgency=low
 
   * Added init.d override files for acct, apache2, snmpd and snmptrapfmt.

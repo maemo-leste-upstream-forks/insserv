@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Thu Nov 10 18:05:53 CET 2005 - werner@suse.de
+
+- Add patches from Petter Reinholdtsen
+  * Avoid zero pointer
+  * Allow not existing rc ditrectories at dryrun
+  * Some more debugging code
+  * Map the runlevel scheme into a common struct
+
+-------------------------------------------------------------------
+Fri Oct 28 17:48:38 CEST 2005 - werner@suse.de
+
+- Fix duplet handling in make like service handling (bug #130451)
+
+-------------------------------------------------------------------
 Thu Sep 15 16:54:40 CEST 2005 - werner@suse.de
 
 - Add dryrun changes from Petter Reinholdtsen

@@ -1,0 +1,43 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 34_debian.dpatch by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Fix a few remaining ../init.d/ issues.
+
+@DPATCH@
+--- insserv-1.03.0.orig/insserv.c
++++ insserv-1.03.0/insserv.c
+@@ -1877,17 +1877,21 @@
+ 			 * Do _not_ set default stop levels
+ 			 */
+ 		    }
+-#endif
++#endif /* not SUSE */
+ 		}
+ 	    }
+ 	    free(begin);
+ 	}
+ 
++#ifdef SUSE
+ 	/* Ahh ... set default multiuser with network */
+ 	if (!script_inf.default_start)
+ 	    script_inf.default_start = xstrdup("3 5");
+-#ifndef SUSE
+-	/* Do _not_ set default stop levels */
++#else /* not SUSE */
++	if (!script_inf.default_start)
++	    script_inf.default_start = xstrdup("2 3 4 5"); /* for Debian*/
++	if (!script_inf.default_stop)
++	    script_inf.default_stop = xstrdup("S 0 1 6"); /* for Debian*/
+ #endif
+ 
+ 	if (chkfor(d->d_name, argv, argc) && !defaults) {
+@@ -2265,7 +2269,7 @@
+ 		order = (maxorder + 1) - order;
+ 	    }
+ 
+-	    sprintf(olink, "../%s",    script);
++	    sprintf(olink, "../init.d/%s",    script);
+ 	    sprintf(nlink, "%c%.2d%s", mode, order, script);
+ 
+ 	    found = false;
