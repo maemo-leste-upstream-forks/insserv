@@ -77,18 +77,17 @@ sub graph_addnode {
     if (1 < @provides) {
 	print STDERR "Unable to properly handle multiple provides: @provides\n";
     }
-    
 
     if ($lsbinfo{'required-start'}) {
 	my @depends = split(/\s+/, $lsbinfo{'required-start'});
 	for my $pkg (@depends) {
-	    print "\"$provides[0]\" -> \"$pkg\"[color=blue];\n";
+	    print "\"$pkg\" -> \"$provides[0]\"[color=blue];\n";
 	}
     }
     if ($lsbinfo{'should-start'}) {
 	my @depends = split(/\s+/, $lsbinfo{'should-start'});
 	for my $pkg (@depends) {
-	    print "\"$provides[0]\" -> \"$pkg\"[color=springgreen];\n";
+	    print "\"$pkg\" -> \"$provides[0]\"[color=springgreen] ;\n";
 	}
     }
     print "\"$provides[0]\" [shape=box];\n";
@@ -150,10 +149,12 @@ sub check_bootorder {
 		if ($lsbinfo{'required-start'}) {
 		    my @depends = split(/\s+/, $lsbinfo{'required-start'});
 		    for my $dep (@depends) {
-			print "Incorrect order $dep\@".$scriptorder{$tag}{$dep}.
-			    " > $name\@$order\n"
-			    unless (exists $scriptorder{$tag}{$dep}
-				    and $scriptorder{$tag}{$dep} < $bootorder);
+			unless (exists $scriptorder{$tag}{$dep}
+				and $scriptorder{$tag}{$dep} < $bootorder) {
+			    print "Incorrect order " .
+				"$dep\@". $scriptorder{$tag}{$dep} .
+				" > $name\@$order\n";
+			}
 		    }
 		}
 	    }

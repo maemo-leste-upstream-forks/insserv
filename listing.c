@@ -45,7 +45,8 @@ typedef struct dir_struct {
     list_t	      d_list;	/* The linked list to other directories */
     list_t	        link;   /* symbolic links in this directory */
     unsigned int       flags;
-    char	       order;
+    char	      minord;	/* Default order deep if any */
+    char	       order;	/* Current order deep */
     char	      * name;
     char	    * script;
     unsigned int	 lvl;
@@ -79,6 +80,7 @@ static dir_t * providedir(const char * name)
 	ptr = d_start->prev;
 	this->name   = xstrdup(name);
 	this->script = NULL;
+	this->minord = 1;
 	this->order  = 0;
 	this->flags  = 0;
 	this->lvl    = 0;
@@ -118,13 +120,13 @@ static dir_t * findscript(const char * script)
 }
 
 /*
- * Link a provided service into a required service.
+ * Link the current service into the required service.
  * If the services do not exist, they will be created.
  */
-static void ln_sf(const char * isprovided, const char * itrequires)
+static void ln_sf(const char * current, const char * required)
 {
-    dir_t * target = providedir(isprovided);
-    dir_t * dir    = providedir(itrequires);
+    dir_t * target = providedir(current);
+    dir_t * dir    = providedir(required);
     list_t * l_start = &(dir->link);
     list_t * dent;
     link_t * this;
@@ -134,7 +136,7 @@ static void ln_sf(const char * isprovided, const char * itrequires)
 
     list_for_each(dent, l_start) {
 	dir_t * target = getlink(dent)->target;
-	if (!strcmp(target->name, isprovided))
+	if (!strcmp(target->name, current))
 	    goto out;
     }
 
@@ -170,6 +172,11 @@ out:
  * links within a service dir.
  * Just like a `find * -follow' within a directory tree
  * of depth one with cross linked dependencies.
+ *
+ * Be warned: the direction is naturally reversed.  That
+ * means that the most requested services have the lowest
+ * order.  In other word, an empty link list of a service
+ * indicates that this service has a higher order number.
  */
 #if defined(DEBUG) && (DEBUG > 0)
 # define loop_warn_two(a,b)	\
@@ -206,6 +213,9 @@ static void __follow (dir_t * dir, dir_t * skip, const int level)
 	return;
     }
 
+    if (deep < dir->minord)	/* Default order deep of this tree is higher */
+	deep = dir->minord;
+
     if (deep > MAX_DEEP) {
 	if (!warned)
 	    warn("Max recursions depth %d reached\n",  MAX_DEEP);
@@ -240,14 +250,24 @@ static void __follow (dir_t * dir, dir_t * skip, const int level)
 	/*
 	 * As higher the link depth, as higher the start order.
 	 */
-	if (tmp->order > deep) {
+	if (tmp->order > deep)
 	    deep = tmp->order;
-	}
 	if (tmp->order < deep)
 	    tmp->order = deep;
 
-	if (++deep > MAX_DEEP)
+	if (list_empty(&(tmp->link)))
+	    break;		/* No further service requires this one */
+
+	/*
+	 * Do not count the dependcy deep of the system facilities
+	 * but follow them to count the replacing provides.
+	 */
+	if ((*tmp->name != '$') && (++deep > MAX_DEEP)) {
+	    if (!warned)
+		warn("Max recursions depth %d reached\n",  MAX_DEEP);
+		warned = true;
 	    break;
+	}
 
 	tmp->flags |= DIR_SCAN; /* Mark this service for loop detection */
 
@@ -273,7 +293,7 @@ static void __follow (dir_t * dir, dir_t * skip, const int level)
 		break;		/* Loop detected, stop recursion */
 	    }
 
-	    __follow(target, tmp, deep);	/* inner recursion */
+	    __follow(target, tmp, deep);	/* The inner recursion */
 
 	    /* Just for the case an inner recursion was stopped */
 	    if (loop_check(target) || loop_check(tmp) || loop_check(skip)) {
@@ -299,7 +319,7 @@ static void __follow (dir_t * dir, dir_t * skip, const int level)
 inline static void follow(dir_t * dir)
 {
     /* Link depth starts here with one */
-    __follow(dir, NULL, 1);
+    __follow(dir, NULL, dir->minord);
 }
 
 /*
@@ -617,18 +637,21 @@ void setorder(const char * script, const int order, boolean recursive)
     if (!dir)
 	goto out;
 
-    if (dir->order >= order) /* nothing to do */
+    if (dir->minord < order)
+	dir->minord = order;		/* Remember lowest default order deep */
+
+    if (dir->order >= dir->minord)	/* Nothing to do */
 	goto out;
 
     if (!recursive) {
-	dir->order = order;
+	dir->order = dir->minord;
 	goto out;
     }
 
     /*
      * Follow the script and re-calculate the ordering.
      */
-    __follow(dir, NULL, order);
+    __follow(dir, NULL, dir->minord);
 
     /*
      * Guess order of not installed scripts in comparision

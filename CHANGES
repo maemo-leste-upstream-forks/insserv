@@ -1,4 +1,28 @@
 -------------------------------------------------------------------
+Wed Jan 25 14:52:26 CET 2006 - werner@suse.de
+
+- Fix the broken fix (bug #145403)
+
+-------------------------------------------------------------------
+Mon Jan 23 13:35:40 CET 2006 - werner@suse.de
+
+- Make missing Provides and Requires non-fatal.
+
+-------------------------------------------------------------------
+Fri Jan 20 18:13:39 CET 2006 - werner@suse.de
+
+- Fix bug in handling of non-LSB scripts
+- Add error condition for broken LSB scripts
+- Make calculation of order number somewhat smarter, e.g. do not
+  count system facilities.
+
+-------------------------------------------------------------------
+Thu Jan 19 15:33:06 CET 2006 - werner@suse.de
+
+- Make the restore option work even on broken link scheme
+- Don't count empty provides
+
+-------------------------------------------------------------------
 Thu Nov 10 18:05:53 CET 2005 - werner@suse.de
 
 - Add patches from Petter Reinholdtsen

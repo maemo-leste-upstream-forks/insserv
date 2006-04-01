@@ -10,7 +10,17 @@ set -e
 now=`date +%Y%m%dT%H%M`
 logdir=/var/log
 backupfile="$logdir/insserv-bootscripts-$now.tar.gz"
-logfile="$logdir/insserv-run-$now.log 2>&1"
+logfile="$logdir/insserv-run-$now.log"
+
+convert_rc_s_to_k() {
+  runlevel=$1 # Use level N to disable on all levels
+  for link in $(cd $target/etc/rc$runlevel.d; ls S* || true); do
+      set `echo $link|sed "s%S\(..\)\(.*\)%\1 \2%"`
+      seq=$1
+      service=$2
+      mv $target/etc/rc$runlevel.d/$link $target/etc/rc$runlevel.d/K$seq$service
+  done
+}
 
 if [ restore = "$1" ] ; then
     for backup in $logdir/insserv-bootscripts-*.tar.gz ; do
@@ -28,6 +38,12 @@ else
     (cd /etc; tar zcf $backupfile init.d rc*.d)
 
     echo "info: Reordering boot system, log to $logfile"
-    insserv -v > $logfile
+    (
+	echo "info: Converting rc0.d/S* and rc6.d/S* to K*."
+	convert_rc_s_to_k 0
+	convert_rc_s_to_k 6
+	echo "info: running insserv"
+	insserv -v
+    ) > $logfile 2>&1
     echo "info: Use '$0 restore' to restore the old boot sequence."
 fi

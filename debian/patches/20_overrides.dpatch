@@ -6,9 +6,17 @@
 ## DP: files.
 
 @DPATCH@
---- insserv-1.03.0.orig/insserv.c
-+++ insserv-1.03.0/insserv.c
-@@ -911,7 +911,7 @@
+--- insserv-1.04.0.orig/insserv.c
++++ insserv-1.04.0/insserv.c
+@@ -23,6 +23,7 @@
+ #include <fcntl.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
++#include <sys/param.h>
+ #include <dirent.h>
+ #include <regex.h>
+ #include <errno.h>
+@@ -921,7 +922,7 @@
      regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
  }
  
@@ -17,7 +25,7 @@
  {
      regmatch_t subloc[SUBNUM_SHD+1], *val = &subloc[SUBNUM-1], *shl = &subloc[SUBNUM_SHD-1];
      FILE *script;
-@@ -932,16 +932,6 @@
+@@ -943,16 +944,6 @@
      if (!script)
  	error("fopen(%s): %s\n", path, strerror(errno));
  
@@ -34,32 +42,59 @@
  #define COMMON_ARGS	buf, SUBNUM, subloc, 0
  #define COMMON_SHD_ARGS	buf, SUBNUM_SHD, subloc, 0
      while (fgets(buf, sizeof(buf), script)) {
-@@ -1031,10 +1021,79 @@
+@@ -1042,10 +1033,107 @@
  #undef default_start
  #undef default_stop
  #undef description
 +    return ret;
 +}
- 
++
 +/*
 + * Follow symlinks, return the basename of the file pointed to by
 + * symlinks or the basename of the current path if no symlink.
 + */
 +static char *scriptname(const char *path)
 +{
-+    char linkbuf[1024];
-+    char *script;
-+    strncpy(linkbuf, path, sizeof(linkbuf));
++    struct stat st;
++    unsigned int deep = 0;
++    char linkbuf[PATH_MAX+1];
++    char *script = xstrdup(path);
 +
-+    int linklen = readlink(path, linkbuf, sizeof(linkbuf));
++    strncpy(linkbuf, script, sizeof(linkbuf)-1);
++    linkbuf[PATH_MAX] = '\0';
 +
-+    while (-1 != linklen) {
-+        char *newpath = strdup(linkbuf);
-+	linklen = readlink(newpath, linkbuf, sizeof(linkbuf));
-+	free(newpath);
-+    }
-+    script = basename(linkbuf);
-+    return strdup(script);
++    do {
++        struct stat;
++	int linklen;
++
++	if (deep++ > MAXSYMLINKS) {
++	    errno = EMLINK;
++	    warn("Can not determine script name for %s: %s\n",
++		 path, strerror(errno));
++	    break;
++	}
++
++	if (lstat(script, &st) < 0) {
++	    warn("Can not stat %s: %s\n", script, strerror(errno));
++	    break;
++	}
++
++	if (!S_ISLNK(st.st_mode))
++	  break;
++
++	if ((linklen = readlink(script, linkbuf, sizeof(linkbuf)-1)) < 0)
++	    break;
++	linkbuf[linklen] = '\0';
++
++	free(script);
++	script = xstrdup(linkbuf);
++
++    } while (1);
++
++    free(script);
++    script = xstrdup(basename(linkbuf));
+ 
++    return script;
 +}
 +
 +static boolean load_overrides(const char *const dir,
@@ -67,7 +102,7 @@
 +{
 +    boolean ret = 0;
 +
-+    char fullpath[1024];
++    char fullpath[PATH_MAX+1];
 +    snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, name);
 +    struct stat statbuf;
 +    if (0 == stat(fullpath, &statbuf) && S_ISREG(statbuf.st_mode)) {
@@ -108,6 +143,7 @@
 +	  warn("warning: script '%s' missing override too\n", name);
 +	}
 +    }
++    free(name);
 +    return ret | override;
 +}
 +

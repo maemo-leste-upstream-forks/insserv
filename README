@@ -5,6 +5,12 @@ Edit the Makefile (set INITDIR to the path of the
 boot scripts used by the system during boot time),
 type `make' and `make install'.
 
+   Downloading latest version
+   ==========================
+
+The latest version of the insserv source is available from
+<URL: ftp://ftp.suse.com/pub/projects/init/ >.
+
    Processes controlling
    =====================
 

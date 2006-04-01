@@ -1,7 +1,7 @@
-10_readme
+#10_readme
 20_overrides
-30_non_suse
+#30_non_suse
 31_debian_conf
 32_debian_nolsb
-34_debian
-51_cfgfilter_dpkg
+#34_debian
+#51_cfgfilter_dpkg

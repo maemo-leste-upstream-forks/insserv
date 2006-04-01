@@ -1,3 +1,22 @@
+insserv (1.08.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Correct name of logfile, moving the stderr redirect to the insserv
+    call. (Closes: #349494)
+  * Add code in update-bootsystem-insserv to convert all S* symlinks
+    in rc1.d and rc6.d to K* symlinks before insserv is executed. to
+    reflect the argument passed on to these scripts in debian.
+    Addresses part of bug #350188.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun,  1 Apr 2006 17:30:35 +0100
+
+insserv (1.04.0-2) unstable; urgency=low
+
+  * Modify 20_override.dpatch based on input from upstream author
+    Werner Fink, to add more error handling.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 11 Nov 2005 15:35:27 +0100
+
 insserv (1.04.0-1) unstable; urgency=low
 
   * New upstream release.
