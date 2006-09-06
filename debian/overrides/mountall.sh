@@ -3,7 +3,7 @@
 # Required-Start:    checkfs
 # Required-Stop: 
 # Should-Start:      lvm
-# Should-Stop:       lvm
+# Should-Stop:
 # Default-Start:     S
 # Default-Stop:
 ### END INIT INFO

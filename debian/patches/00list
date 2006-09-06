@@ -4,4 +4,6 @@
 31_debian_conf
 32_debian_nolsb
 #34_debian
+35_fixunused
+36_memleak
 #51_cfgfilter_dpkg

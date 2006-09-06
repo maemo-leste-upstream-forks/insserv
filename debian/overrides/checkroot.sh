@@ -1,6 +1,6 @@
 ### BEGIN INIT INFO
 # Provides:          checkroot
-# Required-Start:    mountvirtfs
+# Required-Start:    mountdevsubfs
 # Required-Stop:     
 # Should-Start:      keymap hwclockfirst
 # Should-stop:

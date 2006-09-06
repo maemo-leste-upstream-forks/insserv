@@ -1,5 +1,5 @@
 ### BEGIN INIT INFO
-# Provides:          mountnfs nfs
+# Provides:          mountnfs
 # Required-Start:    $network $local_fs
 # Required-Stop:
 # Default-Start:     S

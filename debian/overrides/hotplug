@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          hotplug
-# Required-Start:    mountvirtfs checkroot $local_fs
-# Required-Stop:     mountvirtfs
+# Required-Start:    mountdevsubfs checkroot $local_fs
+# Required-Stop:     mountdevsubfs
 # Default-Start:     S 1 2 3 4 5
 # Default-Stop:      0 6
 ### END INIT INFO

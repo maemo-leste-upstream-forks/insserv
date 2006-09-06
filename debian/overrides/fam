@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          fam
-# Required-Start:    $network $portmap
-# Required-Stop:     $network $portmap
+# Required-Start:    $network portmap
+# Required-Stop:     $network portmap
 # Default-Start:     1 2 3 4 5
 # Default-Stop:      S 0 6
 ### END INIT INFO

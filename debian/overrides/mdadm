@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          mdadm
-# Required-Start:    mountvirtfs
-# Required-Stop:     mountvirtfs
+# Required-Start:    mountdevsubfs
+# Required-Stop:     mountdevsubfs
 # Should-Start:      devfsd udev
 # Default-Start:     S 1 2 3 4 5
 # Default-Stop:      0 6

@@ -1,6 +1,6 @@
 ### BEGIN INIT INFO
 # Provides:          single
-# Required-Start:    $local_fs
+# Required-Start:    $local_fs killprocs
 # Required-Stop:
 # Default-Start:     1
 # Default-Stop:

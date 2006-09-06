@@ -1,5 +1,5 @@
 ### BEGIN INIT INFO
-# Provides:          mountvirtfs
+# Provides:          mountdevsubfs
 # Required-Start:
 # Required-Stop:
 # Default-Start:     S

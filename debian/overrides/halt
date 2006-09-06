@@ -1,8 +1,9 @@
 ### BEGIN INIT INFO
 # Provides:          halt
-# Required-Start:
+# Required-Start:    umountroot
 # Required-Stop:
-# Should-stop:       lvm
+# Should-Start:      lvm raid2
+# Should-Stop:
 # Default-Start:     0
 # Default-Stop:
 # Short-Description:

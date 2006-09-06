@@ -1,6 +1,6 @@
 ### BEGIN INIT INFO
 # Provides:          lvm
-# Required-Start:    mountvirtfs
+# Required-Start:    mountdevsubfs
 # Required-Stop:
 # Should-Start:      udev devfsd raid2 mdadm
 # Should-Stop:

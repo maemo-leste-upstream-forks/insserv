@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          apmd
-# Required-Start:    mountvirtfs $syslog
-# Required-Stop:     mountvirtfs $syslog
+# Required-Start:    mountdevsubfs $syslog
+# Required-Stop:     mountdevsubfs $syslog
 # Default-Start:     S 1 2 3 4 5
 # Default-Stop:      0 6
 ### END INIT INFO

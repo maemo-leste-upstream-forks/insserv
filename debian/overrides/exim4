@@ -1,7 +1,9 @@
 ### BEGIN INIT INFO
-# Provides:          exim4 exim
-# Required-Start:    $network $syslog
-# Required-Stop:     $network $syslog
+# Provides:          exim4 mail-transport-agent
+# Required-Start:    $local_fs $remote_fs $syslog $named $network $time
+# Required-Stop:     $local_fs $remote_fs $syslog $named $network
+# Should-Start:      postgresql mysql clamav-daemon greylist spamassassin
+# Should-Stop:       postgresql mysql clamav-daemon greylist spamassassin
 # Default-Start:     2 3 4 5
-# Default-Stop:      S 0 1 6
+# Default-Stop:      0 1 6
 ### END INIT INFO

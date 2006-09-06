@@ -1,8 +1,8 @@
 ### BEGIN INIT INFO
 # Provides:       umountfs
-# Required-Start: umountnfs
+# Required-Start: umountnfs urandom
 # Required-Stop:
-# Default-Start:  6
+# Default-Start:  0 6
 # Default-Stop:
 ### END INIT INFO
 # Already present in package

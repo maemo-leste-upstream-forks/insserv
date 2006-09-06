@@ -1,8 +1,9 @@
 ### BEGIN INIT INFO
 # Provides:           rmnologin
-# Required-Start:     $local_fs $remote_fs
+# Required-Start:     $local_fs $remote_fs $all
 # Required-Stop: 
-# Default-Start:      S 1 2 3 4 5
-# Default-Stop:       
+# Should-Start:      kdm xdm gdm $syslog
+# Default-Start:      1 2 3 4 5
+# Default-Stop:       0 6
 ### END INIT INFO
 # Already present in package

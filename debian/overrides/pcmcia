@@ -1,7 +1,5 @@
 ### BEGIN INIT INFO
 # Provides:          pcmcia
-# Required-Start:    $local_fs
-# Required-Stop:     $local_fs
-# Default-Start:     2 3 4 5
-# Default-Stop:      S 0 1 6
+# Default-Start:     1 2 3 4 5
+# Default-Stop:      0 6
 ### END INIT INFO

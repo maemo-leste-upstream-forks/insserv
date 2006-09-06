@@ -4,7 +4,7 @@
 # Required-Stop:     $network
 # Should-Start:      $named
 # Should-Stop:       $named
-# Default-Start:     S 1 2 3 4 5
-# Default-Stop:      0 6
+# Default-Start:     S 2 3 4 5
+# Default-Stop:      0 1 6
 ### END INIT INFO
 # Reported to BTS as bug #326125

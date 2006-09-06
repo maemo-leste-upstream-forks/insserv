@@ -1,7 +1,9 @@
 ### BEGIN INIT INFO
 # Provides:          module-init-tools
-# Required-Start:    hwclockfirst checkroot
-# Required-Stop:     hwclockfirst checkroot
-# Default-Start:     S 1 2 3 4 5
-# Default-Stop:      0 6
+# Required-Start:
+# Required-Stop:
+# Should-Start:      checkroot
+# Should-Stop:
+# Default-Start:     S
+# Default-Stop:
 ### END INIT INFO

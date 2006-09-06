@@ -1,9 +1,9 @@
 ### BEGIN INIT INFO
-# Provides:          kdm
+# Provides:          x-display-manager kdm
 # Required-Start:    $local_fs $remote_fs
 # Required-Stop:     $local_fs $remote_fs
-# Should-Start:      xfs $named slapd
-# Should-Stop:       xfs $named slapd
+# Should-Start:      console-screen
+# Should-Stop:       console-screen
 # Default-Start:     2 3 4 5
-# Default-Stop:      S 0 1 6
+# Default-Stop:      0 1 6
 ### END INIT INFO

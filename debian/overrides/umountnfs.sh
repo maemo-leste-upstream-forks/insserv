@@ -1,6 +1,6 @@
 ### BEGIN INIT INFO
 # Provides:       umountnfs
-# Required-Start:
+# Required-Start: sendsigs
 # Required-Stop:
 # Default-Start:  6
 # Default-Stop:

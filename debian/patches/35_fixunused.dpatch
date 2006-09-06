@@ -1,0 +1,84 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 35_fixunused.dpatch by Petter Reinholdtsen <pere@hungry.com>
+
+When uploading version 1.08.0 of insserv into Debian this build
+warning was discovered on s390:
+
+  insserv.c:35: warning: type qualifiers ignored on function return type
+  insserv.c:36: warning: type qualifiers ignored on function return type
+  insserv.c:1237: warning: type qualifiers ignored on function return type
+  insserv.c:1242: warning: type qualifiers ignored on function return type
+
+The problem is the use of the unused attribute.  There is also a
+problem with lack of 'const' on the map_runlevel_to_location()
+function.  This patch fixes these problems.
+
+It was sent upstream 2006-04-01.
+
+@DPATCH@
+--- insserv-1.08.0.orig/insserv.c
++++ insserv-1.08.0/insserv.c
+@@ -30,9 +30,11 @@
+ #include <getopt.h>
+ #include "listing.h"
+ 
+-static char *map_runlevel_to_location(const int runlevel);
+-static const int map_runlevel_to_lvl (const int runlevel) __attribute__ ((unused));
+-static const int map_runlevel_to_seek(const int runlevel) __attribute__ ((unused));
++static const char *map_runlevel_to_location(const int runlevel);
++#ifndef SUSE
++static const int map_runlevel_to_lvl (const int runlevel);
++static const int map_runlevel_to_seek(const int runlevel);
++#endif /* not SUSE */
+ 
+ #ifndef  INITDIR
+ # define INITDIR	"/etc/init.d"
+@@ -1140,11 +1142,12 @@
+ 
+ #define RUNLEVLES (sizeof(runlevel_locations)/sizeof(runlevel_locations[0]))
+ 
+-static char *map_runlevel_to_location(const int runlevel)
++static const char *map_runlevel_to_location(const int runlevel)
+ {
+     return runlevel_locations[runlevel].location;
+ }
+ 
++#ifndef SUSE
+ static const int map_runlevel_to_lvl(const int runlevel)
+ {
+     return runlevel_locations[runlevel].lvl;
+@@ -1154,6 +1157,7 @@
+ {
+     return runlevel_locations[runlevel].seek;
+ }
++#endif /* not SUSE */
+ 
+ /*
+  * Scan current service structure
+@@ -1164,7 +1164,7 @@
+ 
+     pushd(path);
+     for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
+-	char * rcd = NULL;
++	const char * rcd = NULL;
+ 	DIR  * rcdir;
+ 	struct dirent *d;
+ 	char * token;
+@@ -2134,7 +2134,7 @@
+ 	int order;
+ 	const char * script;
+ 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
+-	char * rcd = NULL;
++	const char * rcd = NULL;
+ 	DIR  * rcdir;
+ 
+ 	rcd = map_runlevel_to_location(runlevel);
+@@ -2280,7 +2280,7 @@
+ 	int lvl = 0, seek = 0;
+ 	const char * script;
+ 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
+-	char * rcd = NULL;
++	const char * rcd = NULL;
+ 	DIR  * rcdir;
+ 
+ 	rcd = map_runlevel_to_location(runlevel);

@@ -1,8 +1,8 @@
 ### BEGIN INIT INFO
 # Provides:          udev-mtab
-# Required-Start:    $local_fs
-# Required-Stop:     $local_fs
+# Required-Start:    udev checkroot
+# Required-Stop:
 # Default-Start:     S
-# Default-Stop:      0 1 6
+# Default-Stop:
 ### END INIT INFO
 # Reported to BTS as #335310

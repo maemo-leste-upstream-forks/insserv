@@ -36,7 +36,7 @@
  # System logger is operational
  #
 -$syslog		syslog
-+$syslog		sysklogd klogd
++$syslog		sysklogd
  
  #
  # All network daemons are running (this entry is OBSOLETE)
