@@ -18,6 +18,8 @@ use File::Basename;
 my $rcbase = "/etc";
 #$rcbase = "/opt/ltsp/i386/etc";
 
+my $overridepath = "/usr/share/insserv/overrides";
+
 my $debug = 0;
 
 my %rcmap =
@@ -52,9 +54,10 @@ my %sysmap =
 my %scriptorder;
 my %opts;
 
-getopts('dg', \%opts);
+getopts('dgo', \%opts);
 
 $debug = $opts{'d'};
+my $useoverrides = $opts{'o'} ? 0 : 1;
 
 if ($opts{'g'}) {
     graph_generate();
@@ -65,6 +68,11 @@ check_bootorder();
 
 sub graph_addnode {
     my %lsbinfo = @_;
+
+    unless ($lsbinfo{'provides'}) {
+	print STDERR "error: File ". $lsbinfo{'file'} . " is missing the provides header\n";
+	$lsbinfo{'provides'} = $lsbinfo{'file'};
+    }
 
     my @provides = split(/\s+/, $lsbinfo{'provides'});
     for my $name (@provides) {
@@ -78,13 +86,13 @@ sub graph_addnode {
 	print STDERR "Unable to properly handle multiple provides: @provides\n";
     }
 
-    if ($lsbinfo{'required-start'}) {
+    if (exists $lsbinfo{'required-start'} && $lsbinfo{'required-start'}) {
 	my @depends = split(/\s+/, $lsbinfo{'required-start'});
 	for my $pkg (@depends) {
 	    print "\"$pkg\" -> \"$provides[0]\"[color=blue];\n";
 	}
     }
-    if ($lsbinfo{'should-start'}) {
+    if (exists $lsbinfo{'should-start'} && $lsbinfo{'should-start'}) {
 	my @depends = split(/\s+/, $lsbinfo{'should-start'});
 	for my $pkg (@depends) {
 	    print "\"$pkg\" -> \"$provides[0]\"[color=springgreen] ;\n";
@@ -102,11 +110,12 @@ EOF
     for my $rcdir ($rcmap{S}, $rcmap{2}) {
 	chdir "$rcbase/$rcdir/.";
 	for my $script (<[SK]*>) {
-	    my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script");
+	    my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script",
+					   $useoverrides);
 	    
 	    unless (defined $lsbinforef) {
 		print STDERR "LSB header missing in $rcbase/$rcdir/$script\n";
-		next;
+		$lsbinforef = {'provides' => $script};
 	    }
 	    my %lsbinfo = %{$lsbinforef};
 	    graph_addnode %lsbinfo;
@@ -131,7 +140,8 @@ sub check_bootorder {
 
 #	    print "$script\n";
 #	    print "T: $tag O: $order N: $name\n";
-	    my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script");
+	    my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script",
+					   $useoverrides);
 
 	    unless (defined $lsbinforef) {
 		print STDERR "LSB header missing in $rcbase/$rcdir/$script\n";
@@ -165,7 +175,7 @@ sub check_bootorder {
 }
 
 sub load_lsb_tags {
-    my ($initfile, $override) = @_;
+    my ($initfile, $useoverrides) = @_;
     print STDERR "Loading $initfile\n" if $debug;
     ### BEGIN INIT INFO
     # Provides:          xdebconfigurator
@@ -197,12 +207,12 @@ sub load_lsb_tags {
     # Try override file
     $initfile = readlink($initfile) if (-l $initfile);
     my $basename = basename($initfile);
-    
+
     if (!$found) {
-	print STDERR "Override /usr/share/insserv/overrides/$basename\n"
-	    if $debug;
-	if (!$override && -f "/usr/share/insserv/overrides/$basename") {
-	    return load_lsb_tags("/usr/share/insserv/overrides/$basename", 1);
+	if ($useoverrides && -f "$overridepath/$basename") {
+	    print STDERR "Override $overridepath/$basename\n"
+		if $debug;
+	    return load_lsb_tags("$overridepath/$basename", $useoverrides);
 	}
     }
     return undef unless ($found);
@@ -214,5 +224,6 @@ sub load_lsb_tags {
 	    'required-stop'  => $requiredstop,
 	    'should-start'   => $shouldstart,
 	    'should-stop'    => $shouldstop,
+	    'file'           => $initfile,
 	    };
 }

@@ -1,3 +1,10 @@
+insserv (1.08.0-3) unstable; urgency=low
+
+  * Extend check-initd-order to accept a new argument -o, to not load
+   the override files.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu,  7 Sep 2006 11:59:17 +0200
+
 insserv (1.08.0-2) unstable; urgency=low
 
   * New patch 35_fixunused removing incorrect 'unused' flagg from a
