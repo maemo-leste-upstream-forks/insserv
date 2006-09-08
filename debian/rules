@@ -6,7 +6,7 @@
 
 PACKAGE = insserv
 
-CFLAGS = -Wall -g
+CFLAGS = -W -g
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 	CFLAGS += -O0
@@ -29,7 +29,7 @@ build-stamp: patch-stamp
 	dh_testdir
 
 	# Add here commands to compile the package.
-	$(MAKE) ISSUSE=""
+	$(MAKE) ISSUSE="" COPTS="$(CFLAGS)"
 
 	touch build-stamp
 
@@ -54,6 +54,7 @@ install: build
 	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/.
 	$(INSTALL) debian/check-initd-order $(DESTDIR)$(pkgdatadir)/.
 	$(INSTALL) debian/update-bootsystem-insserv $(DESTDIR)$(sbindir)/.
+	$(INSTALL) debian/update-rc.d-insserv $(DESTDIR)$(sbindir)/.
 
 
 # Build architecture-independent files here.
@@ -67,6 +68,7 @@ binary-arch: build install
 	dh_installchangelogs CHANGES
 	dh_installdocs
 	dh_installexamples
+	dh_installdebconf
 #	dh_install
 	dh_installman debian/update-bootsystem-insserv.8
 	dh_link

@@ -12,6 +12,9 @@ logdir=/var/log
 backupfile="$logdir/insserv-bootscripts-$now.tar.gz"
 logfile="$logdir/insserv-run-$now.log"
 
+# Make sure insserv is in path
+PATH=/sbin:$PATH
+
 convert_rc_s_to_k() {
   runlevel=$1 # Use level N to disable on all levels
   for link in $(cd $target/etc/rc$runlevel.d; ls S* || true); do
@@ -34,6 +37,16 @@ if [ restore = "$1" ] ; then
 	exit 1
     fi
 else
+    insserv -nv > $logfile 2>&1
+    if grep -q 'There is a loop between' $logfile ; then
+	echo "error: Problems running insserv:"
+	grep 'There is a loop between' $logfile | sed 's/^/  /'
+	echo "info: Please check out this manually."
+	echo "info: Refusing to convert boot sequence until this is fixed"
+	rm $logfile
+	exit 1
+    fi
+
     echo "info: Backing up existing boot scripts in $backupfile"
     (cd /etc; tar zcf $backupfile init.d rc*.d)
 
@@ -46,12 +59,7 @@ else
 	insserv -v
     ) > $logfile 2>&1
 
-    if grep -q 'There is a loop between' $logfile ; then
-	echo "error: Problems running insserv:"
-	grep 'There is a loop between' $logfile | sed 's/^/  /'
-	echo "info: Please check out this manually."
-	
-    fi
-
     echo "info: Use '$0 restore' to restore the old boot sequence."
 fi
+
+exit 0

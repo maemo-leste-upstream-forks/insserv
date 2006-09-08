@@ -1,0 +1,71 @@
+#!/bin/sh
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+flagfile=/etc/update-rc.d-insserv
+package=insserv
+
+# Based on code from dash postinst
+check_divert() {
+    div=$(dpkg-divert --list $2)
+    distrib=${4:-$2.distrib}
+    case "$1" in
+    true)
+        if [ -z "$div" ]; then
+	    dpkg-divert --package $package --divert $distrib --add $2
+	    cp -dp $2 $distrib
+	    ln -sf $3 $2
+	fi
+	;;
+    false)
+        if [ -n "$div" ] && [ -z "${div%%*by $package}" ]; then
+	    mv $distrib $2
+	    dpkg-divert --remove $2
+	fi
+	;;
+    esac
+}
+
+case "$1" in
+    configure)
+
+	# Only enable this code if environment variable
+	# BAD_INSSERV_HACKER=true is set
+	[ true = "$BAD_INSSERV_HACKER" ] || break
+
+	db_get insserv/enable || true
+	if [ true = "$RET" ] && [ ! -f $flagfile ]; then
+	    # Enable it, as it was not enabled already
+
+	    # Reorder the boot sequence, and divert update-rc.d if it worked
+	    if update-bootsystem-insserv ; then
+		: # All OK
+		echo "success: Boot system successfully converted"
+		touch $flagfile
+
+	        # Divert update-rc.d to update-rc.d-insserv
+		check_divert true /usr/sbin/update-rc.d \
+		    /usr/sbin/update-rc.d-insserv
+	    else
+		echo "error: Unable to enable dependency based boot system."
+	    fi
+	elif [ true != "$RET" ] && [ -f $flagfile ] ; then # Disable it
+	    # Undo divert
+	    check_divert false /usr/sbin/update-rc.d \
+		/usr/sbin/update-rc.d-insserv
+
+	    # Revert to old boot order if possible
+	    update-bootsystem-insserv restore
+
+	    rm -f $flagfile
+	fi
+	;;
+    *)
+	;;
+esac
+
+db_stop
+
+#DEBHELPER#

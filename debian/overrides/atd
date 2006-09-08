@@ -3,6 +3,6 @@
 # Required-Start:    $syslog $time $local_fs $remote_fs
 # Required-Stop:     $syslog $time $local_fs $remote_fs
 # Default-Start:     2 3 4 5
-# Default-Stop:      S 0 1 6
+# Default-Stop:      0 1 6
 ### END INIT INFO
 # Reported to BTS as #335307

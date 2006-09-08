@@ -2,6 +2,6 @@
 # Provides:          acpid
 # Required-Start:    mountdevsubfs $syslog
 # Required-Stop:     mountdevsubfs $syslog
-# Default-Start:     S 1 2 3 4 5
+# Default-Start:     1 2 3 4 5
 # Default-Stop:      0 6
 ### END INIT INFO

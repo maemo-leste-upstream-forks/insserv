@@ -2,6 +2,6 @@
 # Provides:          hotplug
 # Required-Start:    mountdevsubfs checkroot $local_fs
 # Required-Stop:     mountdevsubfs
-# Default-Start:     S 1 2 3 4 5
+# Default-Start:     S
 # Default-Stop:      0 6
 ### END INIT INFO

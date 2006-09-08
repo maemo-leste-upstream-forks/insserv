@@ -1,0 +1,50 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+my $flagfile = "/etc/update-rc.d-insserv";
+
+if ( ! -f $flagfile ) {
+    print STDERR <<EOF;
+error: Inconsistent update-rc.d configuration.  The flag file
+error: $flagfile is missing,
+error: but the update-rc.d divert is still in place.  Calling
+error: the version from sysv-rc directly.
+EOF
+    exec "/usr/sbin/update-rc.d.distrib",@ARGV;
+} else {
+    my @opts;
+    while($#ARGV >= 0 && ($_ = $ARGV[0]) =~ /^-/) {
+	shift @ARGV;
+	if (/^-n$/) { push(@opts, $_); next }
+	if (/^-f$/) { push(@opts, $_); next }
+	if (/^-h|--help$/) { &usage; }
+	&usage("unknown option");
+    }
+    my $scriptname = $ARGV[0];
+    if ("remove" eq $ARGV[1]) {
+	if ( -f "/etc/init.d/$scriptname" ) {
+	    exec "insserv", @opts, "-r", $scriptname;
+	} else {
+	    # insserv remove all dangling symlinks, no need to tell it
+	    # what to look for.
+	    exec "insserv", @opts;
+	}
+    } else {
+	# Ignore start/stop/etc arguments, just add it
+	exec "insserv", @opts, $scriptname;
+    }
+}
+
+sub usage {
+	print STDERR "update-rc.d: error: @_\n" if ($#_ >= 0);
+	print STDERR <<EOF;
+usage: update-rc.d [-n] [-f] <basename> remove
+       update-rc.d [-n] <basename> defaults [NN | sNN kNN]
+       update-rc.d [-n] <basename> start|stop NN runlvl [runlvl] [...] .
+		-n: not really
+		-f: force
+EOF
+	exit (1);
+}

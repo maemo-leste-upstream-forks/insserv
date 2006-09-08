@@ -1,3 +1,42 @@
+insserv (1.08.0-4) unstable; urgency=low
+
+  * Change update-bootsystem-insserv to refuse to convert the boot
+    system if there are dependency loops.
+  * New patch 37_consistent_path to make more consistent log output.
+  * Adjust the the rules file to make sure we build using the compiler options
+    specified there.
+  * New patch 33_debian_localok making .local a valid ending,
+    to accept script names like 'rc.local'.
+  * New patch 38_debuginfo to improve the debug output.
+  * New patch 39_debianlvl.dpatch to handle rcS.d/ a bit better.
+  * Add override for mountdevsubfs.sh, documenting its
+    relation to udev.
+  * Add override for stop-bootlogd, documenting that it should come late,
+    after rmnologin.
+  * Make it easier to enable the dependency based boot system by
+    adding a fairly well hidden debconf question to activate it.
+  * Adjust the override files for dns-clean, hotplug, hotplug-net,
+    hwclock.sh, keymap.sh, libdevmapper1.00, libdevmapper1.01,
+    libdevmapper1.02, modutils, nviboot and procps.sh to make sure
+    they only start in runlevel S.
+  * Adjust override file for acpid, nstxd and nstxcd, to make sure
+    they are not started in runlevel S.
+  * Adjust override file for makedev and rmnologin, there is
+    no reason to add stop links for them.
+  * Remove 'S' from all override files listing it in should-stop.  It
+    never make sense to add stop scripts in rcS.d/.
+  * Allow check-initd-order to continue even if one file is unreadable.
+  * Add override files for apt-index-watcher, vbesave, acpi-support
+    and libnss-ldap.
+  * Correct the definition of $remote_fs to include mountnfs,
+    mountnfs-bootclean and umountnfs.
+  * Correct the definition of $local_fs to include mountfs,
+    mountfs-bootclean and umountfs.
+  * Adjust the override file for openbsd-inetd, to make sure it start
+    after /usr/ is mounted.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri,  8 Sep 2006 19:14:15 +0200
+
 insserv (1.08.0-3) unstable; urgency=low
 
   * Extend check-initd-order to accept a new argument -o, to not load

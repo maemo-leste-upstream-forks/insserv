@@ -1,0 +1,30 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 33_debian_localok.dpatch
+## by Petter Reinholdtsen <pere@hungry.com>
+
+Accept script names like 'rc.local', introduced in initscripts version
+2.86.ds1-15.
+
+@DPATCH@
+--- insserv-1.08.0.orig/insserv.c
++++ insserv-1.08.0/insserv.c
+@@ -1362,8 +1367,7 @@
+     const char* end;
+     if ((end = strrchr(d->d_name, '.'))) {
+ 	end++;
+-	if (!strcmp(end,  "local")	||
+-	    !strncmp(end, "rpm", 3)	|| /* .rpmorig, .rpmnew, .rmpsave, ... */
++	if (!strncmp(end, "rpm", 3)	|| /* .rpmorig, .rpmnew, .rmpsave, ... */
+ 	    !strncmp(end, "ba", 2)	|| /* .bak, .backup, ... */
+ 	    !strcmp(end,  "old")	||
+ 	    !strcmp(end,  "new")	||
+--- insserv-1.08.0.orig/insserv.8.orig	2006-09-08 01:11:30.000000000 +0200
++++ insserv-1.08.0/insserv.8	2006-09-08 01:11:35.000000000 +0200
+@@ -235,7 +235,6 @@
+ .sp 1
+ .in +1l
+ .nf
+-        *.local
+         *.rpm*
+         *.ba*
+         *.old

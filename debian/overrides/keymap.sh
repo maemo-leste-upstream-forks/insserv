@@ -2,8 +2,8 @@
 # Provides:          keymap
 # Required-Start:    mountdevsubfs
 # Required-Stop:     
-# Default-Start:     S 2 3 4 5
-# Default-Stop:      0 1 6
+# Default-Start:     S
+# Default-Stop:
 # Should-Start:
 # Should-Stop:
 ### END INIT INFO

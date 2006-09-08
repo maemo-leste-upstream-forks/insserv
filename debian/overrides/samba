@@ -5,5 +5,5 @@
 # Should-Start:      $named
 # Should-Stop:       $named
 # Default-Start:     2 3 4 5
-# Default-Stop:      S 0 1 6
+# Default-Stop:      0 1 6
 ### END INIT INFO

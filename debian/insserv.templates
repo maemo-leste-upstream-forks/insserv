@@ -1,0 +1,13 @@
+Template: insserv/enable
+Type: boolean
+Description: Enable dependency based update-rc.d using insserv?
+ This will reorder all the scripts in /etc/rc*.d/ using the dependency
+ information provided in each script and insserv-provided dependency
+ info in case the scripts are missing dependency info.
+ .
+ WARNING: It is very hard to revert this change.  Reinstallation is
+ probably required to stop using the dependecy based boot system.
+ .
+ This is an experimental feature, and is only intended for testing of
+ insserv.
+

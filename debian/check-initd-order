@@ -44,7 +44,9 @@ my %sysmap =
      'sysklogd'     => '$syslog',
      'klogd'        => '$syslog',
      'mountall'     => '$local_fs',
+     'umountfs'     => '$local_fs',
      'mountnfs'     => '$remote_fs',
+     'umountnfs'    => '$remote_fs',
      'hwclock'      => '$time',
      'ntpdate'      => '$time',
      'bind9'        => '$named',
@@ -54,7 +56,7 @@ my %sysmap =
 my %scriptorder;
 my %opts;
 
-getopts('dgo', \%opts);
+getopts('dgok', \%opts);
 
 $debug = $opts{'d'};
 my $useoverrides = $opts{'o'} ? 0 : 1;
@@ -83,17 +85,18 @@ sub graph_addnode {
     }
 
     if (1 < @provides) {
-	print STDERR "Unable to properly handle multiple provides: @provides\n";
+	print STDERR "warning: Unable to properly handle multiple provides: @provides\n";
     }
 
-    if (exists $lsbinfo{'required-start'} && $lsbinfo{'required-start'}) {
-	my @depends = split(/\s+/, $lsbinfo{'required-start'});
+    my $key = $opts{'k'} ? 'stop' : 'start';
+    if (exists $lsbinfo{"required-$key"} && $lsbinfo{"required-$key"}) {
+	my @depends = split(/\s+/, $lsbinfo{"required-$key"});
 	for my $pkg (@depends) {
 	    print "\"$pkg\" -> \"$provides[0]\"[color=blue];\n";
 	}
     }
-    if (exists $lsbinfo{'should-start'} && $lsbinfo{'should-start'}) {
-	my @depends = split(/\s+/, $lsbinfo{'should-start'});
+    if (exists $lsbinfo{"should-$key"} && $lsbinfo{"should-$key"}) {
+	my @depends = split(/\s+/, $lsbinfo{"should-$key"});
 	for my $pkg (@depends) {
 	    print "\"$pkg\" -> \"$provides[0]\"[color=springgreen] ;\n";
 	}
@@ -107,14 +110,16 @@ sub graph_generate {
 digraph packages {
 concentrate=true;
 EOF
-    for my $rcdir ($rcmap{S}, $rcmap{2}) {
+    my @dirs = $opts{'k'} ? $rcmap{6} : $rcmap{S}, $rcmap{2};
+    for my $rcdir (@dirs) {
 	chdir "$rcbase/$rcdir/.";
-	for my $script (<[SK]*>) {
+	my @scripts = $opts{'k'} ? <K*> : <S*>;
+	for my $script (@scripts) {
 	    my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script",
 					   $useoverrides);
 	    
 	    unless (defined $lsbinforef) {
-		print STDERR "LSB header missing in $rcbase/$rcdir/$script\n";
+		print STDERR "warning: LSB header missing in $rcbase/$rcdir/$script\n";
 		$lsbinforef = {'provides' => $script};
 	    }
 	    my %lsbinfo = %{$lsbinforef};
@@ -128,9 +133,11 @@ EOF
 
 sub check_bootorder {
     my $bootorder = 0;
-    for my $rcdir ($rcmap{S}, $rcmap{2}) {
+    my @dirs = $opts{'k'} ? $rcmap{6} : $rcmap{S}, $rcmap{2};
+    for my $rcdir (@dirs) {
 	chdir "$rcbase/$rcdir/.";
-	for my $script (<[SK]*>) {
+	my @scripts = $opts{'k'} ? <K*> : <S*>;
+	for my $script (@scripts) {
 	    $bootorder++;
 	    my ($tag, $order, $name) = $script =~ m/^(.)(\d{2})(.+)$/;
 
@@ -187,7 +194,10 @@ sub load_lsb_tags {
     # Description:       Preseed X configuration and use dexconf to
     #                    genereate a new configuration file.
     ### END INIT INFO
-    open(FILE, "<$initfile") or die "Unable to read $initfile";
+    unless (open(FILE, "<$initfile")) {
+        warn "error: Unable to read $initfile";
+	return;
+    }
     my $found = 0;
     my ($provides, $requiredstart, $requiredstop, $shouldstart, $shouldstop);
     while (<FILE>) {

@@ -1,0 +1,45 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 37_consistent_path.dpatch by Petter Reinholdtsen <pere@hungry.com>
+
+Make sure the following invocations of insserv uses the same path to
+init.d/:
+
+  insserv -nv
+  insserv -nv /etc/init.d
+  insserv -nv /etc/init.d/
+  insserv -nv /etc/init.d/hostname.sh
+
+Without this patch, they will use '/etc/init.d' and /etc/init.d/'
+respectively, and this produces strange paths in the log output.
+
+It was sent upstream 2006-09-07.
+
+@DPATCH@
+--- insserv-1.08.0.orig/insserv.c
++++ insserv-1.08.0/insserv.c
+@@ -1651,7 +1651,15 @@
+ 	}
+ 
+ 	if (S_ISDIR(st_script.st_mode)) {
+-	    path = *argv;
++
++	    /* Remove trailing slash from the directory path */
++	    if ('/' == (*argv)[strlen(*argv)-1]) {
++	        char * ptr = xstrdup(*argv);
++	        ptr[strlen(ptr)-1] = '\0';
++		path = ptr;
++	    } else
++		path = *argv;
++
+ 	    if (del)
+ 		error("usage: %s [[-r] init_script|init_directory]\n", myname);
+ 	    argv++;
+@@ -1662,7 +1670,7 @@
+ 	    char * base, * ptr = xstrdup(*argv);
+ 
+ 	    if ((base = strrchr(ptr, '/'))) {
+-		*(++base) = '\0';
++		*(base) = '\0';
+ 		path = ptr;
+ 	    } else
+ 		free(ptr);

@@ -3,7 +3,11 @@
 #30_non_suse
 31_debian_conf
 32_debian_nolsb
+33_debian_localok
 #34_debian
 35_fixunused
 36_memleak
+37_consistent_path
+38_debuginfo
+39_debianlvl
 #51_cfgfilter_dpkg

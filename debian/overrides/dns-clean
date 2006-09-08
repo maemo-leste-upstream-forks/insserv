@@ -2,7 +2,7 @@
 # Provides:          dns-clean
 # Required-Start:    $local_fs
 # Required-Stop:     $local_fs
-# Default-Start:     S 1 2 3 4 5
-# Default-Stop:      0 6
+# Default-Start:     S
+# Default-Stop:
 ### END INIT INFO
 # Reported to BTS as bug #332857
