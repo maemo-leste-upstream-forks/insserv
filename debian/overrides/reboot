@@ -1,9 +1,0 @@
-### BEGIN INIT INFO
-# Provides:       reboot
-# Required-Start: umountroot $network
-# Required-Stop:
-# Should-Start:   lvm raid2
-# Default-Start:  6
-# Default-Stop:
-### END INIT INFO
-# Already present in package

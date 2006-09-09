@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          ifupdown
 # Required-Start:    ifupdown-clean
-# Required-Stop:     ifupdown-clean
+# Required-Stop:     $local_fs
 # Default-Start:     S
 # Default-Stop:      0 6
 ### END INIT INFO

@@ -1,3 +1,21 @@
+insserv (1.08.0-5) unstable; urgency=low
+
+  * New flag -k for check-initd-order to look at the stop sequence instead
+    of the start sequence.
+  * Correct override files for acpid, alsa, alsa-utils, apmd,
+    hwclockfirst.sh, ifupdown, modutils, networking, nullmailer,
+    openbsd-inetd, pcmcia, procps.sh, and update-hostname.
+  * Remove override files for bootlogd, bootmisc.sh, checkfs.sh,
+    checkroot.sh, glibc.sh, halt, hostname.sh, module-init-tools,
+    mountall.sh, mountdevsubfs.sh, mountnfs.sh, reboot, rmnologin,
+    sendsigs, single, stop-bootlogd, umountfs umountnfs.sh and urandom
+    as the scripts themselves now have correct dependency information
+    in them.
+  * With the current patches and dependency info, insserv generate
+    correct shutdown order.  (Closes: #350188)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat,  9 Sep 2006 20:23:28 +0200
+
 insserv (1.08.0-4) unstable; urgency=low
 
   * Change update-bootsystem-insserv to refuse to convert the boot

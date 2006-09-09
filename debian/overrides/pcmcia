@@ -1,5 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          pcmcia
+# Required-start:
+# Required-stop:
 # Default-Start:     1 2 3 4 5
 # Default-Stop:      0 6
 ### END INIT INFO

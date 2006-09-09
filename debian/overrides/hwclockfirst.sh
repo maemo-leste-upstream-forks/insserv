@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          hwclockfirst
-# Required-Start:    
-# Required-Stop:     
+# Required-Start:    mountdevsubfs
+# Required-Stop:
 # Default-Start:     S
 # Default-Stop:
 ### END INIT INFO

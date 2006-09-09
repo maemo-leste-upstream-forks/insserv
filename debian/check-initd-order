@@ -45,6 +45,7 @@ my %sysmap =
      'klogd'        => '$syslog',
      'mountall'     => '$local_fs',
      'umountfs'     => '$local_fs',
+     'sendsigs'     => '$local_fs',
      'mountnfs'     => '$remote_fs',
      'umountnfs'    => '$remote_fs',
      'hwclock'      => '$time',
@@ -76,11 +77,12 @@ sub graph_addnode {
 	$lsbinfo{'provides'} = $lsbinfo{'file'};
     }
 
+    my $key = $opts{'k'} ? 'stop' : 'start';
     my @provides = split(/\s+/, $lsbinfo{'provides'});
     for my $name (@provides) {
 	if (exists $sysmap{$name}) {
-	    graph_addnode('provides'       => $sysmap{$name},
-			  'required-start' => $name);
+	    graph_addnode('provides'      => $sysmap{$name},
+			  "required-$key" => $name);
 	}
     }
 
@@ -88,7 +90,6 @@ sub graph_addnode {
 	print STDERR "warning: Unable to properly handle multiple provides: @provides\n";
     }
 
-    my $key = $opts{'k'} ? 'stop' : 'start';
     if (exists $lsbinfo{"required-$key"} && $lsbinfo{"required-$key"}) {
 	my @depends = split(/\s+/, $lsbinfo{"required-$key"});
 	for my $pkg (@depends) {
@@ -110,7 +111,7 @@ sub graph_generate {
 digraph packages {
 concentrate=true;
 EOF
-    my @dirs = $opts{'k'} ? $rcmap{6} : $rcmap{S}, $rcmap{2};
+    my @dirs = $opts{'k'} ? $rcmap{6} : ($rcmap{S}, $rcmap{2});
     for my $rcdir (@dirs) {
 	chdir "$rcbase/$rcdir/.";
 	my @scripts = $opts{'k'} ? <K*> : <S*>;
@@ -133,7 +134,7 @@ EOF
 
 sub check_bootorder {
     my $bootorder = 0;
-    my @dirs = $opts{'k'} ? $rcmap{6} : $rcmap{S}, $rcmap{2};
+    my @dirs = $opts{'k'} ? $rcmap{6} : ($rcmap{S}, $rcmap{2});
     for my $rcdir (@dirs) {
 	chdir "$rcbase/$rcdir/.";
 	my @scripts = $opts{'k'} ? <K*> : <S*>;

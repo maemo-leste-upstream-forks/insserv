@@ -1,7 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          stop-bootlogd
-# Required-Start:    $remote_fs rmnologin
-# Required-Stop:
-# Default-Start:     1 2 3 4 5
-# Default-Stop:
-### END INIT INFO

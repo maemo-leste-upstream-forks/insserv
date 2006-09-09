@@ -1,8 +1,9 @@
 ### BEGIN INIT INFO
 # Provides:          update-hostname
-# Required-Start:    ifupdown hostname
+# Required-Start:    $remote_fs hostname
 # Required-Stop:
-# Default-Start:     S 1 2 3 4 5
-# Default-Stop:      0 6
+# Should-Start:      $network
+# Default-Start:     2 3 4 5
+# Default-Stop:
 ### END INIT INFO
 # Already present in package

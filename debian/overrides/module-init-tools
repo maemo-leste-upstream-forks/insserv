@@ -1,9 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          module-init-tools
-# Required-Start:
-# Required-Stop:
-# Should-Start:      checkroot
-# Should-Stop:
-# Default-Start:     S
-# Default-Stop:
-### END INIT INFO
