@@ -1,0 +1,41 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 40_nonsusescript.dpatch by Petter Reinholdtsen <pere@hungry.com>
+
+Make sure the 'single' script is not inserted into runlevel S, and
+avoid fixing the sequence number for a lot of scripts used in SuSe.
+
+@DPATCH@
+--- insserv-1.08.0.orig/insserv.c
++++ insserv-1.08.0/insserv.c
+@@ -1832,6 +1832,7 @@
+ 	    continue;
+ 	}
+ 
++#ifdef SUSE
+ 	/* Common script for single mode */
+ 	if (!strcmp(d->d_name, "single")) {
+ 	    serv_t *serv = addserv("single");
+@@ -1842,6 +1843,7 @@
+ 	    rememberreq(serv, REQ_SHLD, "kbd");
+ 	    continue;
+ 	}
++#endif /* SUSE */
+ 
+ 	/*
+ 	 * Oops, no comment found, guess one
+@@ -2176,6 +2178,7 @@
+ 
+     expand_conf();
+ 
++#ifdef SUSE
+     /*
+      *  Set initial order of some services
+      */
+@@ -2187,6 +2190,7 @@
+     setorder("serial",	10, false); setlsb("serial");
+     setorder("gpm",	20, false); setlsb("gpm");
+     setorder("boot.setup", 20, false);
++#endif /* SUSE */
+ 
+     /*
+      * Set virtual dependencies for already enabled none LSB scripts.

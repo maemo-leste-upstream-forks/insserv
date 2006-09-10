@@ -8,15 +8,17 @@
 set -e
 
 now=`date +%Y%m%dT%H%M`
-logdir=/var/log
-backupfile="$logdir/insserv-bootscripts-$now.tar.gz"
-logfile="$logdir/insserv-run-$now.log"
+logdir=/var/lib/insserv
+backupfile="$logdir/bootscripts-$now.tar.gz"
+listfile="$logdir/bootscripts-$now-after.list"
+logfile="$logdir/run-$now.log"
+flagfile="$logdir/using-insserv"
 
 # Make sure insserv is in path
 PATH=/sbin:$PATH
 
 convert_rc_s_to_k() {
-  runlevel=$1 # Use level N to disable on all levels
+  runlevel=$1
   for link in $(cd $target/etc/rc$runlevel.d; ls S* || true); do
       set `echo $link|sed "s%S\(..\)\(.*\)%\1 \2%"`
       seq=$1
@@ -26,14 +28,41 @@ convert_rc_s_to_k() {
 }
 
 if [ restore = "$1" ] ; then
-    for backup in $logdir/insserv-bootscripts-*.tar.gz ; do
-	file=$backup
+    if [ ! -f $flagfile ] ; then
+	echo "error: The boot system is not currently converted to insserv."
+	echo "error: Flag file $flagfile is missing."
+	echo "error: Unable to remove the use of insserv."
+	exit 1
+    fi
+
+    # Check if there has been changes, or if it is safe to restore
+    # from backup
+
+    # Pick the last list of symlinks.
+    for file in $logdir/bootscripts-*-after.list ; do
+	listfile=$file
     done
-    if [ -f "$file" ] ; then
-	(cd /etc; rm -rf init.d rc*.d; tar zxf $file)
-	echo "info: successfully restored backup of init.d scripts"
+    ls /etc/init.d /etc/rc*.d > "$logdir/current.list"
+
+    # If the rc.d scripts order look like it did when we converted, it
+    # is safe to restore.
+    if [ -f $listfile ] && cmp $logdir/current.list $listfile ; then
+	rm "$logdir/current.list"
+	echo "info: Restoring using backed up copy of init.d/ and rc*.d/."
+	for backup in $logdir/bootscripts-*.tar.gz ; do
+	    backupfile=$backup
+	done
+	if [ -f "$backupfile" ] ; then
+	    (cd /etc; rm -rf init.d rc*.d; tar zxf $backupfile)
+	    echo "info: successfully restored backup of init.d scripts"
+	    rm $flagfile
+	else
+	    echo "error: Unable to locate backup file"
+	    exit 1
+	fi
     else
-	echo "error: Unable to locate backup file"
+	rm "$logdir/current.list"
+	echo "error: Unable to restore the boot sequence.  Invalid backup."
 	exit 1
     fi
 else
@@ -59,7 +88,11 @@ else
 	insserv -v
     ) > $logfile 2>&1
 
+    echo "info: Recording new boot sequence in $listfile"
+    ls /etc/init.d /etc/rc*.d > $listfile
+
     echo "info: Use '$0 restore' to restore the old boot sequence."
+    touch $flagfile
 fi
 
 exit 0

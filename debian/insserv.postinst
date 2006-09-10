@@ -28,38 +28,45 @@ check_divert() {
     esac
 }
 
+enable_insserv() {
+    # Reorder the boot sequence, and divert update-rc.d if it worked
+    if update-bootsystem-insserv ; then
+	: # All OK
+	echo "success: Boot system successfully converted"
+	touch $flagfile
+
+        # Divert update-rc.d to update-rc.d-insserv
+	check_divert true /usr/sbin/update-rc.d \
+	    /usr/sbin/update-rc.d-insserv
+    else
+	echo "error: Unable to enable dependency based boot system."
+    fi
+}
+
+disable_insserv() {
+    echo "info: Disabling dependency based boot system"
+    # Undo divert
+    check_divert false /usr/sbin/update-rc.d \
+	/usr/sbin/update-rc.d-insserv
+
+    # Revert to old boot order if possible
+    update-bootsystem-insserv restore
+
+    rm -f $flagfile
+}
+
 case "$1" in
     configure)
 
 	# Only enable this code if environment variable
 	# BAD_INSSERV_HACKER=true is set
-	[ true = "$BAD_INSSERV_HACKER" ] || break
-
-	db_get insserv/enable || true
-	if [ true = "$RET" ] && [ ! -f $flagfile ]; then
-	    # Enable it, as it was not enabled already
-
-	    # Reorder the boot sequence, and divert update-rc.d if it worked
-	    if update-bootsystem-insserv ; then
-		: # All OK
-		echo "success: Boot system successfully converted"
-		touch $flagfile
-
-	        # Divert update-rc.d to update-rc.d-insserv
-		check_divert true /usr/sbin/update-rc.d \
-		    /usr/sbin/update-rc.d-insserv
-	    else
-		echo "error: Unable to enable dependency based boot system."
+        if [ true = "$BAD_INSSERV_HACKER" ] ; then
+	    db_get insserv/enable || true
+	    if [ true = "$RET" ] && [ ! -f $flagfile ]; then
+		enable_insserv # Enable it, as it was not enabled already
+	    elif [ true != "$RET" ] && [ -f $flagfile ] ; then
+		disable_insserv
 	    fi
-	elif [ true != "$RET" ] && [ -f $flagfile ] ; then # Disable it
-	    # Undo divert
-	    check_divert false /usr/sbin/update-rc.d \
-		/usr/sbin/update-rc.d-insserv
-
-	    # Revert to old boot order if possible
-	    update-bootsystem-insserv restore
-
-	    rm -f $flagfile
 	fi
 	;;
     *)

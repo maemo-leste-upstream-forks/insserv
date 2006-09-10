@@ -20,7 +20,7 @@
  # Low level networking (ethernet card)
  #
 -$network	network +pcmcia +hotplug
-+$network	networking
++$network	+networking +ifupdown
 +# +pcmcia +hotplug
  
  #

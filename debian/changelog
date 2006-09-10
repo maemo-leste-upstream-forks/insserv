@@ -1,3 +1,24 @@
+insserv (1.08.0-6) unstable; urgency=low
+
+  * Minor change to the template text, explaining that the S* symlinks
+    are renamed to K* symlinks in rc0.d/ and rc6.d/.
+  * Correct override file for sysklogd and klogd.  These should not
+    start in runlevel S, and should stop in runlevel 1.
+  * Add $syslog to the dependency list for openbsd-inetd, to make sure
+    it can log its start to syslog.  Drop $local_fs, as it is a
+    dependency for $remote_fs.
+  * New patch debian/patches/40_nosusescript to avoid inserting the
+    'single' script showing up in runlevel S, and also avoid fixing
+    the sequence number to the values used by SuSe.
+  * Correct override file for hotplug-net, it should depend on $local_fs.
+  * Correct override file for hotplut, it should stop before $local_fs.
+  * Modify patch 31_debian_conf to also list ifupdown as part of the
+    $network facility, to make $network available in runlevel 0 and 6.
+  * Try to make update-bootsystem-insserv more robust on restores.
+    Move conversion logs and related files to /var/lib/insserv.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 10 Sep 2006 20:17:15 +0200
+
 insserv (1.08.0-5) unstable; urgency=low
 
   * New flag -k for check-initd-order to look at the stop sequence instead
