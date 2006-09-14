@@ -1,8 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          ifupdown-clean
-# Required-Start:    checkroot
-# Required-Stop:     
-# Default-Start:     S
-# Default-Stop:
-### END INIT INFO
-# Reported to BTS as bug #330230

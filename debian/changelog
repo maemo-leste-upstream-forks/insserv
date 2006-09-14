@@ -1,3 +1,22 @@
+insserv (1.08.0-7) unstable; urgency=low
+
+  * Remove override file console-screen.sh.  The info is now present in the
+    file itself.
+  * Modify override file for lvm to document that it should stop just
+    before halt and reboot.
+  * Modify override file for exim4 to only conditional depend on $named.
+  * Rewrite check-initd-order to avoid the dependency on perl-modules,
+    to make it easier to run in systems with small disks.
+  * Remove override files for aumix, cfengine2, cryptdisk, hdparm,
+    ifupdown, ifupdown-clean, kdm, nfs-common, nfs-kernel-server,
+    pcmcia, portmap, sudo, udev, udev-mtab, x11-common,
+    xdebconfigurator.  It is good enough in the scripts themselves
+    now.
+  * Modify override file for atd to avoid redundant dependencies and
+    drop runlevel 'S' from the stop list.  Reported as bug #376780.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 14 Sep 2006 15:15:49 +0200
+
 insserv (1.08.0-6) unstable; urgency=low
 
   * Minor change to the template text, explaining that the S* symlinks
@@ -11,7 +30,7 @@ insserv (1.08.0-6) unstable; urgency=low
     'single' script showing up in runlevel S, and also avoid fixing
     the sequence number to the values used by SuSe.
   * Correct override file for hotplug-net, it should depend on $local_fs.
-  * Correct override file for hotplut, it should stop before $local_fs.
+  * Correct override file for hotplug, it should stop before $local_fs.
   * Modify patch 31_debian_conf to also list ifupdown as part of the
     $network facility, to make $network available in runlevel 0 and 6.
   * Try to make update-bootsystem-insserv more robust on restores.

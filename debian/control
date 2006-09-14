@@ -8,7 +8,6 @@ Standards-Version: 3.7.2
 Package: insserv
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, sysv-rc
-Recommends: perl-modules
 Suggests: bootchart
 Description: Reorder boot sequence based on LSB init.d script dependencies
  Reorder the boot order based on init.d script dependencies as

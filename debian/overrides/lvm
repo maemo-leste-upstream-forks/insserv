@@ -3,7 +3,7 @@
 # Required-Start:    mountdevsubfs
 # Required-Stop:
 # Should-Start:      udev devfsd raid2 mdadm
-# Should-Stop:
-# Default-Start:     S 1 2 3 4 5
+# Should-Stop:       reboot halt
+# Default-Start:     S
 # Default-Stop:      0 6
 ### END INIT INFO
