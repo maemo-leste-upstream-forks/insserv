@@ -1,0 +1,52 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 41_debiandefault.dpatch by Petter Reinholdtsen <pere@hungry.com>
+
+Start scripts in runlevel 2345 on non-suse systems, and stop them in
+runlevel 016.
+
+@DPATCH@
+--- insserv-1.08.0.orig/insserv.c
++++ insserv-1.08.0/insserv.c
+@@ -34,6 +34,14 @@
+ static const int map_runlevel_to_lvl (const int runlevel) __attribute__ ((unused));
+ static const int map_runlevel_to_seek(const int runlevel) __attribute__ ((unused));
+ 
++#ifdef SUSE
++#define DEFAULT_START_LVL "3 5"
++#else
++/* for Debian*/
++#define DEFAULT_START_LVL "2 3 4 5"
++#define DEFAULT_STOP_LVL  "0 1 6"
++#endif
++
+ #ifndef  INITDIR
+ # define INITDIR	"/etc/init.d"
+ #endif
+@@ -1940,7 +1948,7 @@
+ 			    /*
+ 			     * Ahh ... set default multiuser with network
+ 			     */
+-			    script_inf.default_start = xstrdup("3 5");
++			    script_inf.default_start = xstrdup(DEFAULT_START_LVL);
+ 		    }
+ #ifndef SUSE
+ 		    /*
+@@ -1986,15 +1995,12 @@
+ 	    free(begin);
+ 	}
+ 
+-#ifdef SUSE
+ 	/* Ahh ... set default multiuser with network */
+ 	if (!script_inf.default_start || script_inf.default_start == empty)
+-	    script_inf.default_start = xstrdup("3 5");
+-#else  /* not SUSE */
+-	if (!script_inf.default_start || script_inf.default_start == empty)
+-	    script_inf.default_start = xstrdup("2 3 4 5");	/* for Debian*/
++	    script_inf.default_start = xstrdup(DEFAULT_START_LVL);
++#ifndef SUSE
+ 	if (!script_inf.default_stop  || script_inf.default_start == empty)
+-	    script_inf.default_stop  = xstrdup("S 0 1 6");	/* for Debian*/
++	    script_inf.default_stop  = xstrdup(DEFAULT_STOP_LVL);
+ #endif /* not SUSE */
+ 
+ 	if (chkfor(d->d_name, argv, argc) && !defaults) {

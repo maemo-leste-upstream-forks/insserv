@@ -1,7 +1,7 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
 ## 39_debianlvl.dpatch by Petter Reinholdtsen <pere@hungry.com>
 
-Adjust inssert to handle 'S' in the init.d script level list as the
+Adjust insserv to handle 'S' in the init.d script level list as the
 boot directory on debian.  A better solution would be to reengineer
 insserv to have the runlevel info in one location instead of all over
 the code.

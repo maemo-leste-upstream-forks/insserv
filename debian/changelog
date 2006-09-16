@@ -1,3 +1,11 @@
+insserv (1.08.0-8) unstable; urgency=low
+
+  * Add override files for festival, hotkey-setup and lisa.
+  * New patch 41_debiandefault to set the default runlevels for start (2345)
+    and stop (016) on Debian.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 16 Sep 2006 17:32:24 +0200
+
 insserv (1.08.0-7) unstable; urgency=low
 
   * Remove override file console-screen.sh.  The info is now present in the

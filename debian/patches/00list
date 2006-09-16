@@ -11,4 +11,5 @@
 38_debuginfo
 39_debianlvl
 40_nosusescript
+41_debiandefault
 #51_cfgfilter_dpkg
