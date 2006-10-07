@@ -1,3 +1,16 @@
+insserv (1.08.0-9) unstable; urgency=low
+
+  * Change bind9 override file to avoid dependency loop involving
+    $syslog->sysklogd->$named->bind9.  Remove $syslog dependency and
+    insert $remote_fs dependency instead.  Make the $network dependency
+    conditional to work when netbase is not installed.
+  * Add override file for resolvconf.
+  * Add override file for installation-report.
+  * Minor cleanup in nviboot override file, only depend on $remote_fs, no need
+    to also depend on $local_fs.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat,  7 Oct 2006 10:08:04 +0200
+
 insserv (1.08.0-8) unstable; urgency=low
 
   * Add override files for festival, hotkey-setup and lisa.

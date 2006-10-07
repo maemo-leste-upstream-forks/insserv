@@ -1,0 +1,8 @@
+### BEGIN INIT INFO
+# Provides:          installation-report
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Should-start:      x11-common xserver-xorg
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
