@@ -1,3 +1,11 @@
+insserv (1.08.0-10) unstable; urgency=low
+
+  * Add override file for cpqarrayd.
+  * Add override file for libpam-devperm.
+  * Add override file for screen-cleanup.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 14 Oct 2006 21:00:31 +0200
+
 insserv (1.08.0-9) unstable; urgency=low
 
   * Change bind9 override file to avoid dependency loop involving
