@@ -1,3 +1,14 @@
+insserv (1.08.0-12) unstable; urgency=low
+
+  * Add override files for nbd-server and libdevmapper1.02.1.
+  * Update override files for atd, atftpd, discover, enable-nat,
+    keymap.sh, klogd, mplayer, networking, open-backdoor,
+    openbsd-inetd, report-reboot, rsync and start-wlan
+    based on the headers in the packages themselves.
+  * Add override file for lvm2 (Closes: #426104).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 26 May 2007 12:42:38 +0200
+
 insserv (1.08.0-11) unstable; urgency=low
 
   * Add override file for timidity.

@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          klogd
-# Required-Start:    sysklogd
-# Required-Stop:     sysklogd
+# Required-Start:    $time sysklogd
+# Required-Stop:     $time sysklogd
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 ### END INIT INFO

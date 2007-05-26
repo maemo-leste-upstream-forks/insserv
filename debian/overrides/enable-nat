@@ -1,8 +1,10 @@
 ### BEGIN INIT INFO
 # Provides:          enable-nat
-# Required-Start:    $network
-# Required-Stop:     $network
-# Default-Start:     1 2 3 4 5
-# Default-Stop:      0 6
+# Required-Start:    $remote_fs
+# Should-Start:      $network
+# Required-Stop:     $remote_fs
+# Should-Stop:       $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
 ### END INIT INFO
 # Already present in package
