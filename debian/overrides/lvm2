@@ -2,7 +2,7 @@
 # Provides:          lvm
 # Required-Start:    mountdevsubfs
 # Required-Stop:
-# Should-Start:      udev devfsd raid2 mdadm
+# Should-Start:      udev devfsd raid2 mdadm cryptdisks-early
 # Should-Stop:       reboot halt
 # Default-Start:     S
 # Default-Stop:      0 6
