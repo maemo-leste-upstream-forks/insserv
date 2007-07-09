@@ -12,7 +12,8 @@ init.d/:
 Without this patch, they will use '/etc/init.d' and /etc/init.d/'
 respectively, and this produces strange paths in the log output.
 
-It was sent upstream 2006-09-07.
+It was sent upstream 2006-09-07.  The issue seem to be fixed slightly
+different in version 1.09.0.
 
 @DPATCH@
 --- insserv-1.08.0.orig/insserv.c

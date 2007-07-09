@@ -1,7 +1,8 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
 ## 36_memleak.dpatch by Petter Reinholdtsen <pere@hungry.com>
 
-Fix minor memleak.  Patch sent upstream 2006-04-01.
+Fix minor memleak.  Patch sent upstream 2006-04-01.  Seem to be fixed
+in version 1.09.0.
 
 --- insserv-1.08.0.orig/insserv.c
 +++ insserv-1.08.0/insserv.c

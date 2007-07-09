@@ -1,3 +1,13 @@
+insserv (1.08.0-14) unstable; urgency=low
+
+  * Correct the dependencies for hwclock.sh.
+  * Update libdevmapper*, raid2 and mdadm-raid by adding
+    module-init-tools as an alternative to modutils, and move
+    both from required-start to should-start, as either or both
+    might be available. (Closes: #432072)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon,  9 Jul 2007 13:40:36 +0200
+
 insserv (1.08.0-13) unstable; urgency=low
 
   * Add override files for sysfsutils and hplip.

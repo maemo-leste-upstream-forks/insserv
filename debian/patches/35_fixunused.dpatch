@@ -13,7 +13,8 @@ The problem is the use of the unused attribute.  There is also a
 problem with lack of 'const' on the map_runlevel_to_location()
 function.  This patch fixes these problems.
 
-It was sent upstream 2006-04-01.
+It was sent upstream 2006-04-01 and found to be fixed in version
+1.09.0.
 
 @DPATCH@
 --- insserv-1.08.0.orig/insserv.c
