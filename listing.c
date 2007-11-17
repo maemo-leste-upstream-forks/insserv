@@ -436,8 +436,13 @@ boolean notincluded(const char * script, const int runlevel)
 	case 4: lvl = LVL_FOUR;   break;
 	case 5: lvl = LVL_FIVE;   break;
 	case 6: lvl = LVL_REBOOT; break;
+#ifdef SUSE
 	case 7: lvl = LVL_SINGLE; break;
 	case 8: lvl = LVL_BOOT;   break;
+#else
+	case 7: lvl = LVL_BOOT;   break;
+#endif /* not SUSE */
+
 	default:
 	    warn("Wrong runlevel %d\n", runlevel);
     }
@@ -483,8 +488,12 @@ boolean foreach(const char ** script, int * order, const int runlevel)
 	case 4: lvl = LVL_FOUR;   break;
 	case 5: lvl = LVL_FIVE;   break;
 	case 6: lvl = LVL_REBOOT; break;
+#ifdef SUSE
 	case 7: lvl = LVL_SINGLE; break;
 	case 8: lvl = LVL_BOOT;	  break;
+#else
+	case 7: lvl = LVL_BOOT;	  break;
+#endif /* not SUSE */
 	default:
 	    warn("Wrong runlevel %d\n", runlevel);
     }
@@ -577,12 +586,14 @@ unsigned int str2lvl(const char * lvl)
 	    continue;
 	if (!strpbrk(token, "0123456sSbB"))
 	    continue;
+
 	if (*token == 'S' || *token == 's')
 	    num = 7;
 	else if (*token == 'B' || *token == 'b')
 	    num = 8;
 	else
 	    num = atoi(token);
+
 	switch (num) {
 	    case 0: ret |= LVL_HALT;   break;
 	    case 1: ret |= LVL_ONE;    break;
@@ -591,8 +602,12 @@ unsigned int str2lvl(const char * lvl)
 	    case 4: ret |= LVL_FOUR;   break;
 	    case 5: ret |= LVL_FIVE;   break;
 	    case 6: ret |= LVL_REBOOT; break;
+#ifdef SUSE
 	    case 7: ret |= LVL_SINGLE; break;
 	    case 8: ret |= LVL_BOOT;   break;
+#else
+	    case 7: ret |= LVL_BOOT;   break;
+#endif /* not SUSE */
 	    default:
 		warn("Wrong runlevel %d\n", num);
 	}
@@ -610,14 +625,19 @@ char * lvl2str(const unsigned int lvl)
     memset(ptr , '\0', sizeof(str));
     for (num = 0; num < 9; num++) {
 	if (bit & lvl) {
-	    if      (num < 7)
+	    if (LVL_NORM & bit)
 		*(ptr++) = num + 48;
-	    else if (num == 7)
+#ifdef SUSE
+	    else if (LVL_SINGLE & bit)
 		*(ptr++) = 'S';
-	    else if (num == 8)
+	    else if (LVL_BOOT & bit)
 		*(ptr++) = 'B';
+#else
+	    else if (LVL_BOOT & bit)
+		*(ptr++) = 'S';
+#endif /* not SUSE */
 	    else
-		error("Wrong runlevel %d\n", num + 48);
+		error("Wrong runlevel %d\n", num);
 	    *(ptr++) = ' ';
 	}
 	bit <<= 1;
@@ -679,7 +699,7 @@ int getorder(const char * script)
     int order = -1;
 
     if (dir)
-	order = getdir(dir)->order;
+	order = dir->order;
 
     return order;
 }
@@ -805,7 +825,7 @@ boolean listscripts(const char ** script, const int lvl)
 }
 
 /*
- * Return the level bits of a given script
+ * Return the provided service of a given script
  */
 const char * getprovides(const char * script)
 {

@@ -1,15 +1,8 @@
-#10_readme
 20_overrides
-#30_non_suse
 31_debian_conf
 32_debian_nolsb
 33_debian_localok
-#34_debian
-35_fixunused
-36_memleak
-37_consistent_path
 38_debuginfo
-39_debianlvl
 40_nosusescript
 41_debiandefault
-#51_cfgfilter_dpkg
+42_redundantlvl

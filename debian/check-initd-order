@@ -17,6 +17,7 @@ my $rcbase = "/etc";
 #$rcbase = "/opt/ltsp/i386/etc";
 
 my $overridepath = "/usr/share/insserv/overrides";
+my $hostoverridepath =  "/etc/insserv/overrides";
 
 my $debug = 0;
 
@@ -208,7 +209,33 @@ sub check_bootorder {
 
 sub load_lsb_tags {
     my ($initfile, $useoverrides) = @_;
-    print STDERR "Loading $initfile\n" if $debug;
+    my $lsbinforef = load_lsb_tags_from_file($initfile);
+
+    if ($useoverrides) {
+	# Try override file
+	$initfile = readlink($initfile) if (-l $initfile);
+	my $basename = basename($initfile);
+
+	# Only read shipped override file when initscript does not
+	# contain LSB tags.
+	if (! defined($lsbinforef) && -f "$overridepath/$basename") {
+	    print STDERR "Override $overridepath/$basename\n" if $debug;
+	    $lsbinforef = load_lsb_tags_from_file("$overridepath/$basename");
+	}
+
+	# Always read the host override in $hostoverridepath.
+	if (-f "$hostoverridepath/$basename") {
+	    print STDERR "Override $hostoverridepath/$basename\n" if $debug;
+	    $lsbinforef = load_lsb_tags_from_file("$hostoverridepath/$basename");
+	}
+
+    }
+    return $lsbinforef;
+}
+
+sub load_lsb_tags_from_file {
+    my ($file) = @_;
+    print STDERR "Loading $file\n" if $debug;
     ### BEGIN INIT INFO
     # Provides:          xdebconfigurator
     # Required-Start:    $syslog
@@ -219,8 +246,8 @@ sub load_lsb_tags {
     # Description:       Preseed X configuration and use dexconf to
     #                    genereate a new configuration file.
     ### END INIT INFO
-    unless (open(FILE, "<$initfile")) {
-        warn "error: Unable to read $initfile";
+    unless (open(FILE, "<$file")) {
+        warn "error: Unable to read $file";
 	return;
     }
     my $found = 0;
@@ -239,17 +266,6 @@ sub load_lsb_tags {
     }
     close(FILE);
 
-    # Try override file
-    $initfile = readlink($initfile) if (-l $initfile);
-    my $basename = basename($initfile);
-
-    if (!$found) {
-	if ($useoverrides && -f "$overridepath/$basename") {
-	    print STDERR "Override $overridepath/$basename\n"
-		if $debug;
-	    return load_lsb_tags("$overridepath/$basename", $useoverrides);
-	}
-    }
     return undef unless ($found);
 
 #    print "Provides: $provides\n" if $provides;
@@ -259,6 +275,6 @@ sub load_lsb_tags {
 	    'required-stop'  => $requiredstop,
 	    'should-start'   => $shouldstart,
 	    'should-stop'    => $shouldstop,
-	    'file'           => $initfile,
+	    'file'           => $file,
 	    };
 }

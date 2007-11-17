@@ -1,7 +1,7 @@
 ### BEGIN INIT INFO
 # Provides:          libnss-ldap
 # Required-Start:    mountkernfs
-# Required-Stop:
+# Required-Stop:     $local_fs
 # Default-Start:     S
-# Default-Stop:      0 2 3 4 5 6
+# Default-Stop:      0 6
 ### END INIT INFO

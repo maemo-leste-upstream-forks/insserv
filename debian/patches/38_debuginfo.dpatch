@@ -1,7 +1,7 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
 ## 38_debuginfo.dpatch by Petter Reinholdtsen <pere@hungry.com>
 
-Change debug output to print symbolic runlevel names instead of a hex
+Change debug output to print symbolic runlevel names as wellas a hex
 value with the bit pattern representing the runlevels.
 
 @DPATCH@
@@ -13,13 +13,13 @@ value with the bit pattern representing the runlevels.
  	if (dir->script)
 -	    fprintf(stderr, "%.2d %s 0x%.2x (%s)\n",
 -		   dir->order, dir->script, dir->lvl, dir->name);
-+	    fprintf(stderr, "%.2d %s '%s' (%s)\n",
-+		   dir->order, dir->script, lvl2str(dir->lvl), dir->name);
++	    fprintf(stderr, "%.2d %s 0x%.2x '%s' (%s)\n",
++		   dir->order, dir->script, dir->lvl, lvl2str(dir->lvl), dir->name);
  	else
 -	    fprintf(stderr, "%.2d %s 0x%.2x (%%%s)\n",
 -		   dir->order, dir->name, dir->lvl, *dir->name == '$' ? "system" : "guessed");
-+	    fprintf(stderr, "%.2d %s '%s' (%%%s)\n",
-+		   dir->order, dir->name, lvl2str(dir->lvl), *dir->name == '$' ? "system" : "guessed");
++	    fprintf(stderr, "%.2d %s 0x%.2x '%s' (%%%s)\n",
++		   dir->order, dir->name, dir->lvl, lvl2str(dir->lvl), *dir->name == '$' ? "system" : "guessed");
      }
  }
  #endif

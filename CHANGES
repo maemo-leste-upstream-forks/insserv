@@ -1,4 +1,49 @@
 -------------------------------------------------------------------
+Tue Jan 16 14:04:06 CET 2007 - werner@suse.de
+
+- Remove obsolate `$netdaemons' facility (#209380)
+- Add `start this script before' feature (fate #301269)
+
+-------------------------------------------------------------------
+Mon Nov 20 11:42:40 CET 2006 - werner@suse.de
+
+- Expand aliases even for services which requires $all (#216202)
+
+-------------------------------------------------------------------
+Mon May 15 12:56:27 CEST 2006 - werner@suse.de
+
+- Make kdump boot script a interactive script to enforce that this
+  script runs not in parallel with other script (#175340, #171332)
+
+-------------------------------------------------------------------
+Wed Mar  8 17:06:47 CET 2006 - werner@suse.de
+
+- Ignore .orig and .org file (bug #155944)
+
+-------------------------------------------------------------------
+Wed Mar  1 12:51:17 CET 2006 - werner@suse.de
+
+- Add a few lines about $all into the man page (bug #151561)
+
+-------------------------------------------------------------------
+Mon Feb  6 16:40:46 CET 2006 - werner@suse.de
+
+- Handle duplets even for interactive scripts
+
+-------------------------------------------------------------------
+Tue Jan 31 15:06:53 CET 2006 - werner@suse.de
+
+- Be sure to find all interactive scripts and set their unique
+  start number.  This solves the problem of two interactive
+  scripts in the same start order.
+
+-------------------------------------------------------------------
+Tue Apr  4 18:23:24 CEST 2006 - werner@suse.de
+
+- Add patches from Petter Reinholdtsen
+- Make debian part work
+
+-------------------------------------------------------------------
 Wed Jan 25 14:52:26 CET 2006 - werner@suse.de
 
 - Fix the broken fix (bug #145403)

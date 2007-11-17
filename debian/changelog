@@ -1,3 +1,18 @@
+insserv (1.09.0-1) unstable; urgency=low
+
+  * New upstream release. (Closes: #426091)
+    - Support X-Start-Before and X-Stop-After (Closes: #326120)
+    - Building with DEB_BUILD_OPTIONS=nostrip no longer strip the
+      binary. (Closes: #437210)
+  * Let /usr/share/insserv/check-initd-order read override files in
+    /etc/insserv/overrides/ just like insserv does.  Patch from Arjan
+    Oosting.  (Closes: #429398)
+  * Correct the dependencies for nbd-client and libnss-ldap.
+  * Add override file for spamassassin.
+  * Update watch file with new upstream URL. (Closes: #450044)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 17 Nov 2007 21:17:20 +0100
+
 insserv (1.08.0-14) unstable; urgency=low
 
   * Correct the dependencies for hwclock.sh.

@@ -30,9 +30,11 @@
 #include <getopt.h>
 #include "listing.h"
 
-static char *map_runlevel_to_location(const int runlevel);
-static const int map_runlevel_to_lvl (const int runlevel) __attribute__ ((unused));
-static const int map_runlevel_to_seek(const int runlevel) __attribute__ ((unused));
+static const char *map_runlevel_to_location(const int runlevel);
+#ifndef SUSE
+static const int map_runlevel_to_lvl (const int runlevel);
+static const int map_runlevel_to_seek(const int runlevel);
+#endif /* not SUSE */
 
 #ifndef  INITDIR
 # define INITDIR	"/etc/init.d"
@@ -424,8 +426,12 @@ static serv_t * current_structure(const char *const this, const char order, cons
 	case 4: serv->lvls |= LVL_FOUR;   break;
 	case 5: serv->lvls |= LVL_FIVE;   break;
 	case 6: serv->lvls |= LVL_REBOOT; break;
+#ifdef SUSE
 	case 7: serv->lvls |= LVL_SINGLE; break;
 	case 8: serv->lvls |= LVL_BOOT;   break;
+#else  /* not SUSE */
+	case 7: serv->lvls |= LVL_BOOT;   break;
+#endif /* not SUSE */
 	default: break;
     }
 
@@ -506,7 +512,7 @@ static inline void active_script(void)
 		    continue;
 
 		if (cur->opts & SERV_DUPLET)
-		   continue;		/* Duplet */
+		    continue;		/* Duplet */
 
 		if (cur == serv)
 		    continue;
@@ -550,7 +556,7 @@ static inline void active_script(void)
 }
 
 /*
- * Alt last but not least the `$all' scripts will be set to the of
+ * Last but not least the `$all' scripts will be set to the of
  * current the start order.
  */
 
@@ -561,6 +567,7 @@ static inline void all_script(void)
     list_for_each(pos, serv_start) {
 	serv_t * serv = getserv(pos);
 	list_t * tmp;
+	const char *name;
 	int neworder;
 
 	if (!(serv->opts & SERV_ALL))
@@ -587,7 +594,10 @@ static inline void all_script(void)
 	    neworder = maxorder;
 	else if (neworder > maxorder)
 	    maxorder = neworder;
-	setorder(serv->name, neworder, false);
+	/* Expand aliases to the real script name */
+	if ((name = getscript(serv->name)) == NULL)
+	    name = serv->name;
+	setorder(name, neworder, false);
     }
 }
 
@@ -1117,34 +1127,35 @@ static struct {
 } runlevel_locations[] = {
 #ifdef SUSE	/* SuSE's SystemV link scheme */
     {"rc0.d/",    LVL_HALT,   LVL_NORM},
-    {"rc1.d/",    LVL_ONE,    LVL_NORM},
+    {"rc1.d/",    LVL_ONE,    LVL_NORM}, /* runlevel 1 switch over to single user mode */
     {"rc2.d/",    LVL_TWO,    LVL_NORM},
     {"rc3.d/",    LVL_THREE,  LVL_NORM},
     {"rc4.d/",    LVL_FOUR,   LVL_NORM},
     {"rc5.d/",    LVL_FIVE,   LVL_NORM},
     {"rc6.d/",    LVL_REBOOT, LVL_NORM},
-    {"rcS.d/",    LVL_SINGLE, LVL_NORM}, /* runlevel S */
-    {"boot.d/",   LVL_BOOT,   LVL_BOOT}, /* runlevel B */
+    {"rcS.d/",    LVL_SINGLE, LVL_NORM}, /* runlevel S is for single user mode */
+    {"boot.d/",   LVL_BOOT,   LVL_BOOT}, /* runlevel B is for system initialization */
 #else		/* not SUSE (actually, Debian) */
     {"../rc0.d/", LVL_HALT,   LVL_NORM},
-    {"../rc1.d/", LVL_SINGLE, LVL_NORM},
+    {"../rc1.d/", LVL_ONE,    LVL_NORM}, /* runlevel 1 switch over to single user mode */
     {"../rc2.d/", LVL_TWO,    LVL_NORM},
     {"../rc3.d/", LVL_THREE,  LVL_NORM},
     {"../rc4.d/", LVL_FOUR,   LVL_NORM},
     {"../rc5.d/", LVL_FIVE,   LVL_NORM},
     {"../rc6.d/", LVL_REBOOT, LVL_NORM},
-    {"../rcS.d/", LVL_BOOT,   LVL_BOOT}, /* runlevel S */
+    {"../rcS.d/", LVL_BOOT,   LVL_BOOT}, /* runlevel S is for system initialization */
 		/* On e.g. Debian there exist no boot.d */
 #endif		/* not SUSE */
 };
 
 #define RUNLEVLES (sizeof(runlevel_locations)/sizeof(runlevel_locations[0]))
 
-static char *map_runlevel_to_location(const int runlevel)
+static const char *map_runlevel_to_location(const int runlevel)
 {
     return runlevel_locations[runlevel].location;
 }
 
+#ifndef SUSE
 static const int map_runlevel_to_lvl(const int runlevel)
 {
     return runlevel_locations[runlevel].lvl;
@@ -1154,6 +1165,7 @@ static const int map_runlevel_to_seek(const int runlevel)
 {
     return runlevel_locations[runlevel].seek;
 }
+#endif /* not SUSE */
 
 /*
  * Scan current service structure
@@ -1164,7 +1176,7 @@ static void scan_script_locations(const char *const path)
 
     pushd(path);
     for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
-	char * rcd = NULL;
+	const char * rcd = NULL;
 	DIR  * rcdir;
 	struct dirent *d;
 	char * token;
@@ -1367,6 +1379,8 @@ static int cfgfile_filter(const struct dirent* d)
 	    !strncmp(end, "ba", 2)	|| /* .bak, .backup, ... */
 	    !strcmp(end,  "old")	||
 	    !strcmp(end,  "new")	||
+	    !strcmp(end,  "org")	||
+	    !strcmp(end,  "orig")	||
 	    !strncmp(end, "dpkg", 3)	|| /* .dpkg-old, .dpkg-new ... */
 	    !strcmp(end,  "save")	||
 	    !strcmp(end,  "swp")	|| /* Used by vi like editors */
@@ -1549,7 +1563,7 @@ int main (int argc, char *argv[])
 
 	/* Catch `/path/script', `./script', and `path/script' */
 	if (strchr(*argv, '/')) {
-	    if ( stat(*argv, &st_script) < 0)
+	    if (stat(*argv, &st_script) < 0)
 		error("%s: %s\n", *argv, strerror(errno));
 	} else {
 	    pushd(path);
@@ -1559,7 +1573,12 @@ int main (int argc, char *argv[])
 	}
 
 	if (S_ISDIR(st_script.st_mode)) {
-	    path = *argv;
+	    const size_t l = strlen(*argv);
+
+	    path = xstrdup(*argv);
+	    if (path[l-1] == '/')
+		path[l-1] = '\0';
+
 	    if (del)
 		error("usage: %s [[-r] init_script|init_directory]\n", myname);
 	    argv++;
@@ -1570,8 +1589,8 @@ int main (int argc, char *argv[])
 	    char * base, * ptr = xstrdup(*argv);
 
 	    if ((base = strrchr(ptr, '/'))) {
-		*(++base) = '\0';
-		path = ptr;
+		*base = '\0';
+		path  = ptr;
 	    } else
 		free(ptr);
 	}
@@ -1773,7 +1792,7 @@ int main (int argc, char *argv[])
 		}
 		if (!script_inf.default_start || script_inf.default_start == empty) {
 		    if (guess->lvls)
-			script_inf.default_start = xstrdup(lvl2str(guess->lvls));
+			script_inf.default_start = lvl2str(guess->lvls);
 		}
 	    } else {
 		/*
@@ -1795,7 +1814,7 @@ int main (int argc, char *argv[])
 
 			list_for_each(req, &(cur->sort.req)) {
 			    if (!strcmp(getreq(req)->serv, script_inf.provides)) {
-				script_inf.default_start = xstrdup(lvl2str(getserv(ptr)->lvls));
+				script_inf.default_start = lvl2str(getserv(ptr)->lvls);
 				break;
 			    }
 			}
@@ -1869,29 +1888,31 @@ int main (int argc, char *argv[])
 			}
 		    }
 
-		    if (!known && script_inf.required_start && script_inf.required_start != empty) {
-			rememberreq(service, REQ_MUST, script_inf.required_start);
-			requiresv(token, script_inf.required_start);
-		    }
-		    if (!known && script_inf.should_start && script_inf.should_start != empty) {
-			rememberreq(service, REQ_SHLD, script_inf.should_start);
-			requiresv(token, script_inf.should_start);
-		    }
+		    if (!known) {
+			if (script_inf.required_start && script_inf.required_start != empty) {
+			    rememberreq(service, REQ_MUST, script_inf.required_start);
+			    requiresv(token, script_inf.required_start);
+			}
+			if (script_inf.should_start && script_inf.should_start != empty) {
+			    rememberreq(service, REQ_SHLD, script_inf.should_start);
+			    requiresv(token, script_inf.should_start);
+			}
 #ifndef SUSE
-		    /*
-		     * required_stop and should_stop arn't used in SuSE Linux.
-		     * Note: Sorting is done symetrical in stop and start!
-		     * The stop order is given by max order - start order.
-		     */
-		    if (!known && script_inf.required_stop && script_inf.required_stop != empty) {
-			rememberreq(service, REQ_MUST, script_inf.required_stop);
-			requiresv(token, script_inf.required_stop);
-		    }
-		    if (!known && script_inf.should_stop && script_inf.should_stop != empty) {
-			rememberreq(service, REQ_SHLD, script_inf.should_stop);
-			requiresv(token, script_inf.should_stop);
-		    }
+			/*
+			 * required_stop and should_stop arn't used in SuSE Linux.
+			 * Note: Sorting is done symetrical in stop and start!
+			 * The stop order is given by max order - start order.
+			 */
+			if (script_inf.required_stop && script_inf.required_stop != empty) {
+			    rememberreq(service, REQ_MUST, script_inf.required_stop);
+			    requiresv(token, script_inf.required_stop);
+			}
+			if (script_inf.should_stop && script_inf.should_stop != empty) {
+			    rememberreq(service, REQ_SHLD, script_inf.should_stop);
+			    requiresv(token, script_inf.should_stop);
+			}
 #endif /* not SUSE */
+		    }
 		    /*
 		     * Use information from symbolic link structure to
 		     * check if all services are around for this script.
@@ -2130,14 +2151,15 @@ int main (int argc, char *argv[])
 #else
 # ifdef SUSE	/* SuSE's SystemV link scheme */
     pushd(path);
-    for (runlevel = 0; runlevel < 9; runlevel++) {
+    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
 	int order;
 	const char * script;
 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
-	char * rcd = NULL;
+	const char * rcd = NULL;
 	DIR  * rcdir;
 
-	rcd = map_runlevel_to_location(runlevel);
+	if ((rcd = map_runlevel_to_location(runlevel)) == NULL)
+	    continue;
 
 	script = NULL;
 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
@@ -2280,10 +2302,11 @@ int main (int argc, char *argv[])
 	int lvl = 0, seek = 0;
 	const char * script;
 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
-	char * rcd = NULL;
+	const char * rcd = NULL;
 	DIR  * rcdir;
 
-	rcd = map_runlevel_to_location(runlevel);
+	if ((rcd = map_runlevel_to_location(runlevel)) == NULL)
+	    continue;
 	lvl  = map_runlevel_to_lvl(runlevel);
 	seek = map_runlevel_to_seek(runlevel);
 

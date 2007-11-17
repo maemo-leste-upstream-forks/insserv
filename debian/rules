@@ -6,13 +6,15 @@
 
 PACKAGE = insserv
 
-CFLAGS = -W -g
+CFLAGS = -W -Wall -g
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 	CFLAGS += -O0
 else
 	CFLAGS += -O2
 endif
+
+#CFLAGS += -DDEBUG=1
 
 INSTALL = install
 INSTALL_DATA = $(INSTALL) -m644
@@ -25,7 +27,7 @@ include /usr/share/dpatch/dpatch.make
 
 build: build-stamp
 
-build-stamp: patch-stamp 
+build-stamp: patch-stamp
 	dh_testdir
 
 	# Add here commands to compile the package.
@@ -83,3 +85,14 @@ binary-arch: build install
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
+
+# List the init.d missing LSB headers and override files
+missing-overrides:
+	@GET http://lintian.debian.org/reports/Tinit.d-script-missing-lsb-section.html| grep W: | rev | cut -d/ -f1 | rev | sort > missing
+	@ls debian/overrides/ |sort > overrides
+	@echo "Init.d scripts in need of overrides:"
+	@echo $$(comm -23 missing overrides) |fold -s | sed 's/^/  /'
+
+	@echo -n "Scripts missing overrides:                "; comm -23 missing overrides|wc -l
+	@echo -n "Scripts with overrides and no LSB header: "; comm -12 missing overrides|wc -l
+	@echo -n "Scripts with overrides and LSB header:    "; comm -13 missing overrides|wc -l
