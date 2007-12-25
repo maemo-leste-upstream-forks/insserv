@@ -1,7 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          networking
-# Required-Start:    mountkernfs ifupdown $local_fs
-# Required-Stop:     ifupdown $local_fs
-# Default-Start:     S
-# Default-Stop:      0 6
-### END INIT INFO

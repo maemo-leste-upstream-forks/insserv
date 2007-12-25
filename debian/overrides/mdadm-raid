@@ -1,9 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          mdadm-raid
-# Required-Start:
-# Required-Stop:
-# Should-Start:      modutils module-init-tools hotplug discover udev devfsd
-# Should-Stop:       modutils module-init-tools
-# Default-Start:     S
-# Default-Stop:      0 6
-### END INIT INFO

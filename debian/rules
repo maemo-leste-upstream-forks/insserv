@@ -31,7 +31,7 @@ build-stamp: patch-stamp
 	dh_testdir
 
 	# Add here commands to compile the package.
-	$(MAKE) ISSUSE="" COPTS="$(CFLAGS)"
+	$(MAKE) COPTS="$(CFLAGS)"
 
 	touch build-stamp
 
@@ -51,7 +51,7 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/$(PACKAGE).
-	$(MAKE) install DESTDIR=$(DESTDIR) ISSUSE=""
+	$(MAKE) install DESTDIR=$(DESTDIR)
 
 	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/.
 	$(INSTALL) debian/check-initd-order $(DESTDIR)$(pkgdatadir)/.
@@ -90,9 +90,9 @@ binary: binary-indep binary-arch
 missing-overrides:
 	@GET http://lintian.debian.org/reports/Tinit.d-script-missing-lsb-section.html| grep W: | rev | cut -d/ -f1 | rev | sort > missing
 	@ls debian/overrides/ |sort > overrides
-	@echo "Init.d scripts in need of overrides:"
+	@echo -n "Init.d scripts missing overrides:         "; comm -23 missing overrides|wc -l
 	@echo $$(comm -23 missing overrides) |fold -s | sed 's/^/  /'
-
-	@echo -n "Scripts missing overrides:                "; comm -23 missing overrides|wc -l
 	@echo -n "Scripts with overrides and no LSB header: "; comm -12 missing overrides|wc -l
 	@echo -n "Scripts with overrides and LSB header:    "; comm -13 missing overrides|wc -l
+	@echo -n "Override files that need a bug report:    "; debian/bts-lefttoreport | wc -l
+	@echo $$(debian/bts-lefttoreport | sort) |fold -s | sed 's/^/  /'

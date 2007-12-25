@@ -1,3 +1,16 @@
+insserv (1.09.0-2) unstable; urgency=low
+
+  * New patch 10_nosuse to disable SUSE specific build.  This make
+    it easier to debug insserv.
+  * Update patch 40_nosusescript to remove SUSE-specific handling
+    of the halt and reboot script.
+  * Remove all override files for init.d scripts with LSB style
+    dependency headers (Closes: #386544).
+  * Update snmptrapfmt override file, making it more accurate.
+  * Updated standards-version from 3.7.2 to 3.7.3.  No changes needed.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Tue, 25 Dec 2007 14:24:26 +0100
+
 insserv (1.09.0-1) unstable; urgency=low
 
   * New upstream release. (Closes: #426091)

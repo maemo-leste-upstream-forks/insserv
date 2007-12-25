@@ -1,7 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          mplayer-RTC-settings
-# Required-Start:    $local_fs $syslog
-# Required-Stop:     $local_fs $remote_fs
-# Default-Start:     2 3 4 5
-# Default-Stop:
-### END INIT INFO

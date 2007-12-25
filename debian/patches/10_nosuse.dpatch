@@ -1,0 +1,19 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 20_overrides.dpatch by Petter Reinholdtsen <pere@hungry.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Implement support for reading LSB init.d header info from override
+## DP: files.
+
+@DPATCH@
+--- insserv-1.09.0/Makefile	2007-12-25 13:39:46.000000000 +0100
++++ insserv-1.09.0/Makefile	2007-12-25 13:39:42.000000000 +0100
+@@ -11,7 +11,7 @@
+ #DEBUG	 =	-DDEBUG=1
+ #LOOPS	 =	-DIGNORE_LOOPS=1
+ DEBUG	 =
+-ISSUSE	 =	-DSUSE
++#ISSUSE	 =	-DSUSE
+ DESTDIR	 =
+ VERSION	 =	1.09.0
+ DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
