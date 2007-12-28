@@ -1,0 +1,95 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 44_shutdown.dpatch by Otavio Salvador and Petter Reinholdtsen
+
+Fix the handling of stop scripts and the shutdown sequence.
+
+@DPATCH@
+--- insserv-1.09.0.orig/insserv.c
++++ insserv-1.09.0/insserv.c
+@@ -420,14 +420,19 @@
+ /*
+  * This helps us to work out the current symbolic link structure
+  */
+-static serv_t * current_structure(const char *const this, const char order, const int runlvl)
++static serv_t * current_structure(const char *const this, const char order, const int runlvl, const char type)
+ {
+     serv_t * serv = addserv(this);
+ 
+     if (serv->order < order)
+ 	serv->order = order;
+ 
+-    serv->lvls |= map_runlevel_to_lvl(runlvl);
++    if ('S' == type)
++	serv->lvls |= map_runlevel_to_lvl(runlvl);
++#ifndef SUSE
++    else
++        serv->lvlk |= map_runlevel_to_lvl(runlvl);
++#endif /* SUSE */
+ 
+     return serv;
+ }
+@@ -1310,11 +1278,17 @@
+ 	while ((d = readdir(rcdir)) != NULL) {
+ 	    char * ptr = d->d_name;
+ 	    char order = 0;
++ 	    char type;
+ 	    char* begin = (char*)NULL; /* Remember address of ptr handled by strsep() */
+ 	    boolean lsb;
+ 
+-	    if (*ptr != 'S')
++	    if (*ptr != 'S'
++#ifndef SUSE
++                && *ptr != 'K'
++#endif /* SUSE */
++                )
+ 		continue;
++ 	    type = *ptr;
+ 	    ptr++;
+ 
+ 	    if (strspn(ptr, "0123456789") < 2)
+@@ -1338,7 +1312,7 @@
+ 		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
+ 		    continue;
+ 		}
+-		service = current_structure(token, order, runlevel);
++		service = current_structure(token, order, runlevel, type);
+ 
+ 		if (service->opts & SERV_KNOWN)
+ 		    continue;
+@@ -2184,7 +2158,10 @@
+ 	     */
+ 	    if (script_inf.default_stop && script_inf.default_stop != empty) {
+ 		if (service && !del)
++		  {
+ 		    service->lvlk = str2lvl(script_inf.default_stop);
++		    runlevels(token, script_inf.default_stop);
++		  }
+ 	    }
+ #endif /* not SUSE */
+ 	}
+@@ -2468,9 +2445,13 @@
+ 	}
+ 
+ 	while (listscripts(&script, seek)) {
+-	    const boolean stop = notincluded(script, runlevel);
+ 	    const boolean this = chkfor(script, argv, argc);
+ 	    const serv_t *serv = findserv(getprovides(script));
++	    const boolean stop = (notincluded(script, runlevel) 
++#ifndef SUSE
++				  || (serv->lvlk & lvl))
++#endif /* not SUSE */
++	      ;
+ 	    const char mode = (stop ? 'K' : 'S');
+ 	    int order = getorder(script);
+ 	    boolean found;
+@@ -2474,6 +2474,10 @@
+ 		order = (maxorder + 1) - order;
+ 	    }
+ 
++	    if (!(serv->lvls & lvl) && !(serv->lvlk & lvl))
++		continue;				/* We aren't suppose to be on this runlevel */
++
++
+ 	    sprintf(olink, "../init.d/%s", script);
+ 	    sprintf(nlink, "%c%.2d%s", mode, order, script);
+ 

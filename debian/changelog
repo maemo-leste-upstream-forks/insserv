@@ -1,3 +1,15 @@
+insserv (1.09.0-3) unstable; urgency=low
+
+  * Update patch 40_nosusescript to disable unused function setlsb().
+  * Add sendsigs to the $remote_fs virtual facility, to make sure the
+    services depending on $remote_fs for the shutdown sequence are not
+    killed before their init.d script get a chance to stop them.
+  * New patch 43_shutdown to fix the handling of stop scripts and thus
+    the shutdown sequence (Closes: #452462).  Thanks to Otavio
+    Salvador for help with debugging and part of the patch.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 29 Dec 2007 00:20:04 +0100
+
 insserv (1.09.0-2) unstable; urgency=low
 
   * New patch 10_nosuse to disable SUSE specific build.  This make

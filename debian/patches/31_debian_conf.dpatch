@@ -35,7 +35,7 @@
  # both $local_fs and $remote_fs)
  #
 -$remote_fs	$local_fs +nfs
-+$remote_fs	$local_fs +mountnfs +mountnfs-bootclean +umountnfs
++$remote_fs	$local_fs +mountnfs +mountnfs-bootclean +umountnfs +sendsigs
  
  #
  # System logger is operational
