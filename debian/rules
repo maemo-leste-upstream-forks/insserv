@@ -33,6 +33,9 @@ build-stamp: patch-stamp
 	# Add here commands to compile the package.
 	$(MAKE) COPTS="$(CFLAGS)"
 
+	chmod a+rx debian/run-testsuite
+	debian/run-testsuite
+
 	touch build-stamp
 
 clean: unpatch

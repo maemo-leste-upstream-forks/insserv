@@ -1,0 +1,201 @@
+#!/bin/sh
+
+tmpdir=`pwd`/testdir
+initddir=$tmpdir/init.d
+
+insserv=`pwd`/insserv
+
+retval=0
+
+mkdir -p $initddir
+
+#debug="-v"
+
+insertscript() {
+    script=$initddir/$1
+    cat > $script
+    chmod a+rx $script
+    $insserv $debug -p $initddir $script
+}
+
+check_order() {
+    runlevel=$1
+    script1=$2
+    script2=$3
+    order="$(echo $(cd $tmpdir/rc$runlevel.d/; ls *$script1 *$script2 |sed 's/S..//') )"
+    if [ "$order" != "$script1 $script2" ] ; then
+	echo "error: Incorrect sequence $script1 not before $script2: $order"
+	retval=1
+    fi
+}
+
+insertscript mountkernfs.sh <<EOF
+### BEGIN INIT INFO
+# Provides:          mountkernfs
+# Required-Start:
+# Required-Stop:
+# Should-Start:      glibc
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript mountdevsubfs.sh <<EOF
+### BEGIN INIT INFO
+# Provides:          mountdevsubfs mountvirtfs
+# Required-Start:    mountkernfs
+# Required-Stop:
+# Should-Start:      udev
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript checkroot.sh <<EOF
+### BEGIN INIT INFO
+# Provides:          checkroot
+# Required-Start:    mountdevsubfs
+# Required-Stop:
+# Should-Start:      keymap hwclockfirst
+# Should-stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript ifupdown-clean <<EOF
+### BEGIN INIT INFO
+# Provides:          ifupdown-clean
+# Required-Start:    checkroot
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript ifupdown <<EOF
+### BEGIN INIT INFO
+# Provides:          ifupdown
+# Required-Start:    ifupdown-clean
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insertscript checkroot.sh <<EOF
+### BEGIN INIT INFO
+# Provides:          checkroot
+# Required-Start:    mountdevsubfs
+# Required-Stop:
+# Should-Start:      keymap hwclockfirst
+# Should-stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript checkfs.sh <<EOF
+### BEGIN INIT INFO
+# Provides:          checkfs
+# Required-Start:    checkroot
+# Required-Stop:
+# Should-Start:      lvm cryptdisks
+# Should-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript mountall.sh <<EOF
+### BEGIN INIT INFO
+# Provides:          mountall
+# Required-Start:    checkfs
+# Required-Stop:
+# Should-Start:      lvm
+# Should-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript mountnfs.sh <<EOF
+### BEGIN INIT INFO
+# Provides:          mountnfs
+# Required-Start:    $local_fs
+# Required-Stop:
+# Should-Start:      $network
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript daemon <<EOF
+#### BEGIN INIT INFO
+# Provides:          daemon
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+insertscript reboot <<EOF
+### BEGIN INIT INFO
+# Provides:          reboot
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:      6
+### END INIT INFO
+EOF
+
+insertscript umountroot <<EOF
+### BEGIN INIT INFO
+# Provides:          umountroot
+# Required-Start:
+# Required-Stop:
+# Should-Stop:       halt reboot
+# Default-Start:
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insertscript umountfs <<EOF
+### BEGIN INIT INFO
+# Provides:          umountfs
+# Required-Start:
+# Required-Stop:     umountroot
+# Default-Start:
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insertscript umountnfs <<EOF
+### BEGIN INIT INFO
+# Provides:          umountnfs
+# Required-Start:
+# Required-Stop:     umountfs
+# Default-Start:
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insertscript nolsbheader <<EOF
+EOF
+
+(cd $tmpdir && ls *)
+
+check_order S mountkernfs.sh mountdevsubfs.sh
+check_order S ifupdown-clean ifupdown
+check_order S ifupdown-clean ifupdown
+#check_order S mountall.sh mountnfs.sh
+
+#check_order 6 daemon umountnfs
+
+rm -rf $tmpdir
+
+if [ 0 != $retval ] ; then
+    echo "error: One or more test failed."
+fi
+exit $retval

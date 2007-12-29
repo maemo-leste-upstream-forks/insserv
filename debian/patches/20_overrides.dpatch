@@ -42,7 +42,7 @@
  #define COMMON_ARGS	buf, SUBNUM, subloc, 0
  #define COMMON_SHD_ARGS	buf, SUBNUM_SHD, subloc, 0
      while (fgets(buf, sizeof(buf), script)) {
-@@ -1094,10 +1085,107 @@
+@@ -1094,10 +1085,111 @@
  #undef default_start
  #undef default_stop
  #undef description
@@ -141,6 +141,10 @@
 +        warn("warning: script '%s' missing LSB tags\n", path);
 +	if (!override) {
 +	  warn("warning: script '%s' missing override too\n", name);
++	  script_inf.required_start = xstrdup("$remote_fs");
++	  script_inf.required_stop = xstrdup("$remote_fs");
++	  script_inf.default_start = xstrdup(DEFAULT_START_LVL);
++	  script_inf.default_stop = xstrdup(DEFAULT_STOP_LVL);
 +	}
 +    }
 +    free(name);

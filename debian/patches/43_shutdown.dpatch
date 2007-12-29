@@ -1,5 +1,5 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## 44_shutdown.dpatch by Otavio Salvador and Petter Reinholdtsen
+## 43_shutdown.dpatch by Otavio Salvador and Petter Reinholdtsen
 
 Fix the handling of stop scripts and the shutdown sequence.
 
@@ -93,3 +93,14 @@ Fix the handling of stop scripts and the shutdown sequence.
  	    sprintf(olink, "../init.d/%s", script);
  	    sprintf(nlink, "%c%.2d%s", mode, order, script);
  
+--- insserv-1.09.0.orig/listing.c
++++ insserv-1.09.0/listing.c
+@@ -566,7 +566,7 @@
+ {
+     dir_t * dir = providedir(this);
+ 
+-    dir->lvl = str2lvl(lvl);
++    dir->lvl |= str2lvl(lvl);
+ }
+ 
+ /*

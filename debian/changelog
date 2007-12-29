@@ -1,3 +1,16 @@
+insserv (1.09.0-4) unstable; urgency=low
+
+  * Update patch 20_overrides to add useful default values for scripts
+    without LSB header (Closes: #431697).
+  * Update patch 43_shutdown to handle scripts with both start and
+    stop levels.  (Closes: #452462).
+  * New patch 44_path_at_runtime to add new option -p to make it
+    possible to replace /etc/init.d with another path for testing.
+  * Add script debian/run-testsuite to test the generated order, and
+    use it during the build.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 29 Dec 2007 16:00:31 +0100
+
 insserv (1.09.0-3) unstable; urgency=low
 
   * Update patch 40_nosusescript to disable unused function setlsb().
