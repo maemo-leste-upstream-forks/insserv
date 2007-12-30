@@ -9,7 +9,7 @@
 @DPATCH@
 --- insserv-1.00.8.orig/insserv.conf
 +++ insserv-1.00.8/insserv.conf
-@@ -1,29 +1,30 @@
+@@ -1,29 +1,29 @@
  #
  # All local filesystems are mounted (done during boot phase)
  #
@@ -21,7 +21,6 @@
  #
 -$network	network +pcmcia +hotplug
 +$network	+networking +ifupdown
-+# +pcmcia +hotplug
  
  #
  # Named is operational
@@ -45,16 +44,13 @@
  
  #
  # All network daemons are running (this entry is OBSOLETE)
-@@ -38,7 +39,7 @@
+@@ -38,9 +39,9 @@
  #
  # The system time has been set correctly
  #
 -$time		boot.clock +xntpd
 +$time		hwclock +ntpdate +ntp-server
  
- #
- # Services which need to be interactive
-@@ -38,4 +38,4 @@
  #
  # Services which need to be interactive
  #

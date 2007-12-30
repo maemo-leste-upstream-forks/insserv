@@ -1,16 +1,16 @@
 Template: insserv/enable
 Type: boolean
-Description: Enable dependency based update-rc.d using insserv?
+Description: Use dependency based boot sequence?
  This will reorder all the scripts in /etc/rc*.d/ using the dependency
- information provided in each script and insserv-provided dependency
- info in case the scripts are missing dependency info.  It will also
- change all S* symlinks in rc0.d/ and rc6.d/ to K* symlinks, to make
- sure the way they are used (with 'stop' argument) matches their
- names.
+ information provided in each script and default or insserv-provided
+ dependency info in case the scripts are missing dependency info.  It
+ will also change all S* symlinks in rc0.d/ and rc6.d/ to K* symlinks,
+ to make sure the way they are used (with 'stop' argument) matches
+ their names.
  .
  WARNING: It is very hard to revert this change.  Reinstallation is
  probably required to stop using the dependecy based boot system.
  .
  This is an experimental feature, and is only intended for testing of
- insserv.
+ insserv and the LSB style dependecy information in init.d scripts.
 

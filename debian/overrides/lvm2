@@ -3,7 +3,7 @@
 # Required-Start:    mountdevsubfs
 # Required-Stop:
 # Should-Start:      udev devfsd raid2 mdadm cryptdisks-early
-# Should-Stop:       reboot halt
+# Should-Stop:       reboot halt umountroot
 # Default-Start:     S
 # Default-Stop:      0 6
 ### END INIT INFO

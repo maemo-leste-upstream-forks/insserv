@@ -1,3 +1,22 @@
+insserv (1.09.0-7) unstable; urgency=low
+
+  * Try to make it it easier to disabling the dependency based boot
+    sequencing by calling the postinst of all packages with init.d
+    scripts to  register the scripts again.
+  * Extend check-initd-order to handle the virtual dependecy $all.
+  * Reword the debconf question to try to make it clearer and
+    easier to understand.
+  * Minor cleanup in irqbalance and atd override file, only depend
+    on $remote_fs, no need to also depend on $local_fs.
+  * Update check-initd-order to use the same default dependencies
+    ($remote_fs $syslog) and the same virtual dependencies as insserv
+    when generating dotty graphs.
+  * Update check-initd-order to draw left-to-right dotty graphs.
+    Based on tip from Frans Pop and Trent Buck.
+  * Update lvm2 override to stop before umountroot.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 30 Dec 2007 18:48:47 +0100
+
 insserv (1.09.0-6) unstable; urgency=low
 
   * Update patch 20_overrides to let scripts without an LSB header
