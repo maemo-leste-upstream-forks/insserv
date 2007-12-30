@@ -193,6 +193,16 @@ insertscript needallfs <<'EOF'
 ### END INIT INFO
 EOF
 
+insertscript syslog <<'EOF'
+#### BEGIN INIT INFO
+# Provides:          syslog
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
 insertscript reboot <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          reboot
@@ -264,6 +274,7 @@ check_order 1 needallfs killprocs
 
 check_order 2 needlocalfs needallfs
 check_order 2 needlocalfs nolsbheader
+check_order 2 syslog nolsbheader
 
 check_order 6 needallfs umountnfs
 check_order 6 nolsbheader umountnfs

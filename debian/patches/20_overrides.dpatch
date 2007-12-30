@@ -141,8 +141,8 @@
 +        warn("warning: script '%s' missing LSB tags\n", path);
 +	if (!override) {
 +	  warn("warning: script '%s' missing override too\n", name);
-+	  script_inf.required_start = xstrdup("$remote_fs");
-+	  script_inf.required_stop = xstrdup("$remote_fs");
++	  script_inf.required_start = xstrdup("$remote_fs $syslog");
++	  script_inf.required_stop = xstrdup("$remote_fs $syslog");
 +	  script_inf.default_start = xstrdup(DEFAULT_START_LVL);
 +	  script_inf.default_stop = xstrdup(DEFAULT_STOP_LVL);
 +	}

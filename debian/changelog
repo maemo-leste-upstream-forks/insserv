@@ -1,3 +1,12 @@
+insserv (1.09.0-6) unstable; urgency=low
+
+  * Update patch 20_overrides to let scripts without an LSB header
+    depend on $syslog as well as $remote_fs.
+  * Add test case to check that scripts without LSB header is ordered
+    after syslog
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 30 Dec 2007 12:39:33 +0100
+
 insserv (1.09.0-5) unstable; urgency=low
 
   * Update patch 44_path_at_runtime to include support for -c to point
