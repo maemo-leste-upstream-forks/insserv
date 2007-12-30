@@ -4,6 +4,7 @@ tmpdir=`pwd`/testdir
 initddir=$tmpdir/init.d
 
 insserv=`pwd`/insserv
+insconf=$tmpdir/insserv.conf
 
 retval=0
 
@@ -15,19 +16,30 @@ insertscript() {
     script=$initddir/$1
     cat > $script
     chmod a+rx $script
-    $insserv $debug -p $initddir $script
+    $insserv $debug -c $insconf -p $initddir $script
 }
 
 check_order() {
     runlevel=$1
     script1=$2
     script2=$3
-    order="$(echo $(cd $tmpdir/rc$runlevel.d/; ls *$script1 *$script2 |sed 's/S..//') )"
+    order="$(echo $(cd $tmpdir/rc$runlevel.d/; ls *$script1 *$script2 2>/dev/null | sed 's/[SK]..//') )"
     if [ "$order" != "$script1 $script2" ] ; then
-	echo "error: Incorrect sequence $script1 not before $script2: $order"
+	echo "error: incorrect $runlevel sequence $script1 not before $script2"
 	retval=1
     fi
 }
+
+cat <<'EOF' > $insconf
+$local_fs       +mountall +umountfs
+$network        +ifupdown
+$named          $network
+$remote_fs      +mountnfs +umountnfs
+$syslog         +syslog
+$portmap        portmap
+$time           hwclock
+<interactive>   checkroot
+EOF
 
 insertscript mountkernfs.sh <<EOF
 ### BEGIN INIT INFO
@@ -40,7 +52,7 @@ insertscript mountkernfs.sh <<EOF
 ### END INIT INFO
 EOF
 
-insertscript mountdevsubfs.sh <<EOF
+insertscript mountdevsubfs.sh <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          mountdevsubfs mountvirtfs
 # Required-Start:    mountkernfs
@@ -51,7 +63,7 @@ insertscript mountdevsubfs.sh <<EOF
 ### END INIT INFO
 EOF
 
-insertscript checkroot.sh <<EOF
+insertscript checkroot.sh <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          checkroot
 # Required-Start:    mountdevsubfs
@@ -63,7 +75,7 @@ insertscript checkroot.sh <<EOF
 ### END INIT INFO
 EOF
 
-insertscript ifupdown-clean <<EOF
+insertscript ifupdown-clean <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          ifupdown-clean
 # Required-Start:    checkroot
@@ -73,7 +85,7 @@ insertscript ifupdown-clean <<EOF
 ### END INIT INFO
 EOF
 
-insertscript ifupdown <<EOF
+insertscript ifupdown <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          ifupdown
 # Required-Start:    ifupdown-clean
@@ -83,7 +95,7 @@ insertscript ifupdown <<EOF
 ### END INIT INFO
 EOF
 
-insertscript checkroot.sh <<EOF
+insertscript checkroot.sh <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          checkroot
 # Required-Start:    mountdevsubfs
@@ -95,7 +107,7 @@ insertscript checkroot.sh <<EOF
 ### END INIT INFO
 EOF
 
-insertscript checkfs.sh <<EOF
+insertscript checkfs.sh <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          checkfs
 # Required-Start:    checkroot
@@ -107,7 +119,7 @@ insertscript checkfs.sh <<EOF
 ### END INIT INFO
 EOF
 
-insertscript mountall.sh <<EOF
+insertscript mountall.sh <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          mountall
 # Required-Start:    checkfs
@@ -119,7 +131,7 @@ insertscript mountall.sh <<EOF
 ### END INIT INFO
 EOF
 
-insertscript mountnfs.sh <<EOF
+insertscript mountnfs.sh <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          mountnfs
 # Required-Start:    $local_fs
@@ -130,9 +142,50 @@ insertscript mountnfs.sh <<EOF
 ### END INIT INFO
 EOF
 
-insertscript daemon <<EOF
+insertscript beforenfs <<'EOF'
+### BEGIN INIT INFO
+# Provides:          beforenfs
+# Required-Start:    $local_fs
+# Required-Stop:
+# X-Start-Before:    mountnfs
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript killprocs <<'EOF'
 #### BEGIN INIT INFO
-# Provides:          daemon
+# Provides:          killprocs
+# Required-Start:    $local_fs
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript single <<'EOF'
+#### BEGIN INIT INFO
+# Provides:          single
+# Required-Start:    $local_fs killprocs $all
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript needlocalfs <<'EOF'
+#### BEGIN INIT INFO
+# Provides:          needlocalfs
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+insertscript needallfs <<'EOF'
+#### BEGIN INIT INFO
+# Provides:          needallfs
 # Required-Start:    $remote_fs
 # Required-Stop:     $remote_fs
 # Default-Start:     2 3 4 5
@@ -140,7 +193,7 @@ insertscript daemon <<EOF
 ### END INIT INFO
 EOF
 
-insertscript reboot <<EOF
+insertscript reboot <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          reboot
 # Required-Start:
@@ -150,7 +203,17 @@ insertscript reboot <<EOF
 ### END INIT INFO
 EOF
 
-insertscript umountroot <<EOF
+insertscript halt <<'EOF'
+### BEGIN INIT INFO
+# Provides:          halt
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:      0
+### END INIT INFO
+EOF
+
+insertscript umountroot <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          umountroot
 # Required-Start:
@@ -161,7 +224,7 @@ insertscript umountroot <<EOF
 ### END INIT INFO
 EOF
 
-insertscript umountfs <<EOF
+insertscript umountfs <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          umountfs
 # Required-Start:
@@ -171,7 +234,7 @@ insertscript umountfs <<EOF
 ### END INIT INFO
 EOF
 
-insertscript umountnfs <<EOF
+insertscript umountnfs <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          umountnfs
 # Required-Start:
@@ -181,7 +244,7 @@ insertscript umountnfs <<EOF
 ### END INIT INFO
 EOF
 
-insertscript nolsbheader <<EOF
+insertscript nolsbheader <<'EOF'
 EOF
 
 (cd $tmpdir && ls *)
@@ -189,13 +252,27 @@ EOF
 check_order S mountkernfs.sh mountdevsubfs.sh
 check_order S ifupdown-clean ifupdown
 check_order S ifupdown-clean ifupdown
-#check_order S mountall.sh mountnfs.sh
+check_order S mountall.sh mountnfs.sh
+check_order S mountall.sh beforenfs
+check_order S beforenfs mountnfs.sh
 
-#check_order 6 daemon umountnfs
+check_order 0 needallfs umountnfs
+check_order 0 umountroot halt
+
+check_order 1 killprocs single
+check_order 1 needallfs killprocs
+
+check_order 2 needlocalfs needallfs
+check_order 2 needlocalfs nolsbheader
+
+check_order 6 needallfs umountnfs
+check_order 6 nolsbheader umountnfs
+check_order 6 umountfs umountroot
+check_order 6 umountnfs umountfs
 
 rm -rf $tmpdir
 
 if [ 0 != $retval ] ; then
-    echo "error: One or more test failed."
+    echo "error: one or more test failed."
 fi
 exit $retval

@@ -5,49 +5,13 @@ Make it possible to set the path at runtime, to make it easier to
 write test suites.
 
 @DPATCH@
---- insserv-1.09.0.orig/insserv.c
-+++ insserv-1.09.0/insserv.c
-@@ -1480,6 +1480,7 @@
-     {"default",	0, NULL, 'd'},
-     {"remove",	0, NULL, 'r'},
-     {"force",	0, NULL, 'f'},
-+    {"path",	0, NULL, 'p'},
-     {"help",	0, NULL, 'h'},
-     { 0,	0, NULL,  0 },
- };
-@@ -1492,6 +1492,7 @@
-     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
-     printf("  -f, --force      Ignore if a required service is missed.\n");
-     printf("  -v, --verbose    Provide information on what is being done.\n");
-+    printf("  -p <path>, --path <path>  Path to replace " INITDIR ".\n");
-     printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
-     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
- }
-@@ -1517,7 +1518,7 @@
-     for (c = 0; c < argc; c++)
- 	argr[c] = NULL;
- 
--    while ((c = getopt_long(argc, argv, "dfrhvn", long_options, NULL)) != -1) {
-+    while ((c = getopt_long(argc, argv, "dfrhvnp:", long_options, NULL)) != -1) {
- 	switch (c) {
- 	    case 'd':
- 		defaults = true;
-@@ -1535,6 +1536,9 @@
- 		verbose = true;
- 		dryrun = true;
- 		break;
-+	    case 'p':
-+		path = optarg;
-+		break;
- 	    case '?':
- 		error("For help use: %s -h\n", myname);
- 	    case 'h':
---- insserv-1.09.0/insserv.8	2007-12-29 14:21:26.000000000 +0100
-+++ insserv-1.09.0/insserv.8	2007-12-29 14:28:11.000000000 +0100
-@@ -15,16 +15,19 @@
+--- insserv-1.09.0.orig/insserv.8
++++ insserv-1.09.0/insserv.8
+@@ -15,16 +15,22 @@
  .\"
  .B insserv
  .RB [ \-v ]
++.RB [ \-c\ <config> ]
 +.RB [ \-p\ <path> ]
  .RB [ \-d ]
  .RB [ \-f ]
@@ -55,16 +19,18 @@ write test suites.
  .PP
  .B insserv
  .RB [ \-v ]
++.RB [ \-c\ <config> ]
 +.RB [ \-p\ <path> ]
  .RI [[ / ] path/to/init.d/ ] script [ ,start=<lvl1> [ ,<lvl2> ]]\ ...
  .PP
  .B insserv
  .RB [ \-v ]
++.RB [ \-c\ <config> ]
 +.RB [ \-p\ <path> ]
  .B \-r
  .RB [ \-d ]
  .RB [ \-f ]
-@@ -168,12 +171,15 @@
+@@ -168,12 +174,19 @@
  this facility will be grouped into one starting order.
  .\"
  .SH OPTIONS
@@ -75,9 +41,99 @@ write test suites.
  .BR \-v ,\  \-\-verbose
  Write out what is currently going on.
  .TP
++.BR \-c\ <config>,\  \-\-config\ <config>
++Specify path to the insserv.conf file and the insserv.conf.d
++directory.  Useful for testing.
++.TP
 +.BR \-p\ <path>,\  \-\-path\ <path>
 +Specify path to init.d directory.  Useful for testing.
 +.TP
  .BR \-n ,\  \-\-dryrun
  Do not update symlinks.
  .TP
+--- insserv-1.09.0.orig/insserv.c
++++ insserv-1.09.0/insserv.c
+@@ -1392,14 +1392,18 @@
+     return 1;
+ }
+ 
+-static void scan_conf()
++static void scan_conf(const char *file)
+ {
+     struct dirent** namelist = NULL;
+-    const char dir[] = INSCONF ".d";
++    char *dir;
+     char buf[PATH_MAX];
+     int n;
+ 
+-    scan_conf_file(INSCONF);
++    scan_conf_file(file);
++
++    dir = malloc(strlen(file) + 3);
++    strcpy(dir, file);
++    strcat(dir, ".d");
+ 
+     n = scandir(dir, &namelist, cfgfile_filter, alphasort);
+     if(n > 0)
+@@ -1476,10 +1480,12 @@
+ static struct option long_options[] =
+ {
+     {"verbose",	0, NULL, 'v'},
++    {"config",	1, NULL, 'c'},
+     {"dryrun",	0, NULL, 'n'},
+     {"default",	0, NULL, 'd'},
+     {"remove",	0, NULL, 'r'},
+     {"force",	0, NULL, 'f'},
++    {"path",	1, NULL, 'p'},
+     {"help",	0, NULL, 'h'},
+     { 0,	0, NULL,  0 },
+ };
+@@ -1492,6 +1498,8 @@
+     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
+     printf("  -f, --force      Ignore if a required service is missed.\n");
+     printf("  -v, --verbose    Provide information on what is being done.\n");
++    printf("  -p <path>, --path <path>  Path to replace " INITDIR ".\n");
++    printf("  -c <config>, --config <config>  Path to config file.\n");
+     printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
+     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
+ }
+@@ -1507,6 +1515,7 @@
+     struct stat st_script;
+     char * argr[argc];
+     char * path = INITDIR;
++    char * insconf = INSCONF;
+     int runlevel, c;
+     boolean del = false;
+     boolean defaults = false;
+@@ -1517,8 +1526,11 @@
+     for (c = 0; c < argc; c++)
+ 	argr[c] = NULL;
+ 
+-    while ((c = getopt_long(argc, argv, "dfrhvn", long_options, NULL)) != -1) {
++    while ((c = getopt_long(argc, argv, "c:dfrhvnp:", long_options, NULL)) != -1) {
+ 	switch (c) {
++	    case 'c':
++		insconf = optarg;
++		break;
+ 	    case 'd':
+ 		defaults = true;
+ 		break;
+@@ -1535,6 +1547,9 @@
+ 		verbose = true;
+ 		dryrun = true;
+ 		break;
++	    case 'p':
++		path = optarg;
++		break;
+ 	    case '?':
+ 		error("For help use: %s -h\n", myname);
+ 	    case 'h':
+@@ -1632,7 +1647,7 @@
+     /*
+      * Scan and set our configuration for virtual services.
+      */
+-    scan_conf();
++    scan_conf(insconf);
+ 
+     /*
+      * Initialize the regular scanner for the scripts.

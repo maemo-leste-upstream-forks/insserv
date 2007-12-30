@@ -41,7 +41,7 @@
  # System logger is operational
  #
 -$syslog		syslog
-+$syslog		sysklogd
++$syslog		+syslog +sysklogd
  
  #
  # All network daemons are running (this entry is OBSOLETE)
@@ -54,3 +54,9 @@
  
  #
  # Services which need to be interactive
+@@ -38,4 +38,4 @@
+ #
+ # Services which need to be interactive
+ #
+-<interactive>   boot.crypto boot.localfs boot.rootfsck apache apache2 kdump
++<interactive>   udev mountdevsubfs checkroot checkfs console-screen

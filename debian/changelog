@@ -1,3 +1,18 @@
+insserv (1.09.0-5) unstable; urgency=low
+
+  * Update patch 44_path_at_runtime to include support for -c to point
+    to a local config file.  It is required for a proper test suite.
+  * Fix typo in test suite and extend it to check more scenarios.
+  * Use local config file when running test suite.
+  * Change $syslog virtual facility to depend on either syslog or
+    sysklogd.  The sysklogd script provide syslog and not the sysklogd
+    string that was requested in bug #324679.
+  * Update patch 31_debian_conf to list udev mountdevsubfs checkroot
+    checkfs console-screen as interactive scripts that should run
+    alone.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 30 Dec 2007 09:23:22 +0100
+
 insserv (1.09.0-4) unstable; urgency=low
 
   * Update patch 20_overrides to add useful default values for scripts
