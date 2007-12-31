@@ -102,6 +102,7 @@ sub graph_addnode {
     }
 
     my $key = $opts{'k'} ? 'stop' : 'start';
+    my $revkey = $opts{'k'} ? 'stop-after' : 'start-before';
     my @provides = split(/\s+/, $lsbinfo{'provides'});
     for my $name (@provides) {
         if (exists $sysmap{$name}) {
@@ -114,18 +115,27 @@ sub graph_addnode {
         print STDERR "warning: Unable to properly handle multiple provides: @provides\n";
     }
 
-    if (exists $lsbinfo{"required-$key"} && $lsbinfo{"required-$key"}) {
-        my @depends = split(/\s+/, $lsbinfo{"required-$key"});
-        for my $pkg (@depends) {
-            print "\"$pkg\" -> \"$provides[0]\"[color=blue];\n";
+    my %deps =
+        (
+         "required-$key" => 'blue',
+         "should-$key" => 'springgreen',
+         "$revkey" => 'yellow'
+         );
+
+    for $key (keys %deps) {
+        if (exists $lsbinfo{$key} && $lsbinfo{$key}) {
+            my @depends = split(/\s+/, $lsbinfo{$key});
+            for my $pkg (@depends) {
+                my $color = $deps{$key};
+                if ($revkey eq $key) {
+                    print "\"$provides[0]\" -> \"$pkg\"[color=$color] ;\n";
+                } else {
+                    print "\"$pkg\" -> \"$provides[0]\"[color=$color] ;\n";
+                }
+            }
         }
     }
-    if (exists $lsbinfo{"should-$key"} && $lsbinfo{"should-$key"}) {
-        my @depends = split(/\s+/, $lsbinfo{"should-$key"});
-        for my $pkg (@depends) {
-            print "\"$pkg\" -> \"$provides[0]\"[color=springgreen] ;\n";
-        }
-    }
+
     print "\"$provides[0]\" [shape=box];\n";
 }
 
@@ -167,7 +177,7 @@ sub check_bootorder {
         my @scripts = $opts{'k'} ? <K*> : <S*>;
 
         if ($opts{'k'}) {
-            $scriptorder{'K'}{'$all'} = 0;
+            $scriptorder{'K'}{'$all'} = 1;
         } else {
             # Calculate script order for the script before the scripts
             # with the last boot sequence number.
@@ -280,6 +290,7 @@ sub load_lsb_tags_from_file {
     }
     my $found = 0;
     my ($provides, $requiredstart, $requiredstop, $shouldstart, $shouldstop);
+    my ($startbefore, $stopafter);
     while (<FILE>) {
         chomp;
         $found = 1 if (m/\#\#\# BEGIN INIT INFO/);
@@ -291,6 +302,8 @@ sub load_lsb_tags_from_file {
         $requiredstop = $1  if (m/^\# required-stop:\s+(\S*.*\S+)\s*$/i);
         $shouldstart = $1   if (m/^\# should-start:\s+(\S*.*\S+)\s*$/i);
         $shouldstop = $1    if (m/^\# should-stop:\s+(\S*.*\S+)\s*$/i);
+        $startbefore = $1   if (m/^\# X-Start-Before:\s+(\S*.*\S+)\s*$/i);
+        $stopafter = $1     if (m/^\# X-Stop-After:\s+(\S*.*\S+)\s*$/i);
     }
     close(FILE);
 
@@ -303,6 +316,8 @@ sub load_lsb_tags_from_file {
             'required-stop'  => $requiredstop,
             'should-start'   => $shouldstart,
             'should-stop'    => $shouldstop,
+            'start-before'   => $startbefore,
+            'stop-after'     => $stopafter,
             'file'           => $file,
             };
 }

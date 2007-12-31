@@ -1,5 +1,7 @@
 10_nosuse
-20_overrides
+11_revdepend
+20_path_at_runtime
+21_overrides
 31_debian_conf
 32_debian_nolsb
 33_debian_localok
@@ -8,4 +10,3 @@
 41_debiandefault
 42_redundantlvl
 43_shutdown
-44_path_at_runtime

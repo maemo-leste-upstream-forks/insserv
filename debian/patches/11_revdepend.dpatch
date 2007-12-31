@@ -1,0 +1,225 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 11_before.dpatch by Petter Reinholdtsen <pere@hungry.com>
+
+Implement the reverse dependency feature.  Extracted from a prerelease
+of version 1.10 given by Werner Fink to Petter Reinholdtsen for
+review.
+
+@DPATCH@
+--- insserv-1.10.0/insserv.c	2007-12-29 19:39:07.000000000 +0100
++++ insserv-1.10.0/insserv.c	2007-11-21 18:26:47.000000000 +0100
+@@ -57,12 +59,16 @@
+ /* The main regular search expressions */
+ #define PROVIDES	COMM "provides" VALUE
+ #define REQUIRED	COMM "required"
+-#define SHOULD		COMM "(x[-_]+[a-z0-9_-]+)?should"
++#define SHOULD		COMM "(x[-_]+[a-z0-9_-]*)?should"
++#define BEFORE		COMM "(x[-_]+[a-z0-9_-]*)?start[-_]+before"
++#define AFTER		COMM "(x[-_]+[a-z0-9_-]*)?stop[-_]+after"
+ #define DEFAULT		COMM "default"
+ #define REQUIRED_START  REQUIRED START VALUE
+ #define REQUIRED_STOP	REQUIRED STOP  VALUE
+ #define SHOULD_START	SHOULD   START VALUE
+ #define SHOULD_STOP	SHOULD   STOP  VALUE
++#define START_BEFORE	BEFORE   VALUE
++#define STOP_AFTER	AFTER    VALUE
+ #define DEFAULT_START	DEFAULT  START VALUE
+ #define DEFAULT_STOP	DEFAULT  STOP  VALUE
+ #define DESCRIPTION	COMM "description" VALUE
+@@ -90,6 +99,8 @@
+     char *required_stop;
+     char *should_start;
+     char *should_stop;
++    char *start_before;
++    char *stop_after;
+     char *default_start;
+     char *default_stop;
+     char *description;
+@@ -102,6 +113,8 @@
+     regex_t req_stop;
+     regex_t shl_start;
+     regex_t shl_stop;
++    regex_t start_bf;
++    regex_t stop_af;
+     regex_t def_start;
+     regex_t def_stop;
+     regex_t desc;
+@@ -283,7 +296,7 @@
+ /*
+  * Remember requests for required or should services and expand `$' token
+  */
+-static void rememberreq(serv_t *serv, unsigned int bit, char * required)
++static void rememberreq(serv_t *serv, unsigned int bit, const char * required)
+ {
+     char * token, * tmp = strdupa(required);
+     list_t * ptr;
+@@ -349,6 +360,39 @@
+     }
+ }
+ 
++static void reversereq(const serv_t * serv, const char * token, const char * list)
++{
++    const char * dep;
++    char * rev = strdupa(list);
++
++    while ((dep = strsep(&rev, delimeter)) && *dep) {
++	serv_t * tmp;
++	list_t * ptr;
++
++	switch (*dep) {
++	case '+':
++	    dep++;
++	default:
++	    if ((tmp = findserv(dep))) {
++		const char * name;
++		if ((name = getscript(serv->name)) == (char*)0)
++			name = serv->name;
++		rememberreq(tmp, REQ_SHLD, name);
++	    }
++	    requiresv(dep, token);
++	    break;
++	case '$':
++	    list_for_each(ptr, sysfaci_start) {
++		if (!strcmp(dep, getfaci(ptr)->name)) {
++		    reversereq(serv, token, getfaci(ptr)->repl);
++		    break;
++		}
++	    }
++	    break;
++	}
++    }
++}
++
+ /*
+  * Check required services for name
+  */
+@@ -950,6 +1040,8 @@
+     regcompiler(&reg.req_stop,  REQUIRED_STOP,  REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+     regcompiler(&reg.shl_start, SHOULD_START,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+     regcompiler(&reg.shl_stop,  SHOULD_STOP,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
++    regcompiler(&reg.start_bf,  START_BEFORE,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
++    regcompiler(&reg.stop_af,   STOP_AFTER,     REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+     regcompiler(&reg.def_start, DEFAULT_START,  REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+     regcompiler(&reg.def_stop,  DEFAULT_STOP,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+     regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+@@ -968,6 +1060,8 @@
+ #define required_stop	script_inf.required_stop
+ #define should_start	script_inf.should_start
+ #define should_stop	script_inf.should_stop
++#define start_before	script_inf.start_before
++#define stop_after	script_inf.stop_after
+ #define default_start	script_inf.default_start
+ #define default_stop	script_inf.default_stop
+ #define description	script_inf.description
+@@ -983,6 +1077,8 @@
+     xreset(required_stop);
+     xreset(should_start);
+     xreset(should_stop);
++    xreset(start_before);
++    xreset(stop_after);
+     xreset(default_start);
+     xreset(default_stop);
+     xreset(description);
+@@ -1034,6 +1140,22 @@
+ 		should_stop = empty;
+ 	}
+ #endif /* not SUSE */
++	if (!start_before && regexecutor(&reg.start_bf,    COMMON_SHD_ARGS) == true) {
++	    if (shl->rm_so < shl->rm_eo) {
++		*(pbuf+shl->rm_eo) = '\0';
++		start_before = xstrdup(pbuf+shl->rm_so);
++	    } else
++		start_before = empty;
++	}
++#ifndef SUSE
++	if (!stop_after  && regexecutor(&reg.stop_af,      COMMON_SHD_ARGS) == true) {
++	    if (shl->rm_so < shl->rm_eo) {
++		*(pbuf+shl->rm_eo) = '\0';
++		stop_after = xstrdup(pbuf+shl->rm_so);
++	    } else
++		stop_after = empty;
++	}
++#endif /* not SUSE */
+ 	if (!default_start  && regexecutor(&reg.def_start, COMMON_ARGS) == true) {
+ 	    if (val->rm_so < val->rm_eo) {
+ 		*(pbuf+val->rm_eo) = '\0';
+@@ -1101,6 +1223,8 @@
+ #undef required_stop
+ #undef should_start
+ #undef should_stop
++#undef start_before
++#undef stop_after
+ #undef default_start
+ #undef default_stop
+ #undef description
+@@ -1115,6 +1239,8 @@
+     regfree(&reg.req_stop);
+     regfree(&reg.shl_start);
+     regfree(&reg.shl_stop);
++    regfree(&reg.start_bf);
++    regfree(&reg.stop_af);
+     regfree(&reg.def_start);
+     regfree(&reg.def_stop);
+     regfree(&reg.desc);
+@@ -1234,6 +1367,9 @@
+ 		    rememberreq(service, REQ_SHLD, script_inf.should_start);
+ 		    requiresv(token, script_inf.should_start);
+ 		}
++		if (script_inf.start_before && script_inf.start_before != empty) {
++		    reversereq(service, token, script_inf.start_before);
++		}
+ #ifndef SUSE
+ 		/*
+ 		 * required_stop and should_stop arn't used in SuSE Linux.
+@@ -1248,6 +1384,9 @@
+ 		    rememberreq(service, REQ_SHLD, script_inf.should_stop);
+ 		    requiresv(token, script_inf.should_stop);
+ 		}
++		if (script_inf.stop_after && script_inf.stop_after != empty) {
++		    reversereq(service, token, script_inf.stop_after);
++		}
+ #endif /* not SUSE */
+ 	    }
+ 	    script_inf.provides = begin;
+@@ -1257,6 +1396,8 @@
+ 	    xreset(script_inf.required_stop);
+ 	    xreset(script_inf.should_start);
+ 	    xreset(script_inf.should_stop);
++	    xreset(script_inf.start_before);
++	    xreset(script_inf.stop_after);
+ 	    xreset(script_inf.default_start);
+ 	    xreset(script_inf.default_stop);
+ 	    xreset(script_inf.description);
+@@ -1867,7 +2026,7 @@
+ 		    boolean known = (service->opts & SERV_KNOWN);
+ 		    service->opts |= SERV_KNOWN;
+ 
+-		    if (!provides && (count > 1)) {		/* Last token */ 
++		    if ((!provides || !*provides) && (count > 1)) { /* Last token */ 
+ 			const char * script = getscript(service->name);
+ 
+ 			if (script) {
+@@ -1913,6 +2072,14 @@
+ 			}
+ #endif /* not SUSE */
+ 		    }
++		    if (script_inf.start_before && script_inf.start_before != empty) {
++			reversereq(service, token, script_inf.start_before);
++		    }
++#ifndef SUSE
++		    if (script_inf.stop_after && script_inf.stop_after != empty) {
++			reversereq(service, token, script_inf.stop_after);
++		    }
++#endif /* not SUSE */
+ 		    /*
+ 		     * Use information from symbolic link structure to
+ 		     * check if all services are around for this script.
+@@ -2082,6 +2249,8 @@
+     xreset(script_inf.required_stop);
+     xreset(script_inf.should_start);
+     xreset(script_inf.should_stop);
++    xreset(script_inf.start_before);
++    xreset(script_inf.stop_after);
+     xreset(script_inf.default_start);
+     xreset(script_inf.default_stop);
+     xreset(script_inf.description);

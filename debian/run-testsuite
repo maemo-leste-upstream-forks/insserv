@@ -1,10 +1,13 @@
 #!/bin/sh
 
+set -e
+
 tmpdir=`pwd`/testdir
 initddir=$tmpdir/init.d
 
 insserv=`pwd`/insserv
 insconf=$tmpdir/insserv.conf
+overridedir=$tmpdir/insserv/override
 
 retval=0
 
@@ -12,11 +15,17 @@ mkdir -p $initddir
 
 #debug="-v"
 
-insertscript() {
+insserv_reg() {
     script=$initddir/$1
+    $insserv $debug -c $insconf -p $initddir -o $overridedir $script
+}
+
+insertscript() {
+    scriptname=$1
+    script=$initddir/$scriptname
     cat > $script
     chmod a+rx $script
-    $insserv $debug -c $insconf -p $initddir $script
+    insserv_reg $scriptname
 }
 
 check_order() {
@@ -154,7 +163,7 @@ insertscript beforenfs <<'EOF'
 EOF
 
 insertscript killprocs <<'EOF'
-#### BEGIN INIT INFO
+### BEGIN INIT INFO
 # Provides:          killprocs
 # Required-Start:    $local_fs
 # Required-Stop:
@@ -164,7 +173,7 @@ insertscript killprocs <<'EOF'
 EOF
 
 insertscript single <<'EOF'
-#### BEGIN INIT INFO
+### BEGIN INIT INFO
 # Provides:          single
 # Required-Start:    $local_fs killprocs $all
 # Required-Stop:
@@ -174,7 +183,7 @@ insertscript single <<'EOF'
 EOF
 
 insertscript needlocalfs <<'EOF'
-#### BEGIN INIT INFO
+### BEGIN INIT INFO
 # Provides:          needlocalfs
 # Required-Start:    $local_fs
 # Required-Stop:     $local_fs
@@ -184,7 +193,7 @@ insertscript needlocalfs <<'EOF'
 EOF
 
 insertscript needallfs <<'EOF'
-#### BEGIN INIT INFO
+### BEGIN INIT INFO
 # Provides:          needallfs
 # Required-Start:    $remote_fs
 # Required-Stop:     $remote_fs
@@ -194,7 +203,7 @@ insertscript needallfs <<'EOF'
 EOF
 
 insertscript syslog <<'EOF'
-#### BEGIN INIT INFO
+### BEGIN INIT INFO
 # Provides:          syslog
 # Required-Start:    $remote_fs
 # Required-Stop:     $remote_fs
@@ -254,6 +263,28 @@ insertscript umountnfs <<'EOF'
 ### END INIT INFO
 EOF
 
+insertscript needallfs2 <<'EOF'
+### BEGIN INIT INFO
+# Provides:          needallfs2
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# X-Start-Before:    needallfs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+insertscript kexec <<'EOF'
+### BEGIN INIT INFO
+# Provides:             kexec
+# Required-Start:
+# Required-Stop:        reboot
+# X-Stop-After:         umountroot
+# Default-Start:
+# Default-Stop:         6
+### END INIT INFO
+EOF
+
 insertscript nolsbheader <<'EOF'
 EOF
 
@@ -275,15 +306,67 @@ check_order 1 needallfs killprocs
 check_order 2 needlocalfs needallfs
 check_order 2 needlocalfs nolsbheader
 check_order 2 syslog nolsbheader
+check_order 2 needallfs2 needallfs
 
 check_order 6 needallfs umountnfs
 check_order 6 nolsbheader umountnfs
 check_order 6 umountfs umountroot
 check_order 6 umountnfs umountfs
+check_order 6 umountroot reboot
+check_order 6 umountroot kexec
+check_order 6 kexec reboot
+
+rm -rf $initddir
+
+echo
+echo "info: testing to insert scripts with a loop"
+echo
+mkdir -p $initddir
+
+# Two scripts with a loop between them
+insertscript loop1 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          loop1
+# Required-Start:    loop2
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript loop2 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          loop2
+# Required-Start:    loop1
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+# Test if override file can be used to break the loop
+mkdir -p $overridedir
+cat <<'EOF' > $overridedir/loop1
+### BEGIN INIT INFO
+# Provides:          loop1
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insserv_reg loop1 || true
+insserv_reg loop2 || true
+
+# XXX This do not work yet, as the override file seem to be ignored
+#check_order S loop1 loop2
 
 rm -rf $tmpdir
 
 if [ 0 != $retval ] ; then
     echo "error: one or more test failed."
+else
+    echo "success: no test failed."
 fi
 exit $retval

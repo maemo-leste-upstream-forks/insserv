@@ -91,11 +91,11 @@ binary: binary-indep binary-arch
 
 # List the init.d missing LSB headers and override files
 missing-overrides:
-	@GET http://lintian.debian.org/reports/Tinit.d-script-missing-lsb-section.html| grep W: | rev | cut -d/ -f1 | rev | sort > missing
-	@ls debian/overrides/ |sort > overrides
+	@GET http://lintian.debian.org/reports/Tinit.d-script-missing-lsb-section.html| grep W: | rev | cut -d/ -f1 | rev | sort -u > missing
+	@ls debian/overrides/ |sort -u > overrides
 	@echo -n "Init.d scripts missing overrides:         "; comm -23 missing overrides|wc -l
 	@echo $$(comm -23 missing overrides) |fold -s | sed 's/^/  /'
 	@echo -n "Scripts with overrides and no LSB header: "; comm -12 missing overrides|wc -l
 	@echo -n "Scripts with overrides and LSB header:    "; comm -13 missing overrides|wc -l
 	@echo -n "Override files that need a bug report:    "; debian/bts-lefttoreport | wc -l
-	@echo $$(debian/bts-lefttoreport | sort) |fold -s | sed 's/^/  /'
+	@echo $$(debian/bts-lefttoreport | sort -u) |fold -s | sed 's/^/  /'

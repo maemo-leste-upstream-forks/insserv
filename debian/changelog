@@ -1,3 +1,28 @@
+insserv (1.09.0-8) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Removed override files cpqarrayd, hotkey-setup and spamassassin as
+    they are equivalent with the defaults compiled into insserv.
+  * Removed override files courier-ldap, courier-authdaemon,
+    courier-imap-ssl and courier-imap, irqbalance and nethack-common
+    as the compiled in defaults are better than the proposed
+    overrides.
+  * Extended check-initd-order to graph reverse dependencies
+    (X-Start-Before and X-Stop-AFter).  Draw reverse dependencies in
+    yellow.
+  * Added patch 11_revdepend fetched from a review copy of version
+    1.10.  Modified 20_override to cope with the change.  Based on
+    changes from Werner Fink.
+  * Renamed patches 20_overrides to 21_overrides and
+    44_path_at_runtime to 20_path_at_runtime, to prepare for Otavios
+    extensions.
+
+  [ Otavio Salvador ]
+  * Extended patch 21_override to allow override path changing so the
+    unit test can use it.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon, 31 Dec 2007 19:26:00 +0100
+
 insserv (1.09.0-7) unstable; urgency=low
 
   * Try to make it it easier to disabling the dependency based boot
