@@ -1,3 +1,27 @@
+insserv (1.09.0-9) unstable; urgency=low
+
+  * Removed override file pptpd as the compiled in defaults are better
+    than the proposed overrides.
+  * Correct override file for laptop-netconf after checking the script
+    and the package.
+  * Added override file for racoon, and corrected override file for
+    setkey, after checking the scripts in the package.
+  * Try to make recovery routine more robust by not trying to run
+    non-existing postinst scripts, and only run postinst scripts for
+    packages with executable scripts in /etc/init.d/.
+  * Extended check-initd-order to check optional start dependencies,
+    and implement check of the shutdown sequence.
+  * Extended to check reverse dependencies too.
+  * Changed enabling code to refuse to convert to dependency based
+    boot sequence when obsolete init.d scripts are found, as these
+    tend to mess up the boot sequence.
+  * Changed enabling code to refuse to convert to dependency based
+    boot sequence if several scripts provide the same service.
+  * Added prerm code to refuse to be removed while enabled, to avoid
+    messing up the boot system completely.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Tue,  1 Jan 2008 21:08:14 +0100
+
 insserv (1.09.0-8) unstable; urgency=low
 
   [ Petter Reinholdtsen ]

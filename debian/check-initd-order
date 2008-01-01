@@ -57,6 +57,7 @@ my %sysmap =
      'portmap'      => '$portmap',
      );
 
+my %provideslist;
 my %scriptorder;
 my %opts;
 
@@ -169,78 +170,111 @@ EOF
 EOF
 }
 
+sub check_deps {
+    my ($lsbinforef, $tag, $order, $bootorder, $headername, $required) = @_;
+    my %lsbinfo = %{$lsbinforef};
+    my $name = $lsbinfo{'file'};
+    if ($lsbinfo{$headername}) {
+        my @depends = split(/\s+/, $lsbinfo{$headername});
+        for my $dep (@depends) {
+            if (! $required && exists $provideslist{$dep}) {
+                unless (exists $scriptorder{$tag}{$dep}
+                        and ("S" eq $tag
+                             ? $scriptorder{$tag}{$dep} < $bootorder
+                             : $scriptorder{$tag}{$dep} > $bootorder)) {
+                    my $deporder;
+                    if (exists $scriptorder{$tag}{$dep}) {
+                        $deporder = $scriptorder{$tag}{$dep}
+                    } else {
+                        $deporder = exists $provideslist{$dep} ? $provideslist{$dep} : "?";
+                    }
+                    printf("Incorrect order %s@%s %s %s%s\n",
+                           $dep, $deporder, 'S' eq $tag ? '>' : '<',
+                           $name, $order);
+                }
+            }
+        }
+    }
+}
+
 sub check_bootorder {
     my $bootorder = 0;
     my @dirs = $opts{'k'} ? $rcmap{6} : ($rcmap{S}, $rcmap{2});
+    my @scripts;
     for my $rcdir (@dirs) {
-        chdir "$rcbase/$rcdir/.";
-        my @scripts = $opts{'k'} ? <K*> : <S*>;
+#        chdir "$rcbase/$rcdir/.";
+        push(@scripts, $opts{'k'} ? <$rcbase/$rcdir/K*> : <$rcbase/$rcdir/S*>);
+    }
 
-        if ($opts{'k'}) {
-            $scriptorder{'K'}{'$all'} = 1;
-        } else {
-            # Calculate script order for the script before the scripts
-            # with the last boot sequence number.
-            my $tmpbootorder = 0;
-            my $allorder = 0;
-            my $maxorder = 0;
-            my $maxbootorder = 0;
-            for my $script (@scripts) {
-                $tmpbootorder++;
-                my ($tag, $order, $name) = $script =~ m/^(.)(\d{2})(.+)$/;
-                if ($order > $maxorder) {
-                    $allorder = $maxbootorder;
-                    $maxbootorder = $tmpbootorder;
-                    $maxorder = $order;
-                }
-            }
-            $scriptorder{'S'}{'$all'} = $allorder;
-        }
-        for my $script (@scripts) {
-            $bootorder++;
+    if ($opts{'k'}) {
+        $scriptorder{'K'}{'$all'} = 1;
+    } else {
+        # Calculate script order for the script before the scripts
+        # with the last boot sequence number.
+        my $tmpbootorder = 0;
+        my $allorder = 0;
+        my $maxorder = 0;
+        my $maxbootorder = 0;
+        for my $scriptpath (@scripts) {
+            my $script = $scriptpath;
+            $script =~ s%^.*/([^/]+)$%$1%;
+            $tmpbootorder++;
             my ($tag, $order, $name) = $script =~ m/^(.)(\d{2})(.+)$/;
+            if ($order > $maxorder) {
+                $allorder = $maxbootorder;
+                $maxbootorder = $tmpbootorder;
+                $maxorder = $order;
+            }
 
-            $scriptorder{$tag}{$name} = $bootorder;
-            $scriptorder{$tag}{$sysmap{$name}} = $bootorder
-                if (exists $sysmap{$name});
+            my $lsbinforef = load_lsb_tags($scriptpath,
+                                           $useoverrides);
+
+            if (exists $lsbinforef->{'provides'}) {
+                for my $provide (split(/\s+/, $lsbinforef->{'provides'})) {
+                    $provideslist{$provide} = $order;
+                }
+            } else {
+                $provideslist{$script} = $order;
+            }
+        }
+        $scriptorder{'S'}{'$all'} = $allorder;
+    }
+    for my $scriptpath (@scripts) {
+        my $script = $scriptpath;
+        $script =~ s%^.*/([^/]+)$%$1%;
+        $bootorder++;
+        my ($tag, $order, $name) = $script =~ m/^(.)(\d{2})(.+)$/;
+
+        $scriptorder{$tag}{$name} = $bootorder;
+        $scriptorder{$tag}{$sysmap{$name}} = $bootorder
+            if (exists $sysmap{$name});
 
 #           print "$script\n";
 #           print "T: $tag O: $order N: $name\n";
-            my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script",
-                                           $useoverrides);
+        my $lsbinforef = load_lsb_tags($scriptpath,
+                                       $useoverrides);
 
-            unless (defined $lsbinforef) {
-                print STDERR "LSB header missing in $rcbase/$rcdir/$script\n";
-                next;
-            }
-            my %lsbinfo = %{$lsbinforef};
+        unless (defined $lsbinforef) {
+            print STDERR "LSB header missing in $scriptpath\n";
+            next;
+        }
+        my %lsbinfo = %{$lsbinforef};
 
-            for my $provide (split(/\s+/, $lsbinfo{'provides'})) {
-                $scriptorder{$tag}{$provide} = $bootorder;
-                $scriptorder{$tag}{$sysmap{$provide}} = $bootorder
-                    if (exists $sysmap{$provide});
-            }
+        for my $provide (split(/\s+/, $lsbinfo{'provides'})) {
+            $scriptorder{$tag}{$provide} = $bootorder;
+            $scriptorder{$tag}{$sysmap{$provide}} = $bootorder
+                if (exists $sysmap{$provide});
+        }
 
-            if ('S' eq $tag) {
-                if ($lsbinfo{'required-start'}) {
-                    my @depends = split(/\s+/, $lsbinfo{'required-start'});
-                    for my $dep (@depends) {
-                        unless (exists $scriptorder{$tag}{$dep}
-                                and $scriptorder{$tag}{$dep} < $bootorder) {
-                            my $deporder;
-                            if (exists $scriptorder{$tag}{$dep}) {
-                                $deporder = $scriptorder{$tag}{$dep}
-                            } else {
-                                $deporder = "?";
-                            }
-                            print "Incorrect order " .
-                                "$dep\@$deporder > $name\@$order\n";
-                        }
-                    }
-                }
-            }
-            if ('K' eq $tag) {
-            }
+        if ('S' eq $tag) {
+            check_deps($lsbinforef, $tag, $order, $bootorder, 'required-start', 1);
+            check_deps($lsbinforef, $tag, $order, $bootorder, 'should-start', 0);
+            check_deps($lsbinforef, 'K', $order, $bootorder, 'start-before', 0);
+        }
+        if ('K' eq $tag) {
+            check_deps($lsbinforef, $tag, $order, $bootorder, 'required-stop', 1);
+            check_deps($lsbinforef, $tag, $order, $bootorder, 'should-stop', 0);
+            check_deps($lsbinforef, 'S', $order, $bootorder, 'stop-after', 0);
         }
     }
 }

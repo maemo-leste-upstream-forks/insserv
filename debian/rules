@@ -96,6 +96,7 @@ missing-overrides:
 	@echo -n "Init.d scripts missing overrides:         "; comm -23 missing overrides|wc -l
 	@echo $$(comm -23 missing overrides) |fold -s | sed 's/^/  /'
 	@echo -n "Scripts with overrides and no LSB header: "; comm -12 missing overrides|wc -l
-	@echo -n "Scripts with overrides and LSB header:    "; comm -13 missing overrides|wc -l
+	@echo -n "Scripts with overrides and not missing LSB header:    "; comm -13 missing overrides|wc -l
+	@echo $$(comm -13 missing overrides) |fold -s | sed 's/^/  /'
 	@echo -n "Override files that need a bug report:    "; debian/bts-lefttoreport | wc -l
 	@echo $$(debian/bts-lefttoreport | sort -u) |fold -s | sed 's/^/  /'

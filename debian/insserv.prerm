@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+flagfile=/etc/update-rc.d-insserv
+
+case "$1" in
+    remove)
+	# Refuse to be uninstalled while enabled
+	if [ ! -f $flagfile ]; then
+	    echo "error: insserv must be disabled before it is removed, to"
+	    echo "error: make sure the boot system is still usable."
+	    echo "error: To disable, run BAD_INSSERV_HACKER=true dpkg-reconfigure insserv"
+	fi
+	;;
+    *)
+	;;
+esac
+
+db_stop
+
+#DEBHELPER#

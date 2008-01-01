@@ -1,8 +1,8 @@
 ### BEGIN INIT INFO
-# Provides:          setkey
+# Provides:          racoon
 # Required-Start:    $remote_fs
 # Required-Stop:     $remote_fs
 # Default-Start:     S
-# Default-Stop:
+# Default-Stop:      1
 ### END INIT INFO
 # Reported to BTS as #458488

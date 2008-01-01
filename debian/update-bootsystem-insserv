@@ -30,7 +30,7 @@ convert_rc_s_to_k() {
 # Recreate sysv boot sequence by calling the postinst for all packages
 # with init.d scripts, to get them to call update-rc.d again.
 regenerate_sysv_sequence() {
-    packages="`dpkg -S /etc/init.d/* 2>/dev/null | cut -d: -f1|sort -u`"
+    packages="$(dpkg -S $(find /etc/init.d -type f -perm /+x) 2>/dev/null | cut -d: -f1 | sort -u)"
 
     for p in $packages ; do
         # Make sure it is installed
@@ -48,9 +48,13 @@ regenerate_sysv_sequence() {
     # As the sysv-rc update-rc.d script do not check dependencies, it
     # is enough to run through these scripts once.
     for p in $brokenpackages ; do
-	echo "Running package $p postinst"
-	DEBCONF_FRONTEND=noninteractive	\
-	    /var/lib/dpkg/info/$p.postinst configure < /dev/null || true
+	if [ -x /var/lib/dpkg/info/$p.postinst ] ; then
+	    echo "info: running package $p postinst"
+	    DEBCONF_FRONTEND=noninteractive	\
+		/var/lib/dpkg/info/$p.postinst configure < /dev/null || true
+	else
+	    echo "error: package $p got init.d script but no postinst"
+	fi
     done
 }
 
@@ -94,13 +98,31 @@ if [ restore = "$1" ] ; then
 	regenerate_sysv_sequence
     fi
 else
+    # Refuse to convert when there are obsolete init.d scripts left
+    # behind, as these tend to confuse the boot sequence.
+    echo "info: Checking if it is safe to convert to dependency based boot."
+    for package in $(dpkg -S $(find /etc/init.d -type f -perm /+x) \
+                     2>/dev/null | cut -d: -f1 | sort -u); do
+        if dpkg-query -W -f='${Conffiles}' $package | \
+            grep /etc/init.d/ | grep -q obsolete; then
+            echo "error: Obsolete init.d conffile left behind by package $package:"
+            dpkg-query -W -f='${Conffiles}' $package | \
+                grep /etc/init.d/ | grep obsolete | sed 's/^/  /'
+            badstate=1
+        fi
+    done
+
     insserv -nv > $logfile 2>&1
-    if grep -q 'There is a loop between' $logfile ; then
+    if egrep -q 'There is a loop between|already provided!' $logfile ; then
 	echo "error: Problems running insserv:"
-	grep 'There is a loop between' $logfile | sed 's/^/  /'
+	egrep 'There is a loop between|already provided!' $logfile | sed 's/^/  /'
 	echo "info: Please check out this manually."
 	echo "info: Refusing to convert boot sequence until this is fixed"
 	rm $logfile
+	badstate=1
+    fi
+
+    if [ 1 = "$badstate" ] ; then
 	exit 1
     fi
 
