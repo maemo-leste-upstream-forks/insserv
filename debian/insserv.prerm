@@ -13,6 +13,7 @@ case "$1" in
 	    echo "error: insserv must be disabled before it is removed, to"
 	    echo "error: make sure the boot system is still usable."
 	    echo "error: To disable, run BAD_INSSERV_HACKER=true dpkg-reconfigure insserv"
+	    exit 1
 	fi
 	;;
     *)

@@ -1,3 +1,10 @@
+insserv (1.09.0-10) unstable; urgency=low
+
+  * Make sure to exit with an error code if it isn't safe to remove
+    the package.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Tue,  1 Jan 2008 21:12:24 +0100
+
 insserv (1.09.0-9) unstable; urgency=low
 
   * Removed override file pptpd as the compiled in defaults are better
