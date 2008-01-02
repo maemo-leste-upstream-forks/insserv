@@ -1,0 +1,118 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 45_reportloopmemb.dpatch by Petter Reinholdtsen
+
+Try to make the loop reports a bit more verbose, listing the scripts
+that are believed to be members of the loop.  I'm not sure it will
+report only the correct scripts, nor how it will work with several
+loops present in the dependency graph.
+
+@DPATCH@
+--- insserv-1.09.0.orig/listing.c
++++ insserv-1.09.0/listing.c
+@@ -57,6 +57,7 @@
+ #define DIR_SCAN	0x00000001
+ #define DIR_LOOP	0x00000002
+ #define DIR_ISACTIVE	0x00000004
++#define DIR_LOOPREPORT	0x00000008
+ 
+ /*
+  * Provide or find a service dir, set initial states and
+@@ -194,11 +195,12 @@
+ #define loop_check(a)	\
+ 	((a) && (a)->flags & DIR_LOOP)
+ 
+-static void __follow (dir_t * dir, dir_t * skip, const int level)
++static int __follow (dir_t * dir, dir_t * skip, const int level, int reportloop)
+ {
+     dir_t * tmp;
+     register int deep = level;	/* Link depth, maybe we're called recursive */
+     register int loop;
++    int hitloop = 0;
+     static boolean warned = false;
+ 
+     if (dir->flags & DIR_SCAN) {
+@@ -210,7 +212,7 @@
+ 	    if (!remembernode(dir))
+ 		loop_warn_one(dir);
+ 	}
+-	return;
++	return hitloop;
+     }
+ 
+     if (deep < dir->minord)	/* Default order deep of this tree is higher */
+@@ -220,7 +222,7 @@
+ 	if (!warned)
+ 	    warn("Max recursions depth %d reached\n",  MAX_DEEP);
+ 	warned = true;
+-	return;
++	return hitloop;
+     }
+ 
+     for (loop = 0, tmp = dir; tmp; loop++, tmp = getlinkdir(&(tmp->link))) {
+@@ -290,23 +292,33 @@
+ 		if (!remembernode(skip) || !remembernode(tmp))
+ 		    loop_warn_two(skip, tmp);
+ 		recursion = false;
++		hitloop++;
+ 		break;		/* Loop detected, stop recursion */
+ 	    }
+ 
+-	    __follow(target, tmp, deep);	/* The inner recursion */
+-
++	    hitloop  |= __follow(target, tmp, deep, reportloop);	/* The inner recursion */
+ 	    /* Just for the case an inner recursion was stopped */
+ 	    if (loop_check(target) || loop_check(tmp) || loop_check(skip)) {
+ 		recursion = false;
++		hitloop++;
+ 		break;		/* Loop detected, stop recursion */
+ 	    }
++
++	    if (hitloop)
++	        break;
+ 	}
+ 
+ 	tmp->flags &= ~DIR_SCAN; /* Remove loop detection mark */
+ 
++	if (hitloop && reportloop && !(tmp->flags & DIR_LOOPREPORT)) {
++	    warn(" loop involving service %s at depth %d\n", tmp->name, level);
++	    tmp->flags |= DIR_LOOPREPORT;
++	}
++
+ 	if (!recursion)
+ 	    break;		/* Loop detected, stop recursion */
+     }
++    return hitloop;
+ }
+ 
+ #undef loop_warn_two
+@@ -316,10 +328,10 @@
+ /*
+  * Helper for follow_all: start with depth one.
+  */
+-inline static void follow(dir_t * dir)
++inline static void follow(dir_t * dir, int reportloop)
+ {
+     /* Link depth starts here with one */
+-    __follow(dir, NULL, dir->minord);
++    __follow(dir, NULL, dir->minord, reportloop);
+ }
+ 
+ /*
+@@ -383,7 +395,7 @@
+      * Follow all scripts and calculate the main ordering.
+      */
+     list_for_each(tmp, d_start)
+-	follow(getdir(tmp));
++	follow(getdir(tmp), 1);
+ 
+     /*
+      * Guess order of not installed scripts in comparision
+@@ -671,7 +683,7 @@
+     /*
+      * Follow the script and re-calculate the ordering.
+      */
+-    __follow(dir, NULL, dir->minord);
++    __follow(dir, NULL, dir->minord, 0);
+ 
+     /*
+      * Guess order of not installed scripts in comparision

@@ -1,3 +1,32 @@
+insserv (1.09.0-11) unstable; urgency=low
+
+  * Added test to demonstrate the fake loop warning issue (bug
+    #458582).
+  * Implemented support for non-fatal tests in the testsuite.
+  * Added override file for dmraid, scsitools-pre.sh and scsitools.sh.
+  * Added patch 44_reportloopmemb to make loop reporting code in
+    insserv more helpful, and make sure to report the extended loop
+    output in update-bootsystem-insserv when refusing to switch to
+    dependency based boot (Closes: #458683).
+  * Move code to divert update-rc.d from postinst to
+    update-bootsystem-insserv, to make sure both ways to activate
+    insserv are equivalent.
+  * Extended check-initd-order to graph services with multiple
+    provides as two nodes that depend on each other, and which ahve
+    the same dependencies.
+  * Changed update-bootsystem-insserv to call 'reset' after looping
+    over packages postinst scripts, in case the terminal is messed up
+    as it is when I test it.
+  * Disabled check for reverse dependencies in check-initd-order.  It
+    does not to work properly, and gave false error reports.
+  * Removed flag file /etc/update-rc.d-insserv and use the update-rc.d
+    diversion as the flag to detect if insserv is enabled.  Adjustd
+    package removal and update-rc.d-insserv to reflect this.
+  * Added Vcs-Svn and Vcs-Browser info in control file, pointing to
+    the Debian packaging project.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed,  2 Jan 2008 18:41:31 +0100
+
 insserv (1.09.0-10) unstable; urgency=low
 
   * Make sure to exit with an error code if it isn't safe to remove

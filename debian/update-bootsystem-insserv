@@ -56,9 +56,47 @@ regenerate_sysv_sequence() {
 	    echo "error: package $p got init.d script but no postinst"
 	fi
     done
+
+    # Using postinst directly might mess up the terminal.  Try to recover
+    reset || true
 }
 
-if [ restore = "$1" ] ; then
+# Based on code from dash postinst
+check_divert() {
+    package=insserv
+    div=$(dpkg-divert --list $2)
+    distrib=${4:-$2.distrib}
+    case "$1" in
+    true)
+        if [ -z "$div" ]; then
+	    dpkg-divert --package $package --divert $distrib --add $2
+	    cp -dp $2 $distrib
+	    ln -sf $3 $2
+	fi
+	;;
+    false)
+        if [ -n "$div" ] && [ -z "${div%%*by $package}" ]; then
+	    mv $distrib $2
+	    dpkg-divert --remove $2
+	fi
+	;;
+    status) # Return true if the divert is in effect
+        if [ -n "$div" ] && [ -z "${div%%*by $package}" ]; then
+	    :
+	else
+	    false
+	fi
+    esac
+}
+
+deactivate_inserv() {
+    if check_divert status /usr/sbin/update-rc.d \
+	/usr/sbin/update-rc.d-insserv ; then
+        # Undo divert
+	check_divert false /usr/sbin/update-rc.d \
+	    /usr/sbin/update-rc.d-insserv
+    fi
+
     if [ ! -f $flagfile ] ; then
 	echo "error: The boot system is not currently converted to insserv."
 	echo "error: Flag file $flagfile is missing."
@@ -96,8 +134,11 @@ if [ restore = "$1" ] ; then
 	echo "error: Unable to restore the boot sequence.  Invalid backup."
 	echo "error: Trying to recover by reconfiguring all packages with init.d scripts."
 	regenerate_sysv_sequence
+	rm -f $flagfile
     fi
-else
+}
+
+activate_insserv() {
     # Refuse to convert when there are obsolete init.d scripts left
     # behind, as these tend to confuse the boot sequence.
     echo "info: Checking if it is safe to convert to dependency based boot."
@@ -115,7 +156,7 @@ else
     insserv -nv > $logfile 2>&1
     if egrep -q 'There is a loop between|already provided!' $logfile ; then
 	echo "error: Problems running insserv:"
-	egrep 'There is a loop between|already provided!' $logfile | sed 's/^/  /'
+	egrep 'There is a loop between|loop involving service|already provided!' $logfile | sed 's/^/  /'
 	echo "info: Please check out this manually."
 	echo "info: Refusing to convert boot sequence until this is fixed"
 	rm $logfile
@@ -143,6 +184,16 @@ else
 
     echo "info: Use '$0 restore' to restore the old boot sequence."
     touch $flagfile
+
+    # Divert update-rc.d to update-rc.d-insserv
+    check_divert true /usr/sbin/update-rc.d \
+	/usr/sbin/update-rc.d-insserv
+}
+
+if [ restore = "$1" ] ; then
+    deactivate_inserv
+else
+    activate_insserv
 fi
 
 exit 0

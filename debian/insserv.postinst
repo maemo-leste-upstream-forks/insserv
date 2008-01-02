@@ -4,55 +4,21 @@ set -e
 
 . /usr/share/debconf/confmodule
 
-flagfile=/etc/update-rc.d-insserv
-package=insserv
+flagfile=/var/lib/insserv/using-insserv
 
 # Based on code from dash postinst
 check_divert() {
+    package=insserv
     div=$(dpkg-divert --list $2)
     distrib=${4:-$2.distrib}
     case "$1" in
-    true)
-        if [ -z "$div" ]; then
-	    dpkg-divert --package $package --divert $distrib --add $2
-	    cp -dp $2 $distrib
-	    ln -sf $3 $2
-	fi
-	;;
-    false)
+    status) # Return true if the divert is in effect
         if [ -n "$div" ] && [ -z "${div%%*by $package}" ]; then
-	    mv $distrib $2
-	    dpkg-divert --remove $2
+	    :
+	else
+	    false
 	fi
-	;;
     esac
-}
-
-enable_insserv() {
-    # Reorder the boot sequence, and divert update-rc.d if it worked
-    if update-bootsystem-insserv ; then
-	: # All OK
-	echo "success: Boot system successfully converted"
-	touch $flagfile
-
-        # Divert update-rc.d to update-rc.d-insserv
-	check_divert true /usr/sbin/update-rc.d \
-	    /usr/sbin/update-rc.d-insserv
-    else
-	echo "error: Unable to enable dependency based boot system."
-    fi
-}
-
-disable_insserv() {
-    echo "info: Disabling dependency based boot system"
-    # Undo divert
-    check_divert false /usr/sbin/update-rc.d \
-	/usr/sbin/update-rc.d-insserv
-
-    # Revert to old boot order if possible
-    update-bootsystem-insserv restore
-
-    rm -f $flagfile
 }
 
 case "$1" in
@@ -60,12 +26,30 @@ case "$1" in
 
 	# Only enable this code if environment variable
 	# BAD_INSSERV_HACKER=true is set
-        if [ true = "$BAD_INSSERV_HACKER" ] ; then
+	if [ true = "$BAD_INSSERV_HACKER" ] ; then
 	    db_get insserv/enable || true
-	    if [ true = "$RET" ] && [ ! -f $flagfile ]; then
-		enable_insserv # Enable it, as it was not enabled already
-	    elif [ true != "$RET" ] && [ -f $flagfile ] ; then
-		disable_insserv
+
+	    if check_divert status /usr/sbin/update-rc.d \
+		/usr/sbin/update-rc.d-insserv ; then
+		enabled=true
+	    fi
+
+	    if [ true = "$RET" ] && [ true != "$enabled" ]; then
+		# Enable it, as it was not enabled already.
+		# Reorder the boot sequence, and divert update-rc.d if
+		# it worked
+		if update-bootsystem-insserv ; then
+		    echo "success: Boot system successfully converted"
+		    : # All OK
+		else
+		    echo "error: Unable to enable dependency based boot system."
+		fi
+	    elif [ true != "$RET" ] ; then
+		if [ true = "$enabled" ] || [ -f $flagfile ]; then
+		    echo "info: Disabling dependency based boot system"
+		    # Revert to old boot system if possible
+		    update-bootsystem-insserv restore
+		fi
 	    fi
 	fi
 	;;
@@ -74,5 +58,14 @@ case "$1" in
 esac
 
 db_stop
+
+#
+# This flag file was used until version 1.09.0-11, where the system
+# was converted to use the existence of the update-rc.d diversion as a
+# flag to detect if insserv is enabled.
+#
+if dpkg --compare-versions "$PREV_VER" lt "1.09.0-11" ; then
+	rm -f /etc/update-rc.d-insserv
+fi
 
 #DEBHELPER#

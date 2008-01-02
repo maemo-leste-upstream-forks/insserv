@@ -4,6 +4,8 @@ Priority: optional
 Maintainer: Petter Reinholdtsen <pere@debian.org>
 Build-Depends: debhelper (>= 4.0.0), dpatch
 Standards-Version: 3.7.3
+Vcs-Svn: svn://svn.debian.org/initscripts-ng/trunk/src/insserv
+Vcs-Browser: http://svn.debian.org/wsvn/initscripts-ng/trunk/src/insserv
 
 Package: insserv
 Architecture: any

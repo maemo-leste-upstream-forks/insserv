@@ -61,9 +61,12 @@ my %provideslist;
 my %scriptorder;
 my %opts;
 
+my %graphnodes = ();
+my %graphlinks = ();
+
 while($#ARGV >= 0 && ($_ = $ARGV[0]) =~ /^-/) {
         shift @ARGV;
-        if (/^-([dgko])$/) { $opts{$1}++; next }
+        if (/^-([cdgko])$/) { $opts{$1}++; next }
         if (/^-h|--help$/) { &usage; }
         &usage("unknown option");
 }
@@ -94,59 +97,63 @@ sub basename {
     return $path;
 }
 
+sub graph_add_link {
+    my ($from, $to, $color) = @_;
+    print "\"$from\" -> \"$to\"[color=$color] ;\n"
+        unless exists $graphlinks{"$from/$to"};
+    $graphlinks{"$from/$to"} = 1;
+}
+
 sub graph_addnode {
-    my %lsbinfo = @_;
+    my ($key, $lsbinforef) = @_;
+    my %lsbinfo = %{$lsbinforef};
 
     unless ($lsbinfo{'provides'}) {
         print STDERR "error: File ". $lsbinfo{'file'} . " is missing the provides header\n";
         $lsbinfo{'provides'} = $lsbinfo{'file'};
     }
 
-    my $key = $opts{'k'} ? 'stop' : 'start';
-    my $revkey = $opts{'k'} ? 'stop-after' : 'start-before';
+    my $keystr = 'S' eq $key ? 'start' : 'stop';
+    my $revkey = 'S' eq $key ? 'start-before' : 'stop-after';
     my @provides = split(/\s+/, $lsbinfo{'provides'});
     for my $name (@provides) {
         if (exists $sysmap{$name}) {
-            graph_addnode('provides'      => $sysmap{$name},
-                          "required-$key" => $name);
+            graph_addnode($key,
+                          {'provides'         => $sysmap{$name},
+                           "required-$keystr" => $name});
         }
     }
 
     if (1 < @provides) {
-        my @providescopy = @provides;
-        my $lastprovide = shift @providescopy;
-        for my $provide (@providescopy) {
-            graph_addnode('provides'      => $lastprovide,
-                          "required-$key" => $provide);
-            graph_addnode('provides'      => $provide,
-                          "required-$key" => $lastprovide);
-        }
+        print STDERR "warning: Unable to properly graph multiple provides: @provides\n";
     }
 
-    for my $provide (@provides) {
-        my %deps =
-            (
-             "required-$key" => 'blue',
-             "should-$key" => 'springgreen',
-             "$revkey" => 'yellow'
-             );
+    my %deps =
+        (
+         "required-$keystr" => 'blue',
+         "should-$keystr"   => 'springgreen',
+         "$revkey"          => 'yellow'
+         );
 
-        for $key (keys %deps) {
-            if (exists $lsbinfo{$key} && $lsbinfo{$key}) {
-                my @depends = split(/\s+/, $lsbinfo{$key});
-                for my $pkg (@depends) {
-                    my $color = $deps{$key};
-                    if ($revkey eq $key) {
-                        print "\"$provide\" -> \"$pkg\"[color=$color] ;\n";
-                    } else {
-                        print "\"$pkg\" -> \"$provide\"[color=$color] ;\n";
-                    }
+    for my $header (keys %deps) {
+        print STDERR "Checking $provides[0] for $header\n";
+        if (exists $lsbinfo{$header} && $lsbinfo{$header}) {
+            my @depends = split(/\s+/, $lsbinfo{$header});
+            for my $pkg (@depends) {
+                print STDERR "  Found $pkg\n";
+                my $color = $deps{$header};
+                if ($revkey eq $header) {
+                    graph_add_link($provides[0], $pkg, $color);
+                } else {
+                    graph_add_link($pkg, $provides[0], $color);
                 }
             }
         }
-
-        print "\"$provide\" [shape=box];\n";
     }
+
+    print "\"$provides[0]\" [shape=box];\n" unless
+        exists $graphnodes{$provides[0]};
+    $graphnodes{$provides[0]} = 1;
 }
 
 sub graph_generate {
@@ -156,22 +163,36 @@ digraph packages {
 rankdir=LR;
 concentrate=true;
 EOF
-    my @dirs = $opts{'k'} ? $rcmap{6} : ($rcmap{S}, $rcmap{2});
+    my @keys;
+    my @dirs;
+    my $glob;
+    if ($opts{'k'}) {
+        @dirs =  $rcmap{6};
+        push(@keys, "K", "S");
+    } elsif ($opts{'c'}) {
+        @dirs =($rcmap{S}, $rcmap{2}, $rcmap{6});
+        push(@keys, "K", "S");
+    } else {
+        @dirs =($rcmap{S}, $rcmap{2});
+        push(@keys, "S");
+    }
     for my $rcdir (@dirs) {
         chdir "$rcbase/$rcdir/.";
-        my @scripts = $opts{'k'} ? <K*> : <S*>;
-        for my $script (@scripts) {
-            my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script",
-                                           $useoverrides);
+        for my $key (@keys) {
+            my @scripts = <$key*>;
+            for my $script (@scripts) {
+                print STDERR "Loading $script\n";
+                my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script",
+                                               $useoverrides);
 
-            unless (defined $lsbinforef) {
-                print STDERR "warning: LSB header missing in $rcbase/$rcdir/$script\n";
-                $lsbinforef = {'provides'       => $script,
-                               'required-start' => '$remote_fs $syslog',
-                               'required-stop'  => '$remote_fs $syslog'};
+                unless (defined $lsbinforef) {
+                    print STDERR "warning: LSB header missing in $rcbase/$rcdir/$script\n";
+                    $lsbinforef = {'provides'       => $script,
+                                   'required-start' => '$remote_fs $syslog',
+                                   'required-stop'  => '$remote_fs $syslog'};
+                }
+                graph_addnode($key, $lsbinforef);
             }
-            my %lsbinfo = %{$lsbinforef};
-            graph_addnode %lsbinfo;
         }
     }
     print <<EOF;
@@ -278,12 +299,12 @@ sub check_bootorder {
         if ('S' eq $tag) {
             check_deps($lsbinforef, $tag, $order, $bootorder, 'required-start', 1);
             check_deps($lsbinforef, $tag, $order, $bootorder, 'should-start', 0);
-#            check_deps($lsbinforef, 'K', $order, $bootorder, 'start-before', 0);
+            check_deps($lsbinforef, 'K', $order, $bootorder, 'start-before', 0);
         }
         if ('K' eq $tag) {
             check_deps($lsbinforef, $tag, $order, $bootorder, 'required-stop', 1);
             check_deps($lsbinforef, $tag, $order, $bootorder, 'should-stop', 0);
-#            check_deps($lsbinforef, 'S', $order, $bootorder, 'stop-after', 0);
+            check_deps($lsbinforef, 'S', $order, $bootorder, 'stop-after', 0);
         }
     }
 }
