@@ -56,13 +56,13 @@ test_order() {
 
 cat <<'EOF' > $insconf
 $local_fs       +mountall +umountfs
-$network        +ifupdown
-$named          $network
-$remote_fs      +mountnfs +umountnfs
-$syslog         +syslog
+$network        +networking +ifupdown
+$named          +named +dnsmasq +lwresd +bind9 $network
+$remote_fs      $local_fs +mountnfs +mountnfs-bootclean +umountnfs +sendsigs
+$syslog         +syslog +sysklogd
 $portmap        portmap
-$time           hwclock
-<interactive>   checkroot
+$time           hwclock +ntpdate +ntp-server
+<interactive>   udev mountdevsubfs checkroot checkfs console-screen
 EOF
 
 insertscript mountkernfs.sh <<EOF
@@ -177,6 +177,16 @@ insertscript beforenfs <<'EOF'
 ### END INIT INFO
 EOF
 
+insertscript hwclock.sh <<'EOF'
+### BEGIN INIT INFO
+# Provides:          hwclock
+# Required-Start:    mountdevsubfs
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
 insertscript killprocs <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          killprocs
@@ -217,7 +227,7 @@ insertscript needallfs <<'EOF'
 ### END INIT INFO
 EOF
 
-insertscript syslog <<'EOF'
+insertscript sysklogd <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          syslog
 # Required-Start:    $remote_fs
@@ -300,6 +310,16 @@ insertscript kexec <<'EOF'
 ### END INIT INFO
 EOF
 
+insertscript networking <<'EOF'
+### BEGIN INIT INFO
+# Provides:          networking
+# Required-Start:    mountkernfs ifupdown $local_fs
+# Required-Stop:     ifupdown $local_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
 insertscript nolsbheader <<'EOF'
 EOF
 
@@ -320,7 +340,7 @@ check_order 1 needallfs killprocs
 
 check_order 2 needlocalfs needallfs
 check_order 2 needlocalfs nolsbheader
-check_order 2 syslog nolsbheader
+check_order 2 sysklogd nolsbheader
 check_order 2 needallfs2 needallfs
 
 check_order 6 needallfs umountnfs
@@ -418,22 +438,55 @@ test_order 6 startsecond startfirst
 rm -rf $initddir
 mkdir -p $initddir
 
-insertscript startfirst <<'EOF' || true
+insertscript startfirst_stopfirst <<'EOF' || true
 ### BEGIN INIT INFO
-# Provides:          startfirst
+# Provides:          startfirst_stopfirst
 # Required-Start:
 # Required-Stop:
-# Should-Stop:       startsecond
+# Should-Stop:       startsecond_stoplast
 # Default-Start:     S
 # Default-Stop:      6
 ### END INIT INFO
 EOF
 
-insertscript startsecond <<'EOF' || true
+insertscript startsecond_stoplast <<'EOF' || true
 ### BEGIN INIT INFO
-# Provides:          startsecond
-# Required-Start:    startfirst
+# Provides:          startsecond_stoplast
+# Required-Start:    startfirst_stopfirst
 # Required-Stop:
+# Default-Start:     S
+# Default-Stop:      6
+### END INIT INFO
+EOF
+
+(cd $tmpdir && ls *)
+
+# Test another fake loop using reverse dependencies to document that
+# it can happen based on information provided in one package only.
+# This should work, as it is possible to install the two scripts in
+# sequence because one of the dependencies are optional.  It does not
+# with insserv today.  Note thought that the generated order is
+# different from the one above.
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript startfirst_stopfirst <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          startfirst_stopfirst
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:      6
+### END INIT INFO
+EOF
+
+insertscript startsecond_stoplast <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          startsecond_stoplast
+# Required-Start:    startfirst_stopfirst
+# Required-Stop:
+# X-Stop-After:      startfirst_stopfirst
 # Default-Start:     S
 # Default-Stop:      6
 ### END INIT INFO
@@ -443,8 +496,8 @@ EOF
 
 # These are checking real bugs, but until bug #458582 is fixed, they
 # will fail.  Making the tests non-fatal because of this.
-test_order S startfirst startsecond
-test_order 6 startsecond startfirst
+test_order S startfirst_stopfirst startsecond_stoplast
+test_order 6 startfirst_stopfirst startsecond_stoplast 
 
 rm -rf $tmpdir
 

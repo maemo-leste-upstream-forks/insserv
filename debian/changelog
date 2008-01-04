@@ -1,3 +1,19 @@
+insserv (1.09.0-12) unstable; urgency=low
+
+  * New patch 34_debian_fixedscripts to hardcode a few script sequence
+    numbers, to let the generated boot sequence be more like the
+    original one.  Modified 40_nonsusescripts to no longer disable the
+    setlsb() function.  This patch is not enabled by default, as it is
+    not obvious that it is a good idea.
+  * Added override files for hostname.dhcp and mountfix.
+  * Adjust override file for lvm2, to provide both lvm2 and lvm, to
+    make it easier until the lvm provide is dropped.
+  * Adjust override file for lvm2 to use reverse depend on checkfs,
+    mountall and umountfs to make it possible to drop lvm relations
+    from initscripts.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri,  4 Jan 2008 01:38:00 +0100
+
 insserv (1.09.0-11) unstable; urgency=low
 
   * Added test to demonstrate the fake loop warning issue (bug
