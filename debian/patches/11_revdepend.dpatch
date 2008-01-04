@@ -6,9 +6,10 @@ of version 1.10 given by Werner Fink to Petter Reinholdtsen for
 review.
 
 @DPATCH@
---- insserv-1.10.0/insserv.c	2007-12-29 19:39:07.000000000 +0100
-+++ insserv-1.10.0/insserv.c	2007-11-21 18:26:47.000000000 +0100
-@@ -57,12 +59,16 @@
+diff -urNad insserv~/insserv.c insserv/insserv.c
+--- insserv~/insserv.c	2008-01-04 11:19:42.000000000 +0100
++++ insserv/insserv.c	2008-01-04 11:21:53.000000000 +0100
+@@ -57,12 +57,16 @@
  /* The main regular search expressions */
  #define PROVIDES	COMM "provides" VALUE
  #define REQUIRED	COMM "required"
@@ -26,7 +27,7 @@ review.
  #define DEFAULT_START	DEFAULT  START VALUE
  #define DEFAULT_STOP	DEFAULT  STOP  VALUE
  #define DESCRIPTION	COMM "description" VALUE
-@@ -90,6 +99,8 @@
+@@ -90,6 +94,8 @@
      char *required_stop;
      char *should_start;
      char *should_stop;
@@ -35,7 +36,7 @@ review.
      char *default_start;
      char *default_stop;
      char *description;
-@@ -102,6 +113,8 @@
+@@ -102,6 +108,8 @@
      regex_t req_stop;
      regex_t shl_start;
      regex_t shl_stop;
@@ -44,7 +45,7 @@ review.
      regex_t def_start;
      regex_t def_stop;
      regex_t desc;
-@@ -283,7 +296,7 @@
+@@ -283,7 +291,7 @@
  /*
   * Remember requests for required or should services and expand `$' token
   */
@@ -53,7 +54,7 @@ review.
  {
      char * token, * tmp = strdupa(required);
      list_t * ptr;
-@@ -349,6 +360,39 @@
+@@ -349,6 +357,39 @@
      }
  }
  
@@ -93,7 +94,7 @@ review.
  /*
   * Check required services for name
   */
-@@ -950,6 +1040,8 @@
+@@ -950,6 +991,8 @@
      regcompiler(&reg.req_stop,  REQUIRED_STOP,  REG_EXTENDED|REG_ICASE|REG_NEWLINE);
      regcompiler(&reg.shl_start, SHOULD_START,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
      regcompiler(&reg.shl_stop,  SHOULD_STOP,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
@@ -102,7 +103,7 @@ review.
      regcompiler(&reg.def_start, DEFAULT_START,  REG_EXTENDED|REG_ICASE|REG_NEWLINE);
      regcompiler(&reg.def_stop,  DEFAULT_STOP,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
      regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
-@@ -968,6 +1060,8 @@
+@@ -968,6 +1011,8 @@
  #define required_stop	script_inf.required_stop
  #define should_start	script_inf.should_start
  #define should_stop	script_inf.should_stop
@@ -111,7 +112,7 @@ review.
  #define default_start	script_inf.default_start
  #define default_stop	script_inf.default_stop
  #define description	script_inf.description
-@@ -983,6 +1077,8 @@
+@@ -983,6 +1028,8 @@
      xreset(required_stop);
      xreset(should_start);
      xreset(should_stop);
@@ -120,7 +121,7 @@ review.
      xreset(default_start);
      xreset(default_stop);
      xreset(description);
-@@ -1034,6 +1140,22 @@
+@@ -1034,6 +1081,22 @@
  		should_stop = empty;
  	}
  #endif /* not SUSE */
@@ -143,7 +144,7 @@ review.
  	if (!default_start  && regexecutor(&reg.def_start, COMMON_ARGS) == true) {
  	    if (val->rm_so < val->rm_eo) {
  		*(pbuf+val->rm_eo) = '\0';
-@@ -1101,6 +1223,8 @@
+@@ -1101,6 +1164,8 @@
  #undef required_stop
  #undef should_start
  #undef should_stop
@@ -152,7 +153,7 @@ review.
  #undef default_start
  #undef default_stop
  #undef description
-@@ -1115,6 +1239,8 @@
+@@ -1115,6 +1180,8 @@
      regfree(&reg.req_stop);
      regfree(&reg.shl_start);
      regfree(&reg.shl_stop);
@@ -161,7 +162,7 @@ review.
      regfree(&reg.def_start);
      regfree(&reg.def_stop);
      regfree(&reg.desc);
-@@ -1234,6 +1367,9 @@
+@@ -1234,6 +1301,9 @@
  		    rememberreq(service, REQ_SHLD, script_inf.should_start);
  		    requiresv(token, script_inf.should_start);
  		}
@@ -171,7 +172,7 @@ review.
  #ifndef SUSE
  		/*
  		 * required_stop and should_stop arn't used in SuSE Linux.
-@@ -1248,6 +1384,9 @@
+@@ -1248,6 +1318,9 @@
  		    rememberreq(service, REQ_SHLD, script_inf.should_stop);
  		    requiresv(token, script_inf.should_stop);
  		}
@@ -181,7 +182,7 @@ review.
  #endif /* not SUSE */
  	    }
  	    script_inf.provides = begin;
-@@ -1257,6 +1396,8 @@
+@@ -1257,6 +1330,8 @@
  	    xreset(script_inf.required_stop);
  	    xreset(script_inf.should_start);
  	    xreset(script_inf.should_stop);
@@ -190,7 +191,7 @@ review.
  	    xreset(script_inf.default_start);
  	    xreset(script_inf.default_stop);
  	    xreset(script_inf.description);
-@@ -1867,7 +2026,7 @@
+@@ -1867,7 +1942,7 @@
  		    boolean known = (service->opts & SERV_KNOWN);
  		    service->opts |= SERV_KNOWN;
  
@@ -199,7 +200,7 @@ review.
  			const char * script = getscript(service->name);
  
  			if (script) {
-@@ -1913,6 +2072,14 @@
+@@ -1913,6 +1988,14 @@
  			}
  #endif /* not SUSE */
  		    }
@@ -214,7 +215,7 @@ review.
  		    /*
  		     * Use information from symbolic link structure to
  		     * check if all services are around for this script.
-@@ -2082,6 +2249,8 @@
+@@ -2082,6 +2165,8 @@
      xreset(script_inf.required_stop);
      xreset(script_inf.should_start);
      xreset(script_inf.should_stop);

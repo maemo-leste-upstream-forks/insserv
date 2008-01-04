@@ -10,9 +10,9 @@ The runlevel_locations array is extended to include the runlevel kode
 in it.
 
 @DPATCH@
---- insserv-1.09.0.orig/insserv.c
-+++ insserv-1.09.0/insserv.c
-@@ -31,8 +31,8 @@
+--- insserv-1.09.0~/insserv.c	2008-01-04 11:22:09.000000000 +0100
++++ insserv-1.09.0/insserv.c	2008-01-04 11:22:09.000000000 +0100
+@@ -32,8 +32,8 @@
  #include "listing.h"
  
  static const char *map_runlevel_to_location(const int runlevel);
@@ -22,7 +22,7 @@ in it.
  static const int map_runlevel_to_seek(const int runlevel);
  #endif /* not SUSE */
  
-@@ -418,22 +418,7 @@
+@@ -471,22 +471,7 @@
      if (serv->order < order)
  	serv->order = order;
  
@@ -46,7 +46,7 @@ in it.
  
      return serv;
  }
-@@ -1224,45 +1209,82 @@
+@@ -1304,45 +1289,82 @@
      char *location;
      const int lvl;
      const int seek;
@@ -148,8 +148,8 @@ in it.
      return runlevel_locations[runlevel].seek;
  }
  #endif /* not SUSE */
---- insserv-1.09.0.orig/listing.c
-+++ insserv-1.09.0/listing.c
+--- insserv-1.09.0~/listing.c	2008-01-04 11:22:09.000000000 +0100
++++ insserv-1.09.0/listing.c	2008-01-04 11:22:09.000000000 +0100
 @@ -58,6 +58,9 @@
  #define DIR_LOOP	0x00000002
  #define DIR_ISACTIVE	0x00000004

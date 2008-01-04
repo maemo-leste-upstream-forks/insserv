@@ -4,9 +4,10 @@
 Fix the handling of stop scripts and the shutdown sequence.
 
 @DPATCH@
---- insserv-1.09.0.orig/insserv.c
-+++ insserv-1.09.0/insserv.c
-@@ -420,14 +420,19 @@
+diff -urNad insserv~/insserv.c insserv/insserv.c
+--- insserv~/insserv.c	2008-01-04 11:22:10.000000000 +0100
++++ insserv/insserv.c	2008-01-04 11:22:11.000000000 +0100
+@@ -464,14 +464,19 @@
  /*
   * This helps us to work out the current symbolic link structure
   */
@@ -28,7 +29,7 @@ Fix the handling of stop scripts and the shutdown sequence.
  
      return serv;
  }
-@@ -1310,11 +1278,17 @@
+@@ -1392,11 +1397,17 @@
  	while ((d = readdir(rcdir)) != NULL) {
  	    char * ptr = d->d_name;
  	    char order = 0;
@@ -47,7 +48,7 @@ Fix the handling of stop scripts and the shutdown sequence.
  	    ptr++;
  
  	    if (strspn(ptr, "0123456789") < 2)
-@@ -1338,7 +1312,7 @@
+@@ -1420,7 +1431,7 @@
  		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
  		    continue;
  		}
@@ -56,7 +57,7 @@ Fix the handling of stop scripts and the shutdown sequence.
  
  		if (service->opts & SERV_KNOWN)
  		    continue;
-@@ -2184,7 +2158,10 @@
+@@ -2294,7 +2305,10 @@
  	     */
  	    if (script_inf.default_stop && script_inf.default_stop != empty) {
  		if (service && !del)
@@ -67,7 +68,7 @@ Fix the handling of stop scripts and the shutdown sequence.
  	    }
  #endif /* not SUSE */
  	}
-@@ -2468,9 +2445,13 @@
+@@ -2571,9 +2585,13 @@
  	}
  
  	while (listscripts(&script, seek)) {
@@ -82,7 +83,7 @@ Fix the handling of stop scripts and the shutdown sequence.
  	    const char mode = (stop ? 'K' : 'S');
  	    int order = getorder(script);
  	    boolean found;
-@@ -2474,6 +2474,10 @@
+@@ -2597,6 +2615,10 @@
  		order = (maxorder + 1) - order;
  	    }
  
@@ -93,9 +94,10 @@ Fix the handling of stop scripts and the shutdown sequence.
  	    sprintf(olink, "../init.d/%s", script);
  	    sprintf(nlink, "%c%.2d%s", mode, order, script);
  
---- insserv-1.09.0.orig/listing.c
-+++ insserv-1.09.0/listing.c
-@@ -566,7 +566,7 @@
+diff -urNad insserv~/listing.c insserv/listing.c
+--- insserv~/listing.c	2008-01-04 11:22:10.000000000 +0100
++++ insserv/listing.c	2008-01-04 11:22:11.000000000 +0100
+@@ -536,7 +536,7 @@
  {
      dir_t * dir = providedir(this);
  

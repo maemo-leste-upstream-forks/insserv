@@ -7,17 +7,18 @@ report only the correct scripts, nor how it will work with several
 loops present in the dependency graph.
 
 @DPATCH@
---- insserv-1.09.0.orig/listing.c
-+++ insserv-1.09.0/listing.c
+diff -urNad insserv~/listing.c insserv/listing.c
+--- insserv~/listing.c	2008-01-04 11:22:12.000000000 +0100
++++ insserv/listing.c	2008-01-04 11:22:12.000000000 +0100
 @@ -57,6 +57,7 @@
  #define DIR_SCAN	0x00000001
  #define DIR_LOOP	0x00000002
  #define DIR_ISACTIVE	0x00000004
 +#define DIR_LOOPREPORT	0x00000008
  
- /*
-  * Provide or find a service dir, set initial states and
-@@ -194,11 +195,12 @@
+ /* From insserv.c */
+ extern const int map_has_runlevels(void);
+@@ -197,11 +198,12 @@
  #define loop_check(a)	\
  	((a) && (a)->flags & DIR_LOOP)
  
@@ -31,7 +32,7 @@ loops present in the dependency graph.
      static boolean warned = false;
  
      if (dir->flags & DIR_SCAN) {
-@@ -210,7 +212,7 @@
+@@ -213,7 +215,7 @@
  	    if (!remembernode(dir))
  		loop_warn_one(dir);
  	}
@@ -40,7 +41,7 @@ loops present in the dependency graph.
      }
  
      if (deep < dir->minord)	/* Default order deep of this tree is higher */
-@@ -220,7 +222,7 @@
+@@ -223,7 +225,7 @@
  	if (!warned)
  	    warn("Max recursions depth %d reached\n",  MAX_DEEP);
  	warned = true;
@@ -49,7 +50,7 @@ loops present in the dependency graph.
      }
  
      for (loop = 0, tmp = dir; tmp; loop++, tmp = getlinkdir(&(tmp->link))) {
-@@ -290,23 +292,33 @@
+@@ -293,23 +295,33 @@
  		if (!remembernode(skip) || !remembernode(tmp))
  		    loop_warn_two(skip, tmp);
  		recursion = false;
@@ -85,7 +86,7 @@ loops present in the dependency graph.
  }
  
  #undef loop_warn_two
-@@ -316,10 +328,10 @@
+@@ -319,10 +331,10 @@
  /*
   * Helper for follow_all: start with depth one.
   */
@@ -98,7 +99,7 @@ loops present in the dependency graph.
  }
  
  /*
-@@ -383,7 +395,7 @@
+@@ -386,7 +398,7 @@
       * Follow all scripts and calculate the main ordering.
       */
      list_for_each(tmp, d_start)
@@ -107,7 +108,7 @@ loops present in the dependency graph.
  
      /*
       * Guess order of not installed scripts in comparision
-@@ -671,7 +683,7 @@
+@@ -618,7 +630,7 @@
      /*
       * Follow the script and re-calculate the ordering.
       */

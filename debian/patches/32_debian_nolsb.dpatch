@@ -7,9 +7,10 @@
 ## DP: functions.  These are in other packages on debian.
 
 @DPATCH@
---- insserv-1.00.8.orig/Makefile
-+++ insserv-1.00.8/Makefile
-@@ -74,15 +74,15 @@
+diff -urNad insserv~/Makefile insserv/Makefile
+--- insserv~/Makefile	2008-01-04 11:22:01.000000000 +0100
++++ insserv/Makefile	2008-01-04 11:22:01.000000000 +0100
+@@ -75,15 +75,15 @@
  	$(MKDIR)   $(SBINDIR)
  	$(MKDIR)   $(SDOCDIR)
  	$(MKDIR)   $(CONFDIR)

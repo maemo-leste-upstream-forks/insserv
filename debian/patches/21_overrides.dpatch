@@ -6,9 +6,9 @@
 ## DP: files.
 
 @DPATCH@
-diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
---- insserv-1.09.0~/insserv.c	2007-12-31 12:03:35.734629003 -0200
-+++ insserv-1.09.0/insserv.c	2007-12-31 12:04:21.573241198 -0200
+diff -urNad insserv~/insserv.c insserv/insserv.c
+--- insserv~/insserv.c	2008-01-04 11:21:58.000000000 +0100
++++ insserv/insserv.c	2008-01-04 11:21:58.000000000 +0100
 @@ -23,6 +23,7 @@
  #include <fcntl.h>
  #include <sys/stat.h>
@@ -27,16 +27,30 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  #ifndef  INSCONF
  # define INSCONF	"/etc/insserv.conf"
  #endif
-@@ -998,7 +1002,7 @@
+@@ -998,7 +1002,21 @@
      regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
  }
  
 -static boolean scan_script_defaults(const char *const path)
++static inline void scan_script_reset(void)
++{
++    xreset(script_inf.provides);
++    xreset(script_inf.required_start);
++    xreset(script_inf.required_stop);
++    xreset(script_inf.should_start);
++    xreset(script_inf.should_stop);
++    xreset(script_inf.start_before);
++    xreset(script_inf.stop_after);
++    xreset(script_inf.default_start);
++    xreset(script_inf.default_stop);
++    xreset(script_inf.description);
++}
++
 +static boolean scan_lsb_headers(const char *const path)
  {
      regmatch_t subloc[SUBNUM_SHD+1], *val = &subloc[SUBNUM-1], *shl = &subloc[SUBNUM_SHD-1];
      FILE *script;
-@@ -1022,18 +1026,6 @@
+@@ -1022,25 +1040,18 @@
      if (!script)
  	error("fopen(%s): %s\n", path, strerror(errno));
  
@@ -55,13 +69,26 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  #define COMMON_ARGS	buf, SUBNUM, subloc, 0
  #define COMMON_SHD_ARGS	buf, SUBNUM_SHD, subloc, 0
      while (fgets(buf, sizeof(buf), script)) {
-@@ -1169,10 +1161,113 @@
+ 
+ 	/* Skip scanning above from LSB magic start */
+-	if (!begin && !(begin = strstr(buf, "### BEGIN INIT INFO")))
++	if (!begin) {
++	    if (begin = strstr(buf, "### BEGIN INIT INFO")) {
++	        /* Let the latest LSB header override the one found earlier */
++	        scan_script_reset();
++	    }
+ 	    continue;
++	}
+ 
+ 	if (!provides       && regexecutor(&reg.prov,      COMMON_ARGS) == true) {
+ 	    if (val->rm_so < val->rm_eo) {
+@@ -1169,10 +1180,104 @@
  #undef default_start
  #undef default_stop
  #undef description
 +    return ret;
 +}
- 
++
 +/*
 + * Follow symlinks, return the basename of the file pointed to by
 + * symlinks or the basename of the current path if no symlink.
@@ -106,7 +133,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
 +
 +    free(script);
 +    script = xstrdup(basename(linkbuf));
-+
+ 
 +    return script;
 +}
 +
@@ -131,16 +158,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
 +    char *name = scriptname(path);
 +
 +    /* Reset old results */
-+    xreset(script_inf.provides);
-+    xreset(script_inf.required_start);
-+    xreset(script_inf.required_stop);
-+    xreset(script_inf.should_start);
-+    xreset(script_inf.should_stop);
-+    xreset(script_inf.start_before);
-+    xreset(script_inf.stop_after);
-+    xreset(script_inf.default_start);
-+    xreset(script_inf.default_stop);
-+    xreset(script_inf.description);
++    scan_script_reset();
 +
 +    /* Load values if the override file exist */
 +    override = load_overrides("/usr/share/insserv/overrides", name);
@@ -169,7 +187,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  static inline void scan_script_regfree()
  {
      regfree(&reg.prov);
-@@ -1237,7 +1332,7 @@
+@@ -1237,7 +1342,7 @@
  /*
   * Scan current service structure
   */
@@ -178,7 +196,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  {
      int runlevel;
  
-@@ -1274,7 +1369,7 @@
+@@ -1274,7 +1379,7 @@
  		continue;
  	    }
  
@@ -187,7 +205,25 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  	    if (!script_inf.provides || script_inf.provides == empty)
  		script_inf.provides = xstrdup(ptr);
  
-@@ -1561,6 +1656,7 @@
+@@ -1325,16 +1430,7 @@
+ 	    }
+ 	    script_inf.provides = begin;
+ 
+-	    xreset(script_inf.provides);
+-	    xreset(script_inf.required_start);
+-	    xreset(script_inf.required_stop);
+-	    xreset(script_inf.should_start);
+-	    xreset(script_inf.should_stop);
+-	    xreset(script_inf.start_before);
+-	    xreset(script_inf.stop_after);
+-	    xreset(script_inf.default_start);
+-	    xreset(script_inf.default_stop);
+-	    xreset(script_inf.description);
++	    scan_script_reset();
+ 	}
+ 	popd();
+ 	closedir(rcdir);
+@@ -1561,6 +1657,7 @@
      {"remove",	0, NULL, 'r'},
      {"force",	0, NULL, 'f'},
      {"path",	1, NULL, 'p'},
@@ -195,7 +231,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
      {"help",	0, NULL, 'h'},
      { 0,	0, NULL,  0 },
  };
-@@ -1574,6 +1670,7 @@
+@@ -1574,6 +1671,7 @@
      printf("  -f, --force      Ignore if a required service is missed.\n");
      printf("  -v, --verbose    Provide information on what is being done.\n");
      printf("  -p <path>, --path <path>  Path to replace " INITDIR ".\n");
@@ -203,7 +239,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
      printf("  -c <config>, --config <config>  Path to config file.\n");
      printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
      printf("  -d, --default    Use default runlevels a defined in the scripts\n");
-@@ -1590,6 +1687,7 @@
+@@ -1590,6 +1688,7 @@
      struct stat st_script;
      char * argr[argc];
      char * path = INITDIR;
@@ -211,7 +247,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
      char * insconf = INSCONF;
      int runlevel, c;
      boolean del = false;
-@@ -1601,7 +1699,7 @@
+@@ -1601,7 +1700,7 @@
      for (c = 0; c < argc; c++)
  	argr[c] = NULL;
  
@@ -220,7 +256,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  	switch (c) {
  	    case 'c':
  		insconf = optarg;
-@@ -1625,6 +1723,9 @@
+@@ -1625,6 +1724,9 @@
  	    case 'p':
  		path = optarg;
  		break;
@@ -230,7 +266,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  	    case '?':
  		error("For help use: %s -h\n", myname);
  	    case 'h':
-@@ -1736,7 +1837,7 @@
+@@ -1736,7 +1838,7 @@
  #if 0
      if (!defaults)
  #endif
@@ -239,7 +275,7 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  
      if ((initdir = opendir(path)) == NULL)
  	error("can not opendir(%s): %s\n", path, strerror(errno));
-@@ -1823,7 +1924,7 @@
+@@ -1823,7 +1925,7 @@
  	}
  
  	/* main scanner for LSB comment in current script */
@@ -248,3 +284,21 @@ diff -urNad insserv-1.09.0~/insserv.c insserv-1.09.0/insserv.c
  
  	/* Common script ... */
  	if (!strcmp(d->d_name, "halt")) {
+@@ -2175,16 +2277,7 @@
+ 	    service->opts |= SERV_NOTLSB;
+     }
+     /* Reset remaining pointers */
+-    xreset(script_inf.provides);
+-    xreset(script_inf.required_start);
+-    xreset(script_inf.required_stop);
+-    xreset(script_inf.should_start);
+-    xreset(script_inf.should_stop);
+-    xreset(script_inf.start_before);
+-    xreset(script_inf.stop_after);
+-    xreset(script_inf.default_start);
+-    xreset(script_inf.default_stop);
+-    xreset(script_inf.description);
++    scan_script_reset();
+ 
+     /*
+      * Free the regular scanner for the scripts.

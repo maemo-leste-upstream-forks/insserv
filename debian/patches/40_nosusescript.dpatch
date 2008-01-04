@@ -5,17 +5,18 @@ Make sure the 'single' script is not inserted into runlevel S, and
 avoid fixing the sequence number for a lot of scripts used in SuSe.
 
 @DPATCH@
---- insserv-1.08.0.orig/insserv.c	2007-11-21 17:30:08.000000000 +0100
-+++ insserv-1.08.0/insserv.c	2007-11-21 17:30:33.000000000 +0100
-@@ -1824,6 +1824,7 @@
+diff -urNad insserv~/insserv.c insserv/insserv.c
+--- insserv~/insserv.c	2008-01-04 11:22:05.000000000 +0100
++++ insserv/insserv.c	2008-01-04 11:22:05.000000000 +0100
+@@ -1926,6 +1926,7 @@
  	/* main scanner for LSB comment in current script */
- 	lsb = scan_script_defaults(d->d_name);
+ 	lsb = scan_script_defaults(d->d_name, override_path);
  
 +#ifdef SUSE
  	/* Common script ... */
  	if (!strcmp(d->d_name, "halt")) {
  	    makeprov("halt",   d->d_name);
-@@ -1920,6 +1921,7 @@
+@@ -1952,6 +1953,7 @@
  	    rememberreq(serv, REQ_SHLD, "kbd");
  	    continue;
  	}
@@ -23,7 +24,7 @@ avoid fixing the sequence number for a lot of scripts used in SuSe.
  
  	/*
  	 * Oops, no comment found, guess one
-@@ -2206,6 +2208,7 @@
+@@ -2289,6 +2291,7 @@
  
      expand_conf();
  
@@ -31,7 +32,7 @@ avoid fixing the sequence number for a lot of scripts used in SuSe.
      /*
       *  Set initial order of some services
       */
-@@ -2207,6 +2210,7 @@
+@@ -2300,6 +2303,7 @@
      setorder("serial",	10, false); setlsb("serial");
      setorder("gpm",	20, false); setlsb("gpm");
      setorder("boot.setup", 20, false);

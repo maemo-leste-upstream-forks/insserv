@@ -1,3 +1,15 @@
+insserv (1.09.0-13) unstable; urgency=low
+
+  * Update patch 21_overrides to fix bug in override handling.  Now a
+    header in a script or override file complete replaces previously
+    loaded headers.
+  * Add test to check and verify that override files in
+    /etc/insserv/override replaces headers in the scripts in
+    /etc/init.d/, and made previously failing loop breaking test
+    fatal, as it is working with the fixed override patch.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri,  4 Jan 2008 12:25:55 +0100
+
 insserv (1.09.0-12) unstable; urgency=low
 
   * New patch 34_debian_fixedscripts to hardcode a few script sequence

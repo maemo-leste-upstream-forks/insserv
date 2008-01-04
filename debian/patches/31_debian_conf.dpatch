@@ -7,8 +7,9 @@
 ## DP: script names.
 
 @DPATCH@
---- insserv-1.00.8.orig/insserv.conf
-+++ insserv-1.00.8/insserv.conf
+diff -urNad insserv~/insserv.conf insserv/insserv.conf
+--- insserv~/insserv.conf	2008-01-04 11:19:42.000000000 +0100
++++ insserv/insserv.conf	2008-01-04 11:21:59.000000000 +0100
 @@ -1,29 +1,29 @@
  #
  # All local filesystems are mounted (done during boot phase)
@@ -43,8 +44,8 @@
 +$syslog		+syslog +sysklogd
  
  #
- # All network daemons are running (this entry is OBSOLETE)
-@@ -38,9 +39,9 @@
+ # SunRPC portmapper available
+@@ -33,9 +33,9 @@
  #
  # The system time has been set correctly
  #
