@@ -43,7 +43,7 @@ clean: unpatch
 	rm -f build-stamp
 
 	# Add here commands to clean up after the build process.
-	-$(MAKE) clean
+	$(MAKE) clean
 
 	dh_clean 
 
@@ -75,7 +75,7 @@ binary-arch: build install
 	dh_installexamples
 	dh_installdebconf
 #	dh_install
-	dh_installman debian/update-bootsystem-insserv.8
+	dh_installman debian/update-bootsystem-insserv.8 debian/update-rc.d-insserv.8
 	dh_link
 	dh_strip
 	dh_compress

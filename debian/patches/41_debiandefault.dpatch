@@ -6,9 +6,9 @@ runlevel 016.
 
 @DPATCH@
 diff -urNad insserv~/insserv.c insserv/insserv.c
---- insserv~/insserv.c	2008-01-04 11:22:07.000000000 +0100
-+++ insserv/insserv.c	2008-01-04 11:22:07.000000000 +0100
-@@ -37,6 +37,14 @@
+--- insserv~/insserv.c	2008-01-04 16:54:52.000000000 +0100
++++ insserv/insserv.c	2008-01-04 16:56:22.000000000 +0100
+@@ -37,6 +37,15 @@
  static const int map_runlevel_to_seek(const int runlevel);
  #endif /* not SUSE */
  
@@ -18,12 +18,40 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
 +/* for Debian*/
 +#define DEFAULT_START_LVL "2 3 4 5"
 +#define DEFAULT_STOP_LVL  "0 1 6"
++#define DEFAULT_DEPENDENCY "$remote_fs $syslog"
 +#endif
 +
  #ifndef  INITDIR
  # define INITDIR	"/etc/init.d"
  #endif
-@@ -2162,7 +2170,7 @@
+@@ -1377,6 +1386,12 @@
+ 	    if (!script_inf.provides || script_inf.provides == empty)
+ 		script_inf.provides = xstrdup(ptr);
+ 
++	    if (!lsb) {
++	        script_inf.required_start = xstrdup(DEFAULT_DEPENDENCY);
++		script_inf.required_stop = xstrdup(DEFAULT_DEPENDENCY);
++		script_inf.default_start = xstrdup(DEFAULT_START_LVL);
++		script_inf.default_stop = xstrdup(DEFAULT_STOP_LVL);
++	    }
+ 
+ 	    begin = script_inf.provides;
+ 	    while ((token = strsep(&script_inf.provides, delimeter)) && *token) {
+@@ -1968,6 +1983,13 @@
+ 	}
+ #endif /* SUSE */
+ 
++	if (!lsb) {
++	    script_inf.required_start = xstrdup(DEFAULT_DEPENDENCY);
++	    script_inf.required_stop = xstrdup(DEFAULT_DEPENDENCY);
++	    script_inf.default_start = xstrdup(DEFAULT_START_LVL);
++	    script_inf.default_stop = xstrdup(DEFAULT_STOP_LVL);
++	}
++
+ 	/*
+ 	 * Oops, no comment found, guess one
+ 	 */
+@@ -2175,7 +2197,7 @@
  			    /*
  			     * Ahh ... set default multiuser with network
  			     */
@@ -32,7 +60,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  		    }
  #ifndef SUSE
  		    /*
-@@ -2208,15 +2216,12 @@
+@@ -2221,15 +2243,12 @@
  	    free(begin);
  	}
  

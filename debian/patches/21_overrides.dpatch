@@ -7,8 +7,8 @@
 
 @DPATCH@
 diff -urNad insserv~/insserv.c insserv/insserv.c
---- insserv~/insserv.c	2008-01-04 11:21:58.000000000 +0100
-+++ insserv/insserv.c	2008-01-04 11:21:58.000000000 +0100
+--- insserv~/insserv.c	2008-01-05 00:29:39.000000000 +0100
++++ insserv/insserv.c	2008-01-05 00:30:56.000000000 +0100
 @@ -23,6 +23,7 @@
  #include <fcntl.h>
  #include <sys/stat.h>
@@ -27,7 +27,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  #ifndef  INSCONF
  # define INSCONF	"/etc/insserv.conf"
  #endif
-@@ -998,7 +1002,21 @@
+@@ -998,7 +1004,21 @@
      regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
  }
  
@@ -50,7 +50,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  {
      regmatch_t subloc[SUBNUM_SHD+1], *val = &subloc[SUBNUM-1], *shl = &subloc[SUBNUM_SHD-1];
      FILE *script;
-@@ -1022,25 +1040,18 @@
+@@ -1022,25 +1042,18 @@
      if (!script)
  	error("fopen(%s): %s\n", path, strerror(errno));
  
@@ -82,7 +82,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  
  	if (!provides       && regexecutor(&reg.prov,      COMMON_ARGS) == true) {
  	    if (val->rm_so < val->rm_eo) {
-@@ -1169,10 +1180,104 @@
+@@ -1169,7 +1180,96 @@
  #undef default_start
  #undef default_stop
  #undef description
@@ -133,7 +133,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
 +
 +    free(script);
 +    script = xstrdup(basename(linkbuf));
- 
++
 +    return script;
 +}
 +
@@ -141,53 +141,45 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
 +			      const char *const name)
 +{
 +    boolean ret = 0;
-+
+ 
 +    char fullpath[PATH_MAX+1];
 +    snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, name);
 +    struct stat statbuf;
 +    if (0 == stat(fullpath, &statbuf) && S_ISREG(statbuf.st_mode)) {
 +        ret = scan_lsb_headers(fullpath);
 +    }
-     return ret;
- }
- 
++    return ret;
++}
++
++#define FOUND_LSB_HEADER   0x01
++#define FOUND_LSB_DEFAULT  0x02
++#define FOUND_LSB_OVERRIDE 0x02
++
 +static boolean scan_script_defaults(const char *const path, const char *const override_path)
 +{
-+    boolean ret = 0;
-+    boolean override = 0;
++    int ret = 0;
 +    char *name = scriptname(path);
 +
 +    /* Reset old results */
 +    scan_script_reset();
 +
-+    /* Load values if the override file exist */
-+    override = load_overrides("/usr/share/insserv/overrides", name);
-+
 +    /* Replace with headers from the script itself */
-+    ret = scan_lsb_headers(path);
++    ret |= scan_lsb_headers(path);
++
++    if (!ret)
++	/* Load values if the override file exist */
++	ret |= load_overrides("/usr/share/insserv/overrides", name);
++
 +
 +    /* Allow host-specific overrides to replace the content in the
 +       init.d scripts */
-+    override |= load_overrides(override_path, name);
++    ret |= load_overrides(override_path, name);
 +
-+    if (!ret) {
-+        warn("warning: script '%s' missing LSB tags\n", path);
-+	if (!override) {
-+	  warn("warning: script '%s' missing override too\n", name);
-+	  script_inf.required_start = xstrdup("$remote_fs $syslog");
-+	  script_inf.required_stop = xstrdup("$remote_fs $syslog");
-+	  script_inf.default_start = xstrdup(DEFAULT_START_LVL);
-+	  script_inf.default_stop = xstrdup(DEFAULT_STOP_LVL);
-+	}
-+    }
 +    free(name);
-+    return ret | override;
-+}
-+
- static inline void scan_script_regfree()
- {
-     regfree(&reg.prov);
-@@ -1237,7 +1342,7 @@
+     return ret;
+ }
+ 
+@@ -1237,7 +1337,7 @@
  /*
   * Scan current service structure
   */
@@ -196,16 +188,37 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  {
      int runlevel;
  
-@@ -1274,7 +1379,7 @@
+@@ -1274,10 +1374,12 @@
  		continue;
  	    }
  
 -	    lsb = scan_script_defaults(d->d_name);
 +	    lsb = scan_script_defaults(d->d_name, override_path);
++
  	    if (!script_inf.provides || script_inf.provides == empty)
  		script_inf.provides = xstrdup(ptr);
  
-@@ -1325,16 +1430,7 @@
++
+ 	    begin = script_inf.provides;
+ 	    while ((token = strsep(&script_inf.provides, delimeter)) && *token) {
+ 		serv_t * service = NULL;
+@@ -1293,6 +1401,15 @@
+ 
+ 		if (!lsb)
+ 		    service->opts |= SERV_NOTLSB;
++
++		if (! (lsb & FOUND_LSB_HEADER) ) {
++		    if (! (lsb & (FOUND_LSB_DEFAULT | FOUND_LSB_OVERRIDE) ))
++		      warn("warning: script '%s' missing LSB tags and overrides\n",
++			   d->d_name);
++		    else
++  		        warn("warning: script '%s' missing LSB tags\n",
++			     d->d_name);
++		}
+ 		if (script_inf.required_start && script_inf.required_start != empty) {
+ 		    rememberreq(service, REQ_MUST, script_inf.required_start);
+ 		    requiresv(token, script_inf.required_start);
+@@ -1325,16 +1442,7 @@
  	    }
  	    script_inf.provides = begin;
  
@@ -223,7 +236,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  	}
  	popd();
  	closedir(rcdir);
-@@ -1561,6 +1657,7 @@
+@@ -1561,6 +1669,7 @@
      {"remove",	0, NULL, 'r'},
      {"force",	0, NULL, 'f'},
      {"path",	1, NULL, 'p'},
@@ -231,7 +244,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
      {"help",	0, NULL, 'h'},
      { 0,	0, NULL,  0 },
  };
-@@ -1574,6 +1671,7 @@
+@@ -1574,6 +1683,7 @@
      printf("  -f, --force      Ignore if a required service is missed.\n");
      printf("  -v, --verbose    Provide information on what is being done.\n");
      printf("  -p <path>, --path <path>  Path to replace " INITDIR ".\n");
@@ -239,7 +252,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
      printf("  -c <config>, --config <config>  Path to config file.\n");
      printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
      printf("  -d, --default    Use default runlevels a defined in the scripts\n");
-@@ -1590,6 +1688,7 @@
+@@ -1590,6 +1700,7 @@
      struct stat st_script;
      char * argr[argc];
      char * path = INITDIR;
@@ -247,7 +260,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
      char * insconf = INSCONF;
      int runlevel, c;
      boolean del = false;
-@@ -1601,7 +1700,7 @@
+@@ -1601,7 +1712,7 @@
      for (c = 0; c < argc; c++)
  	argr[c] = NULL;
  
@@ -256,7 +269,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  	switch (c) {
  	    case 'c':
  		insconf = optarg;
-@@ -1625,6 +1724,9 @@
+@@ -1625,6 +1736,9 @@
  	    case 'p':
  		path = optarg;
  		break;
@@ -266,7 +279,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  	    case '?':
  		error("For help use: %s -h\n", myname);
  	    case 'h':
-@@ -1736,7 +1838,7 @@
+@@ -1736,7 +1850,7 @@
  #if 0
      if (!defaults)
  #endif
@@ -275,16 +288,25 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  
      if ((initdir = opendir(path)) == NULL)
  	error("can not opendir(%s): %s\n", path, strerror(errno));
-@@ -1823,7 +1925,7 @@
+@@ -1823,7 +1937,16 @@
  	}
  
  	/* main scanner for LSB comment in current script */
 -	lsb = scan_script_defaults(d->d_name);
 +	lsb = scan_script_defaults(d->d_name, override_path);
++
++	if (! (lsb & FOUND_LSB_HEADER) ) {
++	    if (! (lsb & (FOUND_LSB_DEFAULT | FOUND_LSB_OVERRIDE) ))
++	        warn("warning: script '%s' missing LSB tags and overrides\n",
++		     d->d_name);
++	    else
++	        warn("warning: script '%s' missing LSB tags\n",
++		     d->d_name);
++	}
  
  	/* Common script ... */
  	if (!strcmp(d->d_name, "halt")) {
-@@ -2175,16 +2277,7 @@
+@@ -2175,16 +2305,7 @@
  	    service->opts |= SERV_NOTLSB;
      }
      /* Reset remaining pointers */

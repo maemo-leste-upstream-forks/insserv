@@ -39,18 +39,26 @@ order_ok() {
     return 1;
 }
 
+error() {
+    echo error: $@
+    retval=1
+}
+
+warning() {
+    echo warning: $@
+}
+
 # Fatal check
 check_order() {
     if order_ok $@ ; then
-	echo "error: incorrect $runlevel sequence $script1 not before $script2"
-	retval=1
+	error "incorrect $runlevel sequence $script1 not before $script2"
     fi
 }
 
 # Non-fatal check
 test_order() {
     if order_ok $@ ; then
-	echo "warning: incorrect $runlevel sequence $script1 not before $script2"
+	warning "incorrect $runlevel sequence $script1 not before $script2"
     fi
 }
 
@@ -415,7 +423,7 @@ rm -rf $initddir
 mkdir -p $initddir
 
 # Two scripts with a loop between them
-insertscript loop1 <<'EOF' || true
+if insertscript loop1 <<'EOF' ; then
 ### BEGIN INIT INFO
 # Provides:          loop1
 # Required-Start:    loop2
@@ -424,6 +432,8 @@ insertscript loop1 <<'EOF' || true
 # Default-Stop:
 ### END INIT INFO
 EOF
+    error "inserting script with missing dependencies did not fail"
+fi
 
 insertscript loop2 <<'EOF' || true
 ### BEGIN INIT INFO
@@ -451,6 +461,48 @@ insserv_reg loop1 || true
 insserv_reg loop2 || true
 
 check_order S loop1 loop2
+
+echo
+echo "info: testing to insert scripts with a longer loop, making sure it fail"
+echo
+rm -rf $initddir
+mkdir -p $initddir
+
+# Three scripts with a loop between them, make sure introducing the
+# loop fail, as it will make insserv generate a unstable and broken
+# boot and shutdown sequence.
+insertscript loop1 <<'EOF'
+### BEGIN INIT INFO
+# Provides:          loop1
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript loop2 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          loop2
+# Required-Start:    loop1
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+if insertscript loop3 <<'EOF' ; then
+### BEGIN INIT INFO
+# Provides:          loop3
+# Required-Start:    loop2
+# Required-Stop:
+# X-Start-Before:    loop1
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+    error "inserting script causing a loop did not fail"
+fi
 
 # Test real loop in the combined start and stop sequence.  There is no
 # loop in the start sequence, and no loop in the stop sequence, but in

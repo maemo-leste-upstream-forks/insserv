@@ -1,3 +1,21 @@
+insserv (1.09.0-14) unstable; urgency=low
+
+  * Changed patch 21_overrides to only warn once about scripts without
+    LSB header, to reduce the noise.
+  * Changed patch 21_overrides to speed up processing by only reading
+    override default files only when the script is lacking an LSB header.
+  * Moved default dependency values from patch 21_overrides to
+    41_debiandefault where it belong.
+  * New test to check that scripts introducing a loop (or a fake loop,
+    see bug #458582) will refuse to install.
+  * New patch 45_loopsarefatal to make sure insserv considering all
+    kind of loops fatal, to not mess up the script sequences.
+  * Introduce very simple manual page for update-rc.d-insserv.
+  * Make failing 'make clean' fatal, as it should always work.
+  * Change debconf template text to make it easier to understand.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun,  6 Jan 2008 09:37:43 +0100
+
 insserv (1.09.0-13) unstable; urgency=low
 
   * Update patch 21_overrides to fix bug in override handling.  Now a
