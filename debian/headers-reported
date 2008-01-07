@@ -1,0 +1,43 @@
+# List of scripts missing LSB header that are reported to BTS.  Used
+# to track which scripts and packages are missing a bug report.
+# Format: 
+#   scriptname src-pkgname btsnumber
+aime aime #459550
+anacron anacron #448223
+atd at #376780
+courier-imap courier #458433 
+courier-imap-ssl courier #458433 
+courier-ldap courier #458433 
+courier-mlm courier #458433 
+courier-mta courier #458433 
+courier-mta-ssl courier #458433 
+courier-pcp courier #458433 
+courier-pop courier #458433 
+courier-pop-ssl courier #458433 
+cpqarrayd cpqarrayd #451759
+dmraid dmraid #458626
+hostname.dhcp nfsbooted #458859
+hotkey-setup hotkey-setup #376955
+irqbalance irqbalance #458461
+libpam-devperm pam-devperm #458466
+lvm2 lvm2 #426108
+lwresd bind9 #459421
+mountfix nfsbooted #458859
+mpd mpd #458393
+netatalk netatalk #459442
+nethack-common nethack #458465
+nfs-user-server nfs-user-server #458390
+nstxcd nstx #457756
+nstxd nstx #457756
+pcmcia pcmcia-cs #361054
+pptpd pptp #458476
+racoon racoon #458488
+scsitools-pre.sh scsitools scsitools #458649
+scsitools.sh scsitools scsitools #458649
+setkey ipsec-tools #458488
+smartmontools smartmontools #458391
+snmptrapfmt snmptrapfmt #457752
+spamassassin spamassassin #451762
+sqwebmail courier #458433 
+swapd swapd #458624
+cpudyn cpudyn #459553

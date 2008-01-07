@@ -23,33 +23,27 @@ check_divert() {
 
 case "$1" in
     configure)
+	if check_divert status /usr/sbin/update-rc.d \
+	    /usr/sbin/update-rc.d-insserv ; then
+	    enabled=true
+	fi
 
-	# Only enable this code if environment variable
-	# BAD_INSSERV_HACKER=true is set
-	if [ true = "$BAD_INSSERV_HACKER" ] ; then
-	    db_get insserv/enable || true
-
-	    if check_divert status /usr/sbin/update-rc.d \
-		/usr/sbin/update-rc.d-insserv ; then
-		enabled=true
+	db_get insserv/enable || true
+	if [ true = "$RET" ] && [ true != "$enabled" ]; then
+	    # Enable it, as it was not enabled already.
+	    # Reorder the boot sequence, and divert update-rc.d if
+	    # it worked
+	    if update-bootsystem-insserv ; then
+		echo "success: Boot system successfully converted"
+		: # All OK
+	    else
+		echo "error: Unable to enable dependency based boot system."
 	    fi
-
-	    if [ true = "$RET" ] && [ true != "$enabled" ]; then
-		# Enable it, as it was not enabled already.
-		# Reorder the boot sequence, and divert update-rc.d if
-		# it worked
-		if update-bootsystem-insserv ; then
-		    echo "success: Boot system successfully converted"
-		    : # All OK
-		else
-		    echo "error: Unable to enable dependency based boot system."
-		fi
-	    elif [ true != "$RET" ] ; then
-		if [ true = "$enabled" ] || [ -f $flagfile ]; then
-		    echo "info: Disabling dependency based boot system"
-		    # Revert to old boot system if possible
-		    update-bootsystem-insserv restore
-		fi
+	elif [ true != "$RET" ] ; then
+	    if [ true = "$enabled" ] || [ -f $flagfile ]; then
+		echo "info: Disabling dependency based boot system"
+	        # Revert to old boot system if possible
+		update-bootsystem-insserv restore
 	    fi
 	fi
 	;;

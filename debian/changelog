@@ -1,3 +1,21 @@
+insserv (1.10.0-1) unstable; urgency=low
+
+  * New upstream version released 2007-10-10.
+    - Updated patches 10_nosuse, 20_path_at_runtime, 21_overrides and
+      43_shutdown to apply on the new version.
+    - Removed patch 11_revdepend as it is included upstream.
+  * In graphs, name scripts without provides header, and scripts
+    without LSB header, using the name of the file in /etc/init.d/.
+    This make it easier to spot loops involving these scripts.
+  * Added override file for hpoj.
+  * Ask if insserv should be activated at install time, using a medium
+    priority debconf question.  The default is no.
+  * Restructure test script to work with new test feature implemented
+    in version 1.10.
+  * Update patch 42_redundantlvl to get rid of two compiler warnings.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon,  7 Jan 2008 23:37:53 +0100
+
 insserv (1.09.0-14) unstable; urgency=low
 
   * Changed patch 21_overrides to only warn once about scripts without

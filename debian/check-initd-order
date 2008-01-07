@@ -100,6 +100,7 @@ sub graph_addnode {
     unless ($lsbinfo{'provides'}) {
         print STDERR "error: File ". $lsbinfo{'file'} . " is missing the provides header\n";
         $lsbinfo{'provides'} = $lsbinfo{'file'};
+        $lsbinfo{'provides'} =~ s/^[SK]\d{2}//;
     }
 
     my $key = $opts{'k'} ? 'stop' : 'start';
@@ -166,6 +167,7 @@ EOF
 
             unless (defined $lsbinforef) {
                 print STDERR "warning: LSB header missing in $rcbase/$rcdir/$script\n";
+                $script =~ s/^[SK]\d{2}//;
                 $lsbinforef = {'provides'       => $script,
                                'required-start' => '$remote_fs $syslog',
                                'required-stop'  => '$remote_fs $syslog'};

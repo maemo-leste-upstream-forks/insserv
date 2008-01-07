@@ -1,13 +1,14 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
 ## 43_shutdown.dpatch by Otavio Salvador and Petter Reinholdtsen
+## Updated for insserv v1.10 by PEtter Reinholdtsen
 
 Fix the handling of stop scripts and the shutdown sequence.
 
 @DPATCH@
 diff -urNad insserv~/insserv.c insserv/insserv.c
---- insserv~/insserv.c	2008-01-04 11:22:10.000000000 +0100
-+++ insserv/insserv.c	2008-01-04 11:22:11.000000000 +0100
-@@ -464,14 +464,19 @@
+--- insserv~/insserv.c	2008-01-07 18:24:26.000000000 +0100
++++ insserv/insserv.c	2008-01-07 18:24:34.000000000 +0100
+@@ -468,14 +468,19 @@
  /*
   * This helps us to work out the current symbolic link structure
   */
@@ -29,26 +30,29 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  
      return serv;
  }
-@@ -1392,11 +1397,17 @@
- 	while ((d = readdir(rcdir)) != NULL) {
+@@ -1437,15 +1442,17 @@
+ 	while ((d = readdir(rcdir)) != (struct dirent*)0) {
  	    char * ptr = d->d_name;
  	    char order = 0;
-+ 	    char type;
- 	    char* begin = (char*)NULL; /* Remember address of ptr handled by strsep() */
++  	    char type;
+ 	    char* begin = (char*)0;	/* Remember address of ptr handled by strsep() */
  	    boolean lsb;
  
+-#ifdef SUSE
 -	    if (*ptr != 'S')
+-#else
+-	    if (*ptr != 'S' && *ptr != 'K')
 +	    if (*ptr != 'S'
 +#ifndef SUSE
-+                && *ptr != 'K'
-+#endif /* SUSE */
-+                )
++		&& *ptr != 'K'
+ #endif
++		)
  		continue;
-+ 	    type = *ptr;
++  	    type = *ptr;
  	    ptr++;
  
  	    if (strspn(ptr, "0123456789") < 2)
-@@ -1420,7 +1431,7 @@
+@@ -1480,7 +1487,7 @@
  		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
  		    continue;
  		}
@@ -57,7 +61,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  
  		if (service->opts & SERV_KNOWN)
  		    continue;
-@@ -2294,7 +2305,10 @@
+@@ -2393,7 +2400,10 @@
  	     */
  	    if (script_inf.default_stop && script_inf.default_stop != empty) {
  		if (service && !del)
@@ -68,22 +72,24 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  	    }
  #endif /* not SUSE */
  	}
-@@ -2571,9 +2585,13 @@
+@@ -2674,10 +2684,14 @@
  	}
  
  	while (listscripts(&script, seek)) {
 -	    const boolean stop = notincluded(script, runlevel);
  	    const boolean this = chkfor(script, argv, argc);
- 	    const serv_t *serv = findserv(getprovides(script));
+-	    const char mode = (stop ? 'K' : 'S');
+ 	    serv_t *serv = findserv(getprovides(script));
 +	    const boolean stop = (notincluded(script, runlevel) 
 +#ifndef SUSE
 +				  || (serv->lvlk & lvl))
 +#endif /* not SUSE */
 +	      ;
- 	    const char mode = (stop ? 'K' : 'S');
++	    const char mode = (stop ? 'K' : 'S');
  	    int order = getorder(script);
  	    boolean found;
-@@ -2597,6 +2615,10 @@
+ 	    char * clink;
+@@ -2700,6 +2714,10 @@
  		order = (maxorder + 1) - order;
  	    }
  
@@ -95,8 +101,8 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  	    sprintf(nlink, "%c%.2d%s", mode, order, script);
  
 diff -urNad insserv~/listing.c insserv/listing.c
---- insserv~/listing.c	2008-01-04 11:22:10.000000000 +0100
-+++ insserv/listing.c	2008-01-04 11:22:11.000000000 +0100
+--- insserv~/listing.c	2008-01-07 18:24:26.000000000 +0100
++++ insserv/listing.c	2008-01-07 18:24:34.000000000 +0100
 @@ -536,7 +536,7 @@
  {
      dir_t * dir = providedir(this);

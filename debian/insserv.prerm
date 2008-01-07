@@ -28,7 +28,7 @@ case "$1" in
 	    /usr/sbin/update-rc.d-insserv || [ -f $flagfile ] ; then
 	    echo "error: insserv must be disabled before it is removed, to"
 	    echo "error: make sure the boot system is still usable."
-	    echo "error: To disable, run BAD_INSSERV_HACKER=true dpkg-reconfigure insserv"
+	    echo "error: To disable, run dpkg-reconfigure insserv"
 	    exit 1
 	fi
 	;;

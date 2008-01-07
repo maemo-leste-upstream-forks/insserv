@@ -1,13 +1,14 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## 44_path_at_runtime.dpatch by Petter Reinholdtsen
+## 20_path_at_runtime.dpatch by Petter Reinholdtsen
+## Updated for insserv v1.10 by PEtter Reinholdtsen
 
 Make it possible to set the path at runtime, to make it easier to
 write test suites.
 
 @DPATCH@
-diff -urNad insserv~/insserv.8 insserv/insserv.8
---- insserv~/insserv.8	2008-01-04 11:19:42.000000000 +0100
-+++ insserv/insserv.8	2008-01-04 11:21:56.000000000 +0100
+diff -urNad insserv-1.10.0~/insserv.8 insserv-1.10.0/insserv.8
+--- insserv-1.10.0~/insserv.8	2008-01-07 17:21:15.000000000 +0100
++++ insserv-1.10.0/insserv.8	2008-01-07 17:21:36.000000000 +0100
 @@ -15,16 +15,22 @@
  .\"
  .B insserv
@@ -52,45 +53,46 @@ diff -urNad insserv~/insserv.8 insserv/insserv.8
  .BR \-n ,\  \-\-dryrun
  Do not update symlinks.
  .TP
-diff -urNad insserv~/insserv.c insserv/insserv.c
---- insserv~/insserv.c	2008-01-04 11:21:56.000000000 +0100
-+++ insserv/insserv.c	2008-01-04 11:21:56.000000000 +0100
-@@ -1467,14 +1467,18 @@
+diff -urNad insserv-1.10.0~/insserv.c insserv-1.10.0/insserv.c
+--- insserv-1.10.0~/insserv.c	2008-01-07 17:21:15.000000000 +0100
++++ insserv-1.10.0/insserv.c	2008-01-07 17:24:45.000000000 +0100
+@@ -1582,19 +1582,19 @@
      return 1;
  }
  
 -static void scan_conf()
 +static void scan_conf(const char *file)
  {
-     struct dirent** namelist = NULL;
--    const char dir[] = INSCONF ".d";
-+    char *dir;
-     char buf[PATH_MAX];
+     struct dirent** namelist = (struct dirent**)0;
+     char path[PATH_MAX+1];
      int n;
  
--    scan_conf_file(INSCONF);
-+    scan_conf_file(file);
-+
-+    dir = malloc(strlen(file) + 3);
-+    strcpy(dir, file);
-+    strcat(dir, ".d");
+-    n = snprintf(&path[0], sizeof(path), "%s%s", root ? root : "", INSCONF);
++    n = snprintf(&path[0], sizeof(path), "%s%s", root ? root : "", file);
+     if (n >= sizeof(path) || n < 0)
+ 	error("snprintf(): %s\n", strerror(errno));
  
-     n = scandir(dir, &namelist, cfgfile_filter, alphasort);
-     if(n > 0)
-@@ -1551,10 +1555,12 @@
+     scan_conf_file(path);
+ 
+-    n = snprintf(&path[0], sizeof(path), "%s%s.d", root ? root : "", INSCONF);
++    n = snprintf(&path[0], sizeof(path), "%s%s.d", root ? root : "", file);
+     if (n >= sizeof(path) || n < 0)
+ 	error("snprintf(): %s\n", strerror(errno));
+ 
+@@ -1666,10 +1666,12 @@
  static struct option long_options[] =
  {
-     {"verbose",	0, NULL, 'v'},
-+    {"config",	1, NULL, 'c'},
-     {"dryrun",	0, NULL, 'n'},
-     {"default",	0, NULL, 'd'},
-     {"remove",	0, NULL, 'r'},
-     {"force",	0, NULL, 'f'},
-+    {"path",	1, NULL, 'p'},
-     {"help",	0, NULL, 'h'},
-     { 0,	0, NULL,  0 },
+     {"verbose",	0, (int*)0, 'v'},
++    {"config",	1, (int*)0, 'c'},
+     {"dryrun",	0, (int*)0, 'n'},
+     {"default",	0, (int*)0, 'd'},
+     {"remove",	0, (int*)0, 'r'},
+     {"force",	0, (int*)0, 'f'},
++    {"path",	1, (int*)0, 'p'},
+     {"help",	0, (int*)0, 'h'},
+     { 0,	0, (int*)0,  0 },
  };
-@@ -1567,6 +1573,8 @@
+@@ -1682,6 +1684,8 @@
      printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
      printf("  -f, --force      Ignore if a required service is missed.\n");
      printf("  -v, --verbose    Provide information on what is being done.\n");
@@ -99,7 +101,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
      printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
      printf("  -d, --default    Use default runlevels a defined in the scripts\n");
  }
-@@ -1582,6 +1590,7 @@
+@@ -1697,6 +1701,7 @@
      struct stat st_script;
      char * argr[argc];
      char * path = INITDIR;
@@ -107,12 +109,12 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
      int runlevel, c;
      boolean del = false;
      boolean defaults = false;
-@@ -1592,8 +1601,11 @@
+@@ -1707,8 +1712,11 @@
      for (c = 0; c < argc; c++)
- 	argr[c] = NULL;
+ 	argr[c] = (char*)0;
  
--    while ((c = getopt_long(argc, argv, "dfrhvn", long_options, NULL)) != -1) {
-+    while ((c = getopt_long(argc, argv, "c:dfrhvnp:", long_options, NULL)) != -1) {
+-    while ((c = getopt_long(argc, argv, "dfrhvn", long_options, (int *)0)) != -1) {
++    while ((c = getopt_long(argc, argv, "c:dfrhvnp:", long_options, (int *)0)) != -1) {
  	switch (c) {
 +	    case 'c':
 +		insconf = optarg;
@@ -120,7 +122,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  	    case 'd':
  		defaults = true;
  		break;
-@@ -1610,6 +1622,9 @@
+@@ -1725,6 +1733,9 @@
  		verbose = true;
  		dryrun = true;
  		break;
@@ -130,7 +132,7 @@ diff -urNad insserv~/insserv.c insserv/insserv.c
  	    case '?':
  		error("For help use: %s -h\n", myname);
  	    case 'h':
-@@ -1707,7 +1722,7 @@
+@@ -1833,7 +1844,7 @@
      /*
       * Scan and set our configuration for virtual services.
       */

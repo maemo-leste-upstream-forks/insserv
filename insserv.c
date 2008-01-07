@@ -13,6 +13,8 @@
  * (at your option) any later version.
  */
 
+#define MINIMAL_MAKE	1	/* Remove disabled scripts from .depend.boot,
+				 * .depend.start and .depend.stop */
 #include <pwd.h>
 #include <string.h>
 #include <unistd.h>
@@ -57,12 +59,16 @@ static const int map_runlevel_to_seek(const int runlevel);
 /* The main regular search expressions */
 #define PROVIDES	COMM "provides" VALUE
 #define REQUIRED	COMM "required"
-#define SHOULD		COMM "(x[-_]+[a-z0-9_-]+)?should"
+#define SHOULD		COMM "(x[-_]+[a-z0-9_-]*)?should"
+#define BEFORE		COMM "(x[-_]+[a-z0-9_-]*)?start[-_]+before"
+#define AFTER		COMM "(x[-_]+[a-z0-9_-]*)?stop[-_]+after"
 #define DEFAULT		COMM "default"
 #define REQUIRED_START  REQUIRED START VALUE
 #define REQUIRED_STOP	REQUIRED STOP  VALUE
 #define SHOULD_START	SHOULD   START VALUE
 #define SHOULD_STOP	SHOULD   STOP  VALUE
+#define START_BEFORE	BEFORE   VALUE
+#define STOP_AFTER	AFTER    VALUE
 #define DEFAULT_START	DEFAULT  START VALUE
 #define DEFAULT_STOP	DEFAULT  STOP  VALUE
 #define DESCRIPTION	COMM "description" VALUE
@@ -73,6 +79,9 @@ static const int map_runlevel_to_seek(const int runlevel);
 #define CONFLINE2	"^(<[a-z0-9_-]+>)"  EQSIGN "([[:print:][:blank:]]*)"
 #define SUBCONF		2
 #define SUBCONFNUM	4
+
+/* The root file system */
+static char *root;
 
 /* The main line buffer if unique */
 static char buf[LINE_MAX];
@@ -90,6 +99,8 @@ typedef struct lsb_struct {
     char *required_stop;
     char *should_start;
     char *should_stop;
+    char *start_before;
+    char *stop_after;
     char *default_start;
     char *default_stop;
     char *description;
@@ -102,6 +113,8 @@ typedef struct reg_struct {
     regex_t req_stop;
     regex_t shl_start;
     regex_t shl_stop;
+    regex_t start_bf;
+    regex_t stop_af;
     regex_t def_start;
     regex_t def_stop;
     regex_t desc;
@@ -131,7 +144,7 @@ static void pushd(const char *const path)
 
     dir = (pwd_t *)malloc(sizeof(pwd_t));
     if (dir) {
-	if (!(dir->pwd = getcwd(NULL, 0)))
+	if (!(dir->pwd = getcwd((char*)0, 0)))
 	    goto err;
 	insert(&(dir->deep), topd->prev);
 	goto out;
@@ -256,7 +269,7 @@ static serv_t * addserv(const char *const serv)
 	ptr = serv_start->prev;
 	goto out;
     }
-    ptr = NULL;
+    ptr = (list_t*)0;
     error("%s", strerror(errno));
 out:
     return getserv(ptr);
@@ -265,7 +278,7 @@ out:
 static serv_t * findserv(const char *const serv)
 {
     list_t * ptr;
-    serv_t * ret = NULL;
+    serv_t * ret = (serv_t*)0;
 
     if (!serv)
 	goto out;
@@ -283,7 +296,7 @@ out:
 /*
  * Remember requests for required or should services and expand `$' token
  */
-static void rememberreq(serv_t *serv, unsigned int bit, char * required)
+static void rememberreq(serv_t *serv, unsigned int bit, const char * required)
 {
     char * token, * tmp = strdupa(required);
     list_t * ptr;
@@ -297,8 +310,12 @@ static void rememberreq(serv_t *serv, unsigned int bit, char * required)
 	    continue;
 
 	bit = old;
-again:
+
 	switch(*token) {
+	case '+':
+	    /* This is an optional token */
+	    token++;
+	    bit = REQ_SHLD;
 	default:
 	    list_for_each(ptr, &(serv->sort.req)) {
 		if (!strcmp(getreq(ptr)->serv, token)) {
@@ -332,12 +349,6 @@ again:
 		}
 	    }
 	    break;
-	case '+':
-	    /* This is an optional token */
-	    token++;
-	    bit = REQ_SHLD;
-	    goto again;
-	    break;
 	}
     }
 
@@ -346,6 +357,39 @@ again:
 	char * needed = getreq(ptr)->serv;
 	if (needed)
 	    requiresv(serv->name, needed);
+    }
+}
+
+static void reversereq(const serv_t * serv, const char * token, const char * list)
+{
+    const char * dep;
+    char * rev = strdupa(list);
+
+    while ((dep = strsep(&rev, delimeter)) && *dep) {
+	serv_t * tmp;
+	list_t * ptr;
+
+	switch (*dep) {
+	case '+':
+	    dep++;
+	default:
+	    if ((tmp = findserv(dep))) {
+		const char * name;
+		if ((name = getscript(serv->name)) == (char*)0)
+			name = serv->name;
+		rememberreq(tmp, REQ_SHLD, name);
+	    }
+	    requiresv(dep, token);
+	    break;
+	case '$':
+	    list_for_each(ptr, sysfaci_start) {
+		if (!strcmp(dep, getfaci(ptr)->name)) {
+		    reversereq(serv, token, getfaci(ptr)->repl);
+		    break;
+		}
+	    }
+	    break;
+	}
     }
 }
 
@@ -456,7 +500,7 @@ static inline void nonlsb_script(void)
 
     list_for_each(pos, serv_start) {
 	if (getserv(pos)->opts & SERV_NOTLSB) {
-	    list_t * tmp, * req = NULL;
+	    list_t * tmp, * req = (list_t*)0;
 	    char max = 0;
 
 	    list_for_each(tmp, serv_start) {
@@ -503,7 +547,7 @@ static inline void active_script(void)
 
 	    list_for_each(tmp, serv_start) {
 		serv_t * cur = getserv(tmp);
-		serv_t * chk = NULL;
+		serv_t * chk = (serv_t*)0;
 		list_t * req;
 		const char *name;
 		boolean ignore = false;
@@ -523,7 +567,7 @@ static inline void active_script(void)
 		/*
 		 * Expand aliases to the real script name
 		 */
-		if ((name = getscript(cur->name)) == NULL)
+		if ((name = getscript(cur->name)) == (char*)0)
 		    name = cur->name;
 
 		/*
@@ -595,7 +639,7 @@ static inline void all_script(void)
 	else if (neworder > maxorder)
 	    maxorder = neworder;
 	/* Expand aliases to the real script name */
-	if ((name = getscript(serv->name)) == NULL)
+	if ((name = getscript(serv->name)) == (char*)0)
 	    name = serv->name;
 	setorder(name, neworder, false);
     }
@@ -650,16 +694,28 @@ static inline void makedep(void)
     info("creating .depend.boot\n");
     info("creating .depend.start\n");
 
-    name = NULL;
+    name = (char*)0;
     fprintf(boot, "TARGETS =");
-    while (listscripts(&name, LVL_BOOT))
+    while (listscripts(&name, LVL_BOOT)) {
+#if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
+	const serv_t *serv = findserv(getprovides(name));
+	if (!serv || !(serv->opts & SERV_ENABLED))
+	    continue;
+#endif
 	fprintf(boot, " %s", name);
+    }
     putc('\n', boot);
 
-    name = NULL;
+    name = (char*)0;
     fprintf(start, "TARGETS =");
-    while (listscripts(&name, LVL_ALL))		/* LVL_ALL: nearly all but not BOOT */
+    while (listscripts(&name, LVL_ALL)) {	/* LVL_ALL: nearly all but not BOOT */
+#if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
+	const serv_t *serv = findserv(getprovides(name));
+	if (!serv || !(serv->opts & SERV_ENABLED))
+	    continue;
+#endif
 	fprintf(start, " %s", name);
+    }
     putc('\n', start);
 
     fprintf(boot,  "INTERACTIVE =");
@@ -667,7 +723,15 @@ static inline void makedep(void)
     list_for_each(srv, serv_start) {
 	serv_t * cur = getserv(srv);
 
-	if (!cur || list_empty(&(cur->sort.req)))
+#if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
+	if (!cur || !(cur->opts & SERV_ENABLED))
+	    continue;
+#else
+	if (!cur)
+	    continue;
+#endif
+
+	if (list_empty(&(cur->sort.req)))
 	    continue;
 
 	if (cur->lvls & LVL_BOOT)
@@ -675,7 +739,7 @@ static inline void makedep(void)
 	else
 	    out = start;
 
-	if ((name = getscript(cur->name)) == 0)
+	if ((name = getscript(cur->name)) == (char*)0)
 	    name = cur->name;
 
 	if (cur->opts & SERV_DUPLET)
@@ -699,7 +763,7 @@ static inline void makedep(void)
 	else
 	    out = start;
 
-	if ((name = getscript(cur->name)) == 0)
+	if ((name = getscript(cur->name)) == (char*)0)
 	    name = cur->name;
 
 	if (cur->opts & SERV_DUPLET)
@@ -726,7 +790,7 @@ static inline void makedep(void)
 		if ((dep->opts & SERV_DUPLET) && dep->main)
 		    dep = dep->main;		/* Duplet */
 
-		if ((name = getscript(dep->name)) == NULL)
+		if ((name = getscript(dep->name)) == (char*)0)
 		    name = dep->name;
 
 		if (cur->lvls & dep->lvls)
@@ -754,7 +818,7 @@ static inline void makedep(void)
 		if ((dep->opts & SERV_DUPLET) && dep->main)
 		    dep = dep->main;		/* Duplet */
 
-		if ((name = getscript(req->serv)) == NULL)
+		if ((name = getscript(req->serv)) == (char*)0)
 		    name = req->serv;
 
 		if (cur->lvls & dep->lvls)
@@ -773,10 +837,16 @@ static inline void makedep(void)
     }
     info("creating .depend.stop\n");
 
-    name = NULL;
+    name = (char*)0;
     fprintf(stop, "TARGETS =");
-    while (listscripts(&name, LVL_NORM))	/* LVL_NORM: nearly all but not BOOT and not SINGLE */
+    while (listscripts(&name, LVL_NORM)) {	/* LVL_NORM: nearly all but not BOOT and not SINGLE */
+#if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
+	const serv_t *serv = findserv(getprovides(name));
+	if (!serv || !(serv->opts & SERV_ENABLED))
+	    continue;
+#endif
 	fprintf(stop, " %s", name);
+    }
     putc('\n', stop);
 
     list_for_each(srv, serv_start) {
@@ -791,7 +861,7 @@ static inline void makedep(void)
 	if (cur->lvls & LVL_BOOT)
 	    continue;
 
-	if ((name = getscript(cur->name)) == NULL)
+	if ((name = getscript(cur->name)) == (char*)0)
 	    name = cur->name;
 
 	if ((chk = findserv(name)) && (cur != chk))
@@ -814,7 +884,7 @@ static inline void makedep(void)
 	    if ((dep->opts & SERV_DUPLET) && dep->main)
 		dep = dep->main;		/* Duplet */
 
-	    if ((name = getscript(rev->serv)) == NULL)
+	    if ((name = getscript(rev->serv)) == (char*)0)
 		name = rev->serv;
 
 	    fprintf(stop, " %s", name);
@@ -829,7 +899,7 @@ static inline void makedep(void)
 /*
  * Internal logger
  */
-char *myname = NULL;
+char *myname = (char*)0;
 static void _logger (const char *const fmt, va_list ap)
 {
     char buf[strlen(myname)+2+strlen(fmt)+1];
@@ -881,6 +951,26 @@ out:
 }
 
 /*
+ *  Check for script in list.
+ */
+static int curr_argc = -1;
+static inline boolean chkfor(const char *const script, char ** const list, const int cnt)
+{
+    boolean isinc = false;
+    register int c = cnt;
+
+    curr_argc = -1;
+    while (c--) {
+	if (!strcmp(script, list[c])) {
+	    isinc = true;
+	    curr_argc = c;
+	    break;
+	}
+    }
+    return isinc;
+}
+
+/*
  * Open a runlevel directory, if it not
  * exists than create one.
  */
@@ -898,7 +988,7 @@ static DIR * openrcdir(const char *const  rcpath)
 	    error("can not stat(%s): %s\n", rcpath, strerror(errno));
     }
 
-    if ((rcdir = opendir(rcpath)) == NULL) {
+    if ((rcdir = opendir(rcpath)) == (DIR*)0) {
 	if (dryrun)
 	    warn ("can not opendir(%s): %s\n", rcpath, strerror(errno));
 	else
@@ -950,6 +1040,8 @@ static inline void scan_script_regalloc()
     regcompiler(&reg.req_stop,  REQUIRED_STOP,  REG_EXTENDED|REG_ICASE|REG_NEWLINE);
     regcompiler(&reg.shl_start, SHOULD_START,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
     regcompiler(&reg.shl_stop,  SHOULD_STOP,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+    regcompiler(&reg.start_bf,  START_BEFORE,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+    regcompiler(&reg.stop_af,   STOP_AFTER,     REG_EXTENDED|REG_ICASE|REG_NEWLINE);
     regcompiler(&reg.def_start, DEFAULT_START,  REG_EXTENDED|REG_ICASE|REG_NEWLINE);
     regcompiler(&reg.def_stop,  DEFAULT_STOP,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
     regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
@@ -960,7 +1052,7 @@ static boolean scan_script_defaults(const char *const path)
     regmatch_t subloc[SUBNUM_SHD+1], *val = &subloc[SUBNUM-1], *shl = &subloc[SUBNUM_SHD-1];
     FILE *script;
     char *pbuf = buf;
-    char *begin = NULL, *end = NULL;
+    char *begin = (char*)0, *end = (char*)0;
     boolean ret = false;
 
 #define provides	script_inf.provides
@@ -968,6 +1060,8 @@ static boolean scan_script_defaults(const char *const path)
 #define required_stop	script_inf.required_stop
 #define should_start	script_inf.should_start
 #define should_stop	script_inf.should_stop
+#define start_before	script_inf.start_before
+#define stop_after	script_inf.stop_after
 #define default_start	script_inf.default_start
 #define default_stop	script_inf.default_stop
 #define description	script_inf.description
@@ -983,6 +1077,8 @@ static boolean scan_script_defaults(const char *const path)
     xreset(required_stop);
     xreset(should_start);
     xreset(should_stop);
+    xreset(start_before);
+    xreset(stop_after);
     xreset(default_start);
     xreset(default_stop);
     xreset(description);
@@ -1032,6 +1128,22 @@ static boolean scan_script_defaults(const char *const path)
 		should_stop = xstrdup(pbuf+shl->rm_so);
 	    } else
 		should_stop = empty;
+	}
+#endif /* not SUSE */
+	if (!start_before && regexecutor(&reg.start_bf,    COMMON_SHD_ARGS) == true) {
+	    if (shl->rm_so < shl->rm_eo) {
+		*(pbuf+shl->rm_eo) = '\0';
+		start_before = xstrdup(pbuf+shl->rm_so);
+	    } else
+		start_before = empty;
+	}
+#ifndef SUSE
+	if (!stop_after  && regexecutor(&reg.stop_af,      COMMON_SHD_ARGS) == true) {
+	    if (shl->rm_so < shl->rm_eo) {
+		*(pbuf+shl->rm_eo) = '\0';
+		stop_after = xstrdup(pbuf+shl->rm_so);
+	    } else
+		stop_after = empty;
 	}
 #endif /* not SUSE */
 	if (!default_start  && regexecutor(&reg.def_start, COMMON_ARGS) == true) {
@@ -1101,6 +1213,8 @@ static boolean scan_script_defaults(const char *const path)
 #undef required_stop
 #undef should_start
 #undef should_stop
+#undef start_before
+#undef stop_after
 #undef default_start
 #undef default_stop
 #undef description
@@ -1115,6 +1229,8 @@ static inline void scan_script_regfree()
     regfree(&reg.req_stop);
     regfree(&reg.shl_start);
     regfree(&reg.shl_stop);
+    regfree(&reg.start_bf);
+    regfree(&reg.stop_af);
     regfree(&reg.def_start);
     regfree(&reg.def_stop);
     regfree(&reg.desc);
@@ -1170,13 +1286,13 @@ static const int map_runlevel_to_seek(const int runlevel)
 /*
  * Scan current service structure
  */
-static void scan_script_locations(const char *const path)
+static void scan_script_locations(const char *const path, char ** const iargv, const int icnt)
 {
     int runlevel;
 
     pushd(path);
     for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
-	const char * rcd = NULL;
+	const char * rcd = (char*)0;
 	DIR  * rcdir;
 	struct dirent *d;
 	char * token;
@@ -1184,16 +1300,20 @@ static void scan_script_locations(const char *const path)
 
 	rcd = map_runlevel_to_location(runlevel);
 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
-	if (rcdir == NULL)
+	if (rcdir == (DIR*)0)
 	    break;
 	pushd(rcd);
-	while ((d = readdir(rcdir)) != NULL) {
+	while ((d = readdir(rcdir)) != (struct dirent*)0) {
 	    char * ptr = d->d_name;
 	    char order = 0;
-	    char* begin = (char*)NULL; /* Remember address of ptr handled by strsep() */
+	    char* begin = (char*)0;	/* Remember address of ptr handled by strsep() */
 	    boolean lsb;
 
+#ifdef SUSE
 	    if (*ptr != 'S')
+#else
+	    if (*ptr != 'S' && *ptr != 'K')
+#endif
 		continue;
 	    ptr++;
 
@@ -1201,6 +1321,9 @@ static void scan_script_locations(const char *const path)
 		continue;
 	    order = atoi(ptr);
 	    ptr += 2;
+
+	    if (iargv && chkfor(ptr, iargv, icnt))
+		continue;		/* ignore scripts if removed later */
 
 	    if (stat(d->d_name, &st_script) < 0) {
 		xremove(d->d_name);	/* dangling sym link */
@@ -1213,7 +1336,7 @@ static void scan_script_locations(const char *const path)
 
 	    begin = script_inf.provides;
 	    while ((token = strsep(&script_inf.provides, delimeter)) && *token) {
-		serv_t * service = NULL;
+		serv_t * service = (serv_t*)0;
 		if (*token == '$') {
 		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
 		    continue;
@@ -1234,6 +1357,9 @@ static void scan_script_locations(const char *const path)
 		    rememberreq(service, REQ_SHLD, script_inf.should_start);
 		    requiresv(token, script_inf.should_start);
 		}
+		if (script_inf.start_before && script_inf.start_before != empty) {
+		    reversereq(service, token, script_inf.start_before);
+		}
 #ifndef SUSE
 		/*
 		 * required_stop and should_stop arn't used in SuSE Linux.
@@ -1248,6 +1374,9 @@ static void scan_script_locations(const char *const path)
 		    rememberreq(service, REQ_SHLD, script_inf.should_stop);
 		    requiresv(token, script_inf.should_stop);
 		}
+		if (script_inf.stop_after && script_inf.stop_after != empty) {
+		    reversereq(service, token, script_inf.stop_after);
+		}
 #endif /* not SUSE */
 	    }
 	    script_inf.provides = begin;
@@ -1257,6 +1386,8 @@ static void scan_script_locations(const char *const path)
 	    xreset(script_inf.required_stop);
 	    xreset(script_inf.should_start);
 	    xreset(script_inf.should_stop);
+	    xreset(script_inf.start_before);
+	    xreset(script_inf.stop_after);
 	    xreset(script_inf.default_start);
 	    xreset(script_inf.default_stop);
 	    xreset(script_inf.description);
@@ -1274,7 +1405,7 @@ static void scan_script_locations(const char *const path)
 static void scan_conf_file(const char* file)
 {
     regex_t reg_conf, reg_conf2;
-    regmatch_t subloc[SUBCONFNUM], *val = NULL;
+    regmatch_t subloc[SUBCONFNUM], *val = (regmatch_t*)0;
     FILE *conf;
     char *pbuf = buf;
 
@@ -1300,7 +1431,7 @@ static void scan_conf_file(const char* file)
 	if (*pbuf == '#')
 	    continue;
 	if (regexecutor(&reg_conf, buf, SUBCONFNUM, subloc, 0) == true) {
-	    char * virt = NULL, * real = NULL;
+	    char * virt = (char*)0, * real = (char*)0;
 	    val = &subloc[SUBCONF - 1];
 	    if (val->rm_so < val->rm_eo) {
 		*(pbuf+val->rm_eo) = '\0';
@@ -1339,7 +1470,7 @@ static void scan_conf_file(const char* file)
 	    }
 	}
 	if (regexecutor(&reg_conf2, buf, SUBCONFNUM, subloc, 0) == true) {
-	    char * key = NULL, * servs = NULL;
+	    char * key = (char*)0, * servs = (char*)0;
 	    val = &subloc[SUBCONF - 1];
 	    if (val->rm_so < val->rm_eo) {
 		*(pbuf+val->rm_eo) = '\0';
@@ -1389,29 +1520,56 @@ static int cfgfile_filter(const struct dirent* d)
 	    return 0;
 	}
     }
+    if ((end = strrchr(d->d_name, ','))) {
+	end++;
+	if (!strcmp(end,  "v"))		  /* rcs-files */
+	{
+	    return 0;
+	}
+    }
     return 1;
 }
 
 static void scan_conf()
 {
-    struct dirent** namelist = NULL;
-    const char dir[] = INSCONF ".d";
-    char buf[PATH_MAX];
+    struct dirent** namelist = (struct dirent**)0;
+    char path[PATH_MAX+1];
     int n;
 
-    scan_conf_file(INSCONF);
+    n = snprintf(&path[0], sizeof(path), "%s%s", root ? root : "", INSCONF);
+    if (n >= sizeof(path) || n < 0)
+	error("snprintf(): %s\n", strerror(errno));
 
-    n = scandir(dir, &namelist, cfgfile_filter, alphasort);
+    scan_conf_file(path);
+
+    n = snprintf(&path[0], sizeof(path), "%s%s.d", root ? root : "", INSCONF);
+    if (n >= sizeof(path) || n < 0)
+	error("snprintf(): %s\n", strerror(errno));
+
+    n = scandir(path, &namelist, cfgfile_filter, alphasort);
     if(n > 0)
     {
 	while(n--)
 	{
-	    snprintf(buf, sizeof(buf), "%s/%s", dir, namelist[n]->d_name);
+	    char buf[PATH_MAX+1], * ptr = namelist[n]->d_name;
+	    int r;
+
+	    if ((*ptr == '.') && ((*(ptr+1) == '\0') || (*(ptr+1) == '.'))) {
+		free(namelist[n]);
+		continue;
+	    }
+
+	    r = snprintf(buf, sizeof(buf), "%s/%s", path, namelist[n]->d_name);
+	    if (r >= sizeof(buf) || r < 0)
+		error("snprintf(): %s\n", strerror(errno));
+
 	    scan_conf_file(buf);
+
+	    free(namelist[n]);
 	}
     }
-
-    free(namelist);
+    if (namelist)
+	free(namelist);
 }
 
 /*
@@ -1432,9 +1590,9 @@ static void expand_conf()
 static inline char *  scan_for(DIR *const rcdir, const char *const script, char type)
 {
     struct dirent *d;
-    char * ret = NULL;
+    char * ret = (char*)0;
 
-    while ((d = readdir(rcdir)) != NULL) {
+    while ((d = readdir(rcdir)) != (struct dirent*)0) {
 	char * ptr = d->d_name;
 
 	if (*ptr != type)
@@ -1453,35 +1611,15 @@ static inline char *  scan_for(DIR *const rcdir, const char *const script, char 
     return ret;
 }
 
-/*
- *  Check for script in list.
- */
-static int curr_argc = -1;
-static inline boolean chkfor(const char *const script, char ** const list, const int cnt)
-{
-    boolean isinc = false;
-    register int c = cnt;
-
-    curr_argc = -1;
-    while (c--) {
-	if (!strcmp(script, list[c])) {
-	    isinc = true;
-	    curr_argc = c;
-	    break;
-	}
-    }
-    return isinc;
-}
-
 static struct option long_options[] =
 {
-    {"verbose",	0, NULL, 'v'},
-    {"dryrun",	0, NULL, 'n'},
-    {"default",	0, NULL, 'd'},
-    {"remove",	0, NULL, 'r'},
-    {"force",	0, NULL, 'f'},
-    {"help",	0, NULL, 'h'},
-    { 0,	0, NULL,  0 },
+    {"verbose",	0, (int*)0, 'v'},
+    {"dryrun",	0, (int*)0, 'n'},
+    {"default",	0, (int*)0, 'd'},
+    {"remove",	0, (int*)0, 'r'},
+    {"force",	0, (int*)0, 'f'},
+    {"help",	0, (int*)0, 'h'},
+    { 0,	0, (int*)0,  0 },
 };
 
 static void help(const char *const  name)
@@ -1515,9 +1653,9 @@ int main (int argc, char *argv[])
     myname = basename(*argv);
 
     for (c = 0; c < argc; c++)
-	argr[c] = NULL;
+	argr[c] = (char*)0;
 
-    while ((c = getopt_long(argc, argv, "dfrhvn", long_options, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "dfrhvn", long_options, (int *)0)) != -1) {
 	switch (c) {
 	    case 'd':
 		defaults = true;
@@ -1596,6 +1734,17 @@ int main (int argc, char *argv[])
 	}
     }
 
+    if (strcmp(path, INITDIR) != 0) {
+	char * tmp;
+	root = xstrdup(path);
+	if ((tmp = strstr(root, INITDIR))) {
+	    *tmp = '\0';
+	} else {
+	    free(root);
+	    root = (char*)0;
+	}
+    }
+
     c = argc;
     while (c--) {
 	char * base;
@@ -1646,18 +1795,18 @@ int main (int argc, char *argv[])
 #if 0
     if (!defaults)
 #endif
-    scan_script_locations(path);
+    scan_script_locations(path, (del ? argv : (char**)0), argc);
 
-    if ((initdir = opendir(path)) == NULL)
+    if ((initdir = opendir(path)) == (DIR*)0)
 	error("can not opendir(%s): %s\n", path, strerror(errno));
     /*
      * Now scan for the service scripts and their LSB comments.
      */
     pushd(path);
-    while ((d = readdir(initdir)) != NULL) {
-	serv_t * service = NULL;
+    while ((d = readdir(initdir)) != (struct dirent*)0) {
+	serv_t * service = (serv_t*)0;
 	char * token;
-	char* begin = (char*)NULL;  /* Remember address of ptr handled by strsep() */
+	char* begin = (char*)0;	/* Remember address of ptr handled by strsep() */
 	boolean lsb = false;
 	errno = 0;
 
@@ -1779,7 +1928,7 @@ int main (int argc, char *argv[])
 		 * Note, this means that all services are required.
 		 */
 		if (!script_inf.required_start || script_inf.required_start == empty) {
-		    list_t * ptr = NULL;
+		    list_t * ptr = (list_t*)0;
 
 		    list_for_each_prev(ptr, serv_start) {
 			if (getserv(ptr)->order >= guess->order)
@@ -1867,7 +2016,7 @@ int main (int argc, char *argv[])
 		    boolean known = (service->opts & SERV_KNOWN);
 		    service->opts |= SERV_KNOWN;
 
-		    if (!provides && (count > 1)) {		/* Last token */ 
+		    if ((!provides || !*provides) && (count > 1)) { /* Last token */ 
 			const char * script = getscript(service->name);
 
 			if (script) {
@@ -1881,7 +2030,7 @@ int main (int argc, char *argv[])
 				    continue;
 
 				if (!strcmp(chk, script) && (service != cur)) {
-				    cur->opts |= SERV_DUPLET; 
+				    cur->opts |= SERV_DUPLET;
 				    cur->main = service;	/* Remember main service */
 				}
 			    }
@@ -1913,6 +2062,14 @@ int main (int argc, char *argv[])
 			}
 #endif /* not SUSE */
 		    }
+		    if (script_inf.start_before && script_inf.start_before != empty) {
+			reversereq(service, token, script_inf.start_before);
+		    }
+#ifndef SUSE
+		    if (script_inf.stop_after && script_inf.stop_after != empty) {
+			reversereq(service, token, script_inf.stop_after);
+		    }
+#endif /* not SUSE */
 		    /*
 		     * Use information from symbolic link structure to
 		     * check if all services are around for this script.
@@ -2026,9 +2183,9 @@ int main (int argc, char *argv[])
 		    char * order;
 		    char ** str;
 		} mark[] = {
-		    {"start=", NULL, &script_inf.default_start},
-		    {"stop=",  NULL, &script_inf.default_stop },
-		    {NULL, NULL, NULL}
+		    {"start=", (char*)0, &script_inf.default_start},
+		    {"stop=",  (char*)0, &script_inf.default_stop },
+		    {(char*)0, (char*)0, (char**)0}
 		};
 
 		for (c = 0; mark[c].wrd; c++) {
@@ -2082,6 +2239,8 @@ int main (int argc, char *argv[])
     xreset(script_inf.required_stop);
     xreset(script_inf.should_start);
     xreset(script_inf.should_stop);
+    xreset(script_inf.start_before);
+    xreset(script_inf.stop_after);
     xreset(script_inf.default_start);
     xreset(script_inf.default_stop);
     xreset(script_inf.description);
@@ -2155,15 +2314,15 @@ int main (int argc, char *argv[])
 	int order;
 	const char * script;
 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
-	const char * rcd = NULL;
+	const char * rcd = (char*)0;
 	DIR  * rcdir;
 
-	if ((rcd = map_runlevel_to_location(runlevel)) == NULL)
+	if ((rcd = map_runlevel_to_location(runlevel)) == (char*)0)
 	    continue;
 
-	script = NULL;
+	script = (char*)0;
 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
-	if (rcdir == NULL)
+	if (rcdir == (DIR*)0)
 	    break;
 	pushd(rcd);
 
@@ -2171,9 +2330,9 @@ int main (int argc, char *argv[])
 	 * See if we found scripts which should not be
 	 * included within this runlevel directory.
 	 */
-	while ((d = readdir(rcdir)) != NULL) {
+	while ((d = readdir(rcdir)) != (struct dirent*)0) {
 	    const char * ptr = d->d_name;
-	    serv_t * serv = NULL;
+	    serv_t * serv = (serv_t*)0;
 
 	    if (*ptr != 'S' && *ptr != 'K')
 		continue;
@@ -2202,6 +2361,7 @@ int main (int argc, char *argv[])
 
 	while (foreach(&script, &order, runlevel)) {
 	    const boolean this = chkfor(script, argv, argc);
+	    serv_t *serv = findserv(getprovides(script));
 	    boolean found, slink;
 	    char * clink;
 
@@ -2222,8 +2382,10 @@ int main (int argc, char *argv[])
 		    if (this && !del)
 			xsymlink(olink, nlink);	/* Restore, with correct order */
 		} else {
-		    if (del && this)
+		    if (del && this) {
 			xremove(clink);		/* Found it, remove link */
+			if (serv) serv->opts &= ~SERV_ENABLED;
+		    }
 		}
 	    }
 
@@ -2234,6 +2396,7 @@ int main (int argc, char *argv[])
 		 */
 		if (!del && !found) {
 		    xsymlink(olink, nlink);
+		    if (serv) serv->opts |= SERV_ENABLED;
 		    found = true;
 		}
 	    }
@@ -2302,17 +2465,17 @@ int main (int argc, char *argv[])
 	int lvl = 0, seek = 0;
 	const char * script;
 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
-	const char * rcd = NULL;
+	const char * rcd = (char*)0;
 	DIR  * rcdir;
 
-	if ((rcd = map_runlevel_to_location(runlevel)) == NULL)
+	if ((rcd = map_runlevel_to_location(runlevel)) == (char*)0)
 	    continue;
 	lvl  = map_runlevel_to_lvl(runlevel);
 	seek = map_runlevel_to_seek(runlevel);
 
-	script = NULL;
+	script = (char*)0;
 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
-	if (rcdir == NULL)
+	if (rcdir == (DIR*)0)
 	    break;
 	pushd(rcd);
 
@@ -2320,7 +2483,7 @@ int main (int argc, char *argv[])
 	 * See if we found scripts which should not be
 	 * included within this runlevel directory.
 	 */
-	while ((d = readdir(rcdir)) != NULL) {
+	while ((d = readdir(rcdir)) != (struct dirent*)0) {
 	    const char * ptr = d->d_name;
 	    serv_t * serv;
 
@@ -2350,8 +2513,8 @@ int main (int argc, char *argv[])
 	while (listscripts(&script, seek)) {
 	    const boolean stop = notincluded(script, runlevel);
 	    const boolean this = chkfor(script, argv, argc);
-	    const serv_t *serv = findserv(getprovides(script));
 	    const char mode = (stop ? 'K' : 'S');
+	    serv_t *serv = findserv(getprovides(script));
 	    int order = getorder(script);
 	    boolean found;
 	    char * clink;
@@ -2388,8 +2551,10 @@ int main (int argc, char *argv[])
 		    if (this && !del)
 			xsymlink(olink, nlink);	/* Restore, with correct order */
 		} else {
-		    if (del && this)
+		    if (del && this) {
 			xremove(clink);		/* Found it, remove link */
+			if (serv) serv->opts &= ~SERV_ENABLED;
+		    }
 		}
 	    }
 
@@ -2400,6 +2565,7 @@ int main (int argc, char *argv[])
 		 */
 		if (!del && !found) {
 		    xsymlink(olink, nlink);
+		    if (serv) serv->opts |= SERV_ENABLED;
 		    found = true;
 		}
 	    }

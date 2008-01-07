@@ -1,8 +1,52 @@
 -------------------------------------------------------------------
+Wed Oct 10 12:39:25 CEST 2007 - werner@suse.de
+
+- Even disabled scripts should be occur in dependcies (#331615)
+- Handle return values of strsep in case of several provides
+- Do not scan services links if removed later on
+- New version 1.10.0 of insserv
+
+-------------------------------------------------------------------
+Fri Aug 31 16:08:47 CEST 2007 - werner@suse.de
+
+- Scan all scripts for Start-Before even if already known (#297214)
+- Do not add disabled scripts to the depend files
+
+-------------------------------------------------------------------
+Fri Jul 13 12:05:19 CEST 2007 - werner@suse.de
+
+- Remove hotplug and pcmcia from insserv.conf because they are
+  dropped (bug #291417)
+
+-------------------------------------------------------------------
+Tue Jun 19 18:59:30 CEST 2007 - werner@suse.de
+
+- Scan all files in `should start before' even facilities
+- Read insserv.conf in other root environments
+
+-------------------------------------------------------------------
+Tue May 29 17:45:06 CEST 2007 - werner@suse.de
+
+- Ignore rcs-files (bug #278520)
+
+-------------------------------------------------------------------
+Mon Jan 29 15:08:17 CET 2007 - werner@suse.de
+
+- Split insserv.conf off from source tar ball to avoid patching
+- Add boot.crypto to $local_fs
+- Add smbfs/cifs to $remote_fs
+
+-------------------------------------------------------------------
+Mon Jan 22 15:17:23 CET 2007 - werner@suse.de
+
+- Add missed `start this script before' feature patch (fate#301269)
+
+-------------------------------------------------------------------
 Tue Jan 16 14:04:06 CET 2007 - werner@suse.de
 
 - Remove obsolate `$netdaemons' facility (#209380)
 - Add `start this script before' feature (fate #301269)
+- New version 1.09.0 of insserv
 
 -------------------------------------------------------------------
 Mon Nov 20 11:42:40 CET 2006 - werner@suse.de

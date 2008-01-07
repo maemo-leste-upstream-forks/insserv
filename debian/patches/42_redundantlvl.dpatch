@@ -10,9 +10,10 @@ The runlevel_locations array is extended to include the runlevel kode
 in it.
 
 @DPATCH@
---- insserv-1.09.0~/insserv.c	2008-01-04 11:22:09.000000000 +0100
-+++ insserv-1.09.0/insserv.c	2008-01-04 11:22:09.000000000 +0100
-@@ -32,8 +32,8 @@
+diff -urNad insserv~/insserv.c insserv/insserv.c
+--- insserv~/insserv.c	2008-01-07 22:50:18.000000000 +0100
++++ insserv/insserv.c	2008-01-07 22:50:19.000000000 +0100
+@@ -34,8 +34,8 @@
  #include "listing.h"
  
  static const char *map_runlevel_to_location(const int runlevel);
@@ -22,7 +23,7 @@ in it.
  static const int map_runlevel_to_seek(const int runlevel);
  #endif /* not SUSE */
  
-@@ -471,22 +471,7 @@
+@@ -475,22 +475,7 @@
      if (serv->order < order)
  	serv->order = order;
  
@@ -46,7 +47,7 @@ in it.
  
      return serv;
  }
-@@ -1304,45 +1289,82 @@
+@@ -1349,45 +1334,82 @@
      char *location;
      const int lvl;
      const int seek;
@@ -148,19 +149,21 @@ in it.
      return runlevel_locations[runlevel].seek;
  }
  #endif /* not SUSE */
---- insserv-1.09.0~/listing.c	2008-01-04 11:22:09.000000000 +0100
-+++ insserv-1.09.0/listing.c	2008-01-04 11:22:09.000000000 +0100
-@@ -58,6 +58,9 @@
+diff -urNad insserv~/listing.c insserv/listing.c
+--- insserv~/listing.c	2008-01-07 22:50:18.000000000 +0100
++++ insserv/listing.c	2008-01-07 22:50:42.000000000 +0100
+@@ -58,6 +58,10 @@
  #define DIR_LOOP	0x00000002
  #define DIR_ISACTIVE	0x00000004
  
 +/* From insserv.c */
 +extern const int map_has_runlevels(void);
 +extern const int map_runlevel_to_lvl (const int runlevel);
++extern const int map_key_to_lvl(const char key);
  /*
   * Provide or find a service dir, set initial states and
   * link it into the maintaining if a new one.
-@@ -428,24 +431,7 @@
+@@ -428,24 +432,7 @@
      boolean ret = false;
      unsigned int lvl = 0;
  
@@ -186,7 +189,7 @@ in it.
  
      list_for_each(tmp, d_start) {
  	dir_t * dir = getdir(tmp);
-@@ -480,23 +466,7 @@
+@@ -480,23 +467,7 @@
      if (!*script)
  	tmp  = d_start->next;
  
@@ -211,6 +214,14 @@ in it.
  
      do {
  	ret = false;
+@@ -575,7 +546,6 @@
+ unsigned int str2lvl(const char * lvl)
+ {
+     char * token, *tmp = strdupa(lvl);
+-    int num;
+     unsigned int ret = 0;
+ 
+     if (!tmp)
 @@ -587,30 +557,7 @@
  	if (!strpbrk(token, "0123456sSbB"))
  	    continue;

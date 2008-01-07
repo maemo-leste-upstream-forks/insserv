@@ -3,11 +3,12 @@
 set -e
 
 tmpdir=`pwd`/testdir
-initddir=$tmpdir/init.d
+initddir=$tmpdir/etc/init.d
 
 insserv=`pwd`/insserv
-insconf=$tmpdir/insserv.conf
-overridedir=$tmpdir/insserv/override
+# Relative to $tmpdir
+insconf=/etc/insserv.conf
+overridedir=$tmpdir/etc/insserv/override
 
 retval=0
 
@@ -20,19 +21,44 @@ insserv_reg() {
     $insserv $debug -c $insconf -p $initddir -o $overridedir $script
 }
 
-insertscript() {
+addscript() {
     scriptname=$1
     script=$initddir/$scriptname
     cat > $script
     chmod a+rx $script
+}
+
+insertscript() {
+    scriptname=$1
+    addscript $scriptname
     insserv_reg $scriptname
+}
+
+check_script_present() {
+    runlevel=$1
+    script=$2
+    present="$(echo $(cd $initddir/../rc$runlevel.d/; ls *$script 2>/dev/null) )"
+    if [ "$present" ] ; then
+	return 0
+    fi
+    return 1;
+}
+
+check_script_not_present() {
+    runlevel=$1
+    script=$2
+    present="$(echo $(cd $initddir/../rc$runlevel.d/; ls *$script 2>/dev/null) )"
+    if [ "$present" ] ; then
+	return 1
+    fi
+    return 0;
 }
 
 order_ok() {
     runlevel=$1
     script1=$2
     script2=$3
-    order="$(echo $(cd $tmpdir/rc$runlevel.d/; ls *$script1 *$script2 2>/dev/null | sed 's/[SK]..//') )"
+    order="$(echo $(cd $initddir/../rc$runlevel.d/; ls *$script1 *$script2 2>/dev/null | sed 's/[SK]..//') )"
     if [ "$order" != "$script1 $script2" ] ; then
 	return 0
     fi
@@ -71,7 +97,7 @@ echo
 echo "info: test normal boot sequence scripts, and their order"
 echo
 
-cat <<'EOF' > $insconf
+cat <<'EOF' > $tmpdir$insconf
 $local_fs       +mountall +umountfs
 $network        +networking +ifupdown
 $named          +named +dnsmasq +lwresd +bind9 $network
@@ -340,7 +366,7 @@ EOF
 insertscript nolsbheader <<'EOF'
 EOF
 
-(cd $tmpdir && ls *)
+(cd $initddir/../. && ls *)
 
 check_order S mountkernfs.sh mountdevsubfs.sh
 check_order S ifupdown-clean ifupdown
@@ -411,13 +437,13 @@ EOF
 
 insserv_reg mover
 
-(cd $tmpdir && ls *)
+(cd $initddir/../. && ls *)
 
 # Make sure the override file moved mover before base
 check_order S mover base
 
 echo
-echo "info: testing to insert scripts with a loop"
+echo "info: testing to insert scripts with a loop, and the effect of an override file"
 echo
 rm -rf $initddir
 mkdir -p $initddir
@@ -456,6 +482,9 @@ cat <<'EOF' > $overridedir/loop1
 # Default-Stop:
 ### END INIT INFO
 EOF
+
+check_script_not_present S loop1
+check_script_not_present S loop2
 
 insserv_reg loop1 || true
 insserv_reg loop2 || true
@@ -537,7 +566,7 @@ insertscript startsecond <<'EOF' || true
 ### END INIT INFO
 EOF
 
-(cd $tmpdir && ls *)
+(cd $initddir/../. && ls *)
 
 test_order S startfirst startsecond
 test_order 6 startsecond startfirst
@@ -573,7 +602,7 @@ insertscript startsecond_stoplast <<'EOF' || true
 ### END INIT INFO
 EOF
 
-(cd $tmpdir && ls *)
+(cd $initddir/../. && ls *)
 
 # Test another fake loop using reverse dependencies to document that
 # it can happen based on information provided in one package only.
@@ -610,12 +639,43 @@ insertscript startsecond_stoplast <<'EOF' || true
 ### END INIT INFO
 EOF
 
-(cd $tmpdir && ls *)
+(cd $initddir/../. && ls *)
 
 # These are checking real bugs, but until bug #458582 is fixed, they
 # will fail.  Making the tests non-fatal because of this.
 test_order S startfirst_stopfirst startsecond_stoplast
 test_order 6 startfirst_stopfirst startsecond_stoplast 
+
+echo
+echo "info: test if bad script in init.d/ with no symlinks in rc*.d/ make problems"
+echo
+
+rm -rf $initddir
+mkdir -p $initddir
+
+addscript sitelocal <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          duplicate
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     S
+# Default-Stop:      6
+### END INIT INFO
+EOF
+
+insertscript distroglobal <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          dublicate
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     S
+# Default-Stop:      6
+### END INIT INFO
+EOF
+
+(cd $initddir/../. && ls *)
+
+check_script_present S distroglobal
 
 if [ 0 != $retval ] ; then
     echo "error: one or more test failed."

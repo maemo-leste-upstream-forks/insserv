@@ -1,13 +1,13 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## 20_overrides.dpatch by Petter Reinholdtsen <pere@hungry.com>
-##
-## All lines beginning with `## DP:' are a description of the patch.
-## DP: Implement support for reading LSB init.d header info from override
-## DP: files.
+## 10_nosuse.dpatch by Petter Reinholdtsen
+## Updated for insserv v1.10 by PEtter Reinholdtsen
+
+Disable the SUSE specific parts.
 
 @DPATCH@
---- insserv-1.09.0/Makefile	2007-12-25 13:39:46.000000000 +0100
-+++ insserv-1.09.0/Makefile	2007-12-25 13:39:42.000000000 +0100
+diff -urNad insserv-1.10.0~/Makefile insserv-1.10.0/Makefile
+--- insserv-1.10.0~/Makefile	2008-01-07 17:21:15.000000000 +0100
++++ insserv-1.10.0/Makefile	2008-01-07 17:21:18.000000000 +0100
 @@ -11,7 +11,7 @@
  #DEBUG	 =	-DDEBUG=1
  #LOOPS	 =	-DIGNORE_LOOPS=1
@@ -15,5 +15,5 @@
 -ISSUSE	 =	-DSUSE
 +#ISSUSE	 =	-DSUSE
  DESTDIR	 =
- VERSION	 =	1.09.0
+ VERSION	 =	1.10.0
  DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
