@@ -1,8 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          resolvconf
-# Required-Start:    $local_fs
-# Required-Stop:     $local_fs
-# Default-Start:     S
-# Default-Stop:      0 6
-### END INIT INFO
-# Reported to BTS as #451751

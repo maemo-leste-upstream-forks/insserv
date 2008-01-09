@@ -21,7 +21,6 @@ hotkey-setup hotkey-setup #376955
 irqbalance irqbalance #458461
 libpam-devperm pam-devperm #458466
 lvm2 lvm2 #426108
-lwresd bind9 #459421
 mountfix nfsbooted #458859
 mpd mpd #458393
 netatalk netatalk #459442

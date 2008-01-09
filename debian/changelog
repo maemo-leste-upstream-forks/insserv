@@ -1,3 +1,23 @@
+insserv (1.10.0-2) unstable; urgency=low
+
+  * Implement new check-initd-order option -c to be used with -g to
+    generate a combined graph for boot and shutdown dependencies.
+  * Split test suite into two files, one generic part
+    (testsuite-common) and one Debian specific part (run-testsuite).
+  * Remove ntpdate and ntp-server as optional dependencies for $time
+    as both are obsolete, and changing them to the current 'ntp' would
+    make a loop.
+  * Removed override file for resolvconf and laptop-netconf, as the
+    unstable packages got the header now.
+  * Removed override file for devmapper, as the unstable packages no
+    longer include a init.d script
+  * Remove reference to lwresd in headers-reported, as the unstable
+    package got the header now.
+  * Added override files for the console-cyrillic and
+    gibraltar-bootsupport package.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed,  9 Jan 2008 22:42:31 +0100
+
 insserv (1.10.0-1) unstable; urgency=low
 
   * New upstream version released 2007-10-10.

@@ -63,7 +63,7 @@ my %opts;
 
 while($#ARGV >= 0 && ($_ = $ARGV[0]) =~ /^-/) {
         shift @ARGV;
-        if (/^-([dgko])$/) { $opts{$1}++; next }
+        if (/^-([cdgko])$/) { $opts{$1}++; next }
         if (/^-h|--help$/) { &usage; }
         &usage("unknown option");
 }
@@ -81,7 +81,12 @@ check_bootorder();
 sub usage {
     print STDERR "check-initd-order: error: @_\n" if ($#_ >= 0);
     print STDERR <<EOF;
-usage: check-initd-order [-dgko]
+usage: check-initd-order [-cdgko]
+  -d enable debug output
+  -o do not load override files
+  -k use shutdown (reboot) sequence instead of boot sequence
+  -g generate graph
+  -c use combined boot and shutdown sequence (only for graphs)
 EOF
     exit 1;
 }
@@ -95,7 +100,8 @@ sub basename {
 }
 
 sub graph_addnode {
-    my %lsbinfo = @_;
+    my ($isstopseq, $lsbinforef) = @_;
+    my %lsbinfo = %{$lsbinforef};
 
     unless ($lsbinfo{'provides'}) {
         print STDERR "error: File ". $lsbinfo{'file'} . " is missing the provides header\n";
@@ -108,8 +114,9 @@ sub graph_addnode {
     my @provides = split(/\s+/, $lsbinfo{'provides'});
     for my $name (@provides) {
         if (exists $sysmap{$name}) {
-            graph_addnode('provides'      => $sysmap{$name},
-                          "required-$key" => $name);
+            graph_addnode($isstopseq,
+                          {'provides'      => $sysmap{$name},
+                          "required-$key" => $name});
         }
     }
 
@@ -117,10 +124,12 @@ sub graph_addnode {
         my @providescopy = @provides;
         my $lastprovide = shift @providescopy;
         for my $provide (@providescopy) {
-            graph_addnode('provides'      => $lastprovide,
-                          "required-$key" => $provide);
-            graph_addnode('provides'      => $provide,
-                          "required-$key" => $lastprovide);
+            graph_addnode($isstopseq,
+                          {'provides'      => $lastprovide,
+                           "required-$key" => $provide});
+            graph_addnode($isstopseq,
+                          {'provides'      => $provide,
+                           "required-$key" => $lastprovide});
         }
     }
 
@@ -150,17 +159,12 @@ sub graph_addnode {
     }
 }
 
-sub graph_generate {
-    print "# Generating graph\n";
-    print <<EOF;
-digraph packages {
-rankdir=LR;
-concentrate=true;
-EOF
-    my @dirs = $opts{'k'} ? $rcmap{6} : ($rcmap{S}, $rcmap{2});
+sub graph_generate_mode {
+    my ($isstopseq) = @_;
+    my @dirs = $isstopseq ? $rcmap{6} : ($rcmap{S}, $rcmap{2});
     for my $rcdir (@dirs) {
         chdir "$rcbase/$rcdir/.";
-        my @scripts = $opts{'k'} ? <K*> : <S*>;
+        my @scripts = $isstopseq ? <K*> : <S*>;
         for my $script (@scripts) {
             my $lsbinforef = load_lsb_tags("$rcbase/$rcdir/$script",
                                            $useoverrides);
@@ -172,9 +176,23 @@ EOF
                                'required-start' => '$remote_fs $syslog',
                                'required-stop'  => '$remote_fs $syslog'};
             }
-            my %lsbinfo = %{$lsbinforef};
-            graph_addnode %lsbinfo;
+            graph_addnode($isstopseq, $lsbinforef);
         }
+    }
+}
+
+sub graph_generate {
+    print "# Generating graph\n";
+    print <<EOF;
+digraph packages {
+rankdir=LR;
+concentrate=true;
+EOF
+    if ($opts{'c'}) {
+        graph_generate_mode();
+        graph_generate_mode(1);
+    } else {
+        graph_generate_mode($opts{'k'});
     }
     print <<EOF;
 }

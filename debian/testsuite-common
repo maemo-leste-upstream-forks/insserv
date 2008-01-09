@@ -1,0 +1,101 @@
+#!/bin/sh
+
+set -e
+
+tmpdir=`pwd`/testdir
+initddir=$tmpdir/etc/init.d
+
+insserv=`pwd`/insserv
+# Relative to $tmpdir
+insconf=/etc/insserv.conf
+overridedir=$tmpdir/etc/insserv/override
+
+retval=0
+
+mkdir -p $initddir
+
+#debug="-v"
+
+# The specific test suites need to define runlevel_path(),
+# list_rclinks() and insserv_reg().
+
+addscript() {
+    scriptname=$1
+    script=$initddir/$scriptname
+    cat > $script
+    chmod a+rx $script
+}
+
+insertscript() {
+    scriptname=$1
+    addscript $scriptname
+    insserv_reg $scriptname
+}
+
+check_script_present() {
+    runlevel=$1
+    script=$2
+    present="$(echo $(cd $(runlevel_path $runlevel); ls *$script 2>/dev/null) )"
+    if [ "$present" ] ; then
+	return 0
+    fi
+    return 1;
+}
+
+check_script_not_present() {
+    runlevel=$1
+    script=$2
+    present="$(echo $(cd $(runlevel_path $runlevel); ls *$script 2>/dev/null) )"
+    if [ "$present" ] ; then
+	return 1
+    fi
+    return 0;
+}
+
+order_ok() {
+    runlevel=$1
+    script1=$2
+    script2=$3
+    order="$(echo $(cd $(runlevel_path $runlevel); ls *$script1 *$script2 2>/dev/null | sed 's/[SK]..//') )"
+    if [ "$order" != "$script1 $script2" ] ; then
+	return 0
+    fi
+    return 1;
+}
+
+error() {
+    echo error: $@
+    retval=1
+}
+
+warning() {
+    echo warning: $@
+}
+
+# Fatal check
+check_order() {
+    if order_ok $@ ; then
+	error "incorrect $runlevel sequence $script1 not before $script2"
+    fi
+}
+
+# Non-fatal check
+test_order() {
+    if order_ok $@ ; then
+	warning "incorrect $runlevel sequence $script1 not before $script2"
+    fi
+}
+
+finish_test() {
+    if [ 0 != $retval ] ; then
+	echo "error: one or more test failed."
+    else
+	echo "success: no test failed."
+    fi
+    exit $retval
+}
+
+on_exit() {
+    rm -rf $tmpdir
+}
+trap on_exit EXIT # Enable cleanup handler

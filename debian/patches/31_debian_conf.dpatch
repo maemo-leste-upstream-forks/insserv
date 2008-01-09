@@ -50,7 +50,7 @@ diff -urNad insserv~/insserv.conf insserv/insserv.conf
  # The system time has been set correctly
  #
 -$time		boot.clock +xntpd
-+$time		hwclock +ntpdate +ntp-server
++$time		hwclock
  
  #
  # Services which need to be interactive

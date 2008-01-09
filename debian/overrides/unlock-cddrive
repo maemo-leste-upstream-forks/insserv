@@ -1,0 +1,8 @@
+### BEGIN INIT INFO
+# Provides:          unlock-cddrive
+# Required-Start:
+# Required-Stop:     $local_fs
+# Default-Start:
+# Default-Stop:      0 6
+### END INIT INFO
+# Reported to BTS as #459872

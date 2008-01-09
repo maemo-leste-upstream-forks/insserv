@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          console-cyrillic
+# Required-Start:    $remote_fs
+# Required-Stop:
+# Should-Start:      console-screen console-setup
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+# Reported to BTS as #459878
