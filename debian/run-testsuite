@@ -14,7 +14,8 @@ list_rclinks() {
 
 insserv_reg() {
     script=$initddir/$1
-    $insserv $debug -c $insconf -p $initddir -o $overridedir $script
+    shift
+    $insserv $debug -c $insconf -p $initddir -o $overridedir $@ $script
 }
 
 echo
@@ -318,8 +319,6 @@ check_order 6 umountroot reboot
 check_order 6 umountroot kexec
 check_order 6 kexec reboot
 
-exit 0
-
 echo
 echo "info: test if override files replace headers in the file"
 echo
@@ -602,5 +601,94 @@ EOF
 list_rclinks
 
 check_script_present S distroglobal
+
+echo
+echo "info: check that it work to insert scripts with only stop runlevels"
+echo
+# This test check that the common way to update the runlevels used by
+# a given script is working.  It simulates these calls to update-rc.d:
+#  update-rc.d oldscript default
+#  update-rc.d -f oldscript remove
+#  update-rc.d oldscript start 20 2 3 4 5 . stop 20 1 .
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript onlystop <<'EOF' || true
+addscript onlystop <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          onlystop
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_script_present 0 onlystop
+check_script_present 6 onlystop
+
+check_script_not_present 1 onlystop
+check_script_not_present 2 onlystop
+check_script_not_present 3 onlystop
+check_script_not_present 4 onlystop
+check_script_not_present 5 onlystop
+check_script_not_present S onlystop
+
+echo
+echo "info: test if script removal removes all symlinks."
+echo "warning: This test should be fatal, but is non-fatal until a fix is found."
+echo
+# This test check that the common way to update the runlevels used by
+# a given script is working.  It simulates these calls to update-rc.d:
+#  update-rc.d oldscript default
+#  update-rc.d -f oldscript remove
+#  update-rc.d oldscript start 20 2 3 4 5 . stop 20 1 .
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript oldscript <<'EOF' || true
+addscript oldscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          oldscript
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+# Check that the problematic symlinks are presend, as well as one that
+# is OK.
+check_script_present 0 oldscript
+check_script_present 1 oldscript
+check_script_present 3 oldscript
+check_script_present 6 oldscript
+
+addscript oldscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          oldscript
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     2 4 5
+# Default-Stop:      1
+### END INIT INFO
+EOF
+
+# Remove old symlinks
+insserv_reg oldscript -r
+# Insert new ones, this time without runlevel 0 and 6
+insserv_reg oldscript
+
+list_rclinks
+
+test_script_not_present 0 oldscript
+test_script_present 1 oldscript
+test_script_present 2 oldscript
+test_script_not_present 3 oldscript
+test_script_not_present 6 oldscript
 
 finish_test

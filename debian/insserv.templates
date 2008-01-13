@@ -1,6 +1,6 @@
 Template: insserv/enable
 Type: boolean
-Description: Enable (or keep enabled) dependency based boot sequence?
+_Description: Enable (or keep enabled) dependency based boot sequence?
  Enabling this will reorder all the scripts in /etc/rc*.d/ using the
  dependency information provided in each script.  If such information
  is missing, default dependency info will be used.  It will also

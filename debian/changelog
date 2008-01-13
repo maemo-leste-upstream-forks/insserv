@@ -1,3 +1,17 @@
+insserv (1.10.0-3) unstable; urgency=low
+
+  * Added test case for problem with symlink removal, bug #460034.
+  * Added override files for uptimed, uptimed.sh and guarddog.
+  * Removed override file nfs-user-server as the compiled in defaults
+    are better than the proposed overrides.
+  * Add mountoverflowtmp to virtual facility $local_fs, to make sure
+    /tmp/ is always mounted before the scripts needing /tmp/ is
+    started.  Conflict with initscripts before 2.86.ds1-48, to avoid a
+    dependency loop with this change.
+  * Make debconf question translatable (Closes: #386703).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 13 Jan 2008 19:32:34 +0100
+
 insserv (1.10.0-2) unstable; urgency=low
 
   * Implement new check-initd-order option -c to be used with -g to

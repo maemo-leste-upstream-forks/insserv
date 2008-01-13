@@ -38,14 +38,12 @@ build-stamp: patch-stamp
 
 	touch build-stamp
 
-clean: unpatch
+clean: unpatch clean-extra
 	dh_testdir
 	rm -f build-stamp
 
 	# Add here commands to clean up after the build process.
 	$(MAKE) clean
-
-	rm -f missing overrides
 
 	dh_clean 
 
@@ -103,3 +101,20 @@ missing-overrides:
 	@echo $$(comm -13 missing overrides) |fold -s | sed 's/^/  /'
 	@echo -n "Override files that need a bug report:                    "; debian/bts-lefttoreport | wc -l
 	@echo $$(debian/bts-lefttoreport | sort -u) |fold -s | sed 's/^/  /'
+
+bin-by-inst.txt:
+	@GET http://popcon.debian.org/by_inst > bin-by-inst.txt
+missingpkgs:
+	@GET http://lintian.debian.org/reports/Tinit.d-script-missing-lsb-section.html| grep W: | cut -d'<' -f 2 | cut -d'>' -f2 | sort -u > missingpkgs
+missing-by-popcon: bin-by-inst.txt missingpkgs
+	@for pkg in $$(cat missingpkgs); do \
+		if grep -q " $$pkg " debian/headers-reported ; then \
+			: ; \
+		else \
+			grep " $$pkg " bin-by-inst.txt ; \
+		fi ; \
+	done | sort -n
+
+clean-extra:
+	$(RM) missing overrides
+	$(RM) bin-by-inst.txt missingpkgs

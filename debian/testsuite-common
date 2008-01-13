@@ -19,6 +19,15 @@ mkdir -p $initddir
 # The specific test suites need to define runlevel_path(),
 # list_rclinks() and insserv_reg().
 
+error() {
+    echo error: $@
+    retval=1
+}
+
+warning() {
+    echo warning: $@
+}
+
 addscript() {
     scriptname=$1
     script=$initddir/$scriptname
@@ -32,22 +41,52 @@ insertscript() {
     insserv_reg $scriptname
 }
 
-check_script_present() {
+present_ok() {
     runlevel=$1
     script=$2
     present="$(echo $(cd $(runlevel_path $runlevel); ls *$script 2>/dev/null) )"
     if [ "$present" ] ; then
 	return 0
     fi
-    return 1;
+    return 1
+}
+
+check_script_present() {
+    runlevel=$1
+    script=$2
+    if present_ok $runlevel $script ; then
+	return 0
+    fi
+    error "script $script not present in runlevel $runlevel"
+    return 0
+}
+
+test_script_present() {
+    runlevel=$1
+    script=$2
+    if present_ok $runlevel $script ; then
+	return 0
+    fi
+    warning "script $script not present in runlevel $runlevel"
+    return 0
 }
 
 check_script_not_present() {
     runlevel=$1
     script=$2
-    present="$(echo $(cd $(runlevel_path $runlevel); ls *$script 2>/dev/null) )"
-    if [ "$present" ] ; then
-	return 1
+    if present_ok $runlevel $script ; then
+	error "script $script present in runlevel $runlevel"
+	return 0
+    fi
+    return 0;
+}
+
+test_script_not_present() {
+    runlevel=$1
+    script=$2
+    if present_ok $runlevel $script ; then
+	warning "script $script present in runlevel $runlevel"
+	return 0
     fi
     return 0;
 }
@@ -61,15 +100,6 @@ order_ok() {
 	return 0
     fi
     return 1;
-}
-
-error() {
-    echo error: $@
-    retval=1
-}
-
-warning() {
-    echo warning: $@
 }
 
 # Fatal check

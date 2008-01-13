@@ -1,0 +1,219 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 51_fakeloop_thinko.dpatch by Petter Reinholdtsen
+
+Patch from Werner Fink to try to fix the problem with fake loops.
+
+@DPATCH@
+--- insserv-1.10.0/insserv.c
++++ insserv-1.10.0/insserv.c	2008-01-07 17:13:27.696866603 +0100
+@@ -1335,7 +1335,7 @@ static void scan_script_locations(const 
+ 		script_inf.provides = xstrdup(ptr);
+ 
+ 	    begin = script_inf.provides;
+-	    while ((token = strsep(&script_inf.provides, delimeter)) && *token) {
++	    while ((token = strsep(&begin, delimeter)) && *token) {
+ 		serv_t * service = (serv_t*)0;
+ 		if (*token == '$') {
+ 		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
+@@ -1360,26 +1360,66 @@ static void scan_script_locations(const 
+ 		if (script_inf.start_before && script_inf.start_before != empty) {
+ 		    reversereq(service, token, script_inf.start_before);
+ 		}
++	    }
+ #ifndef SUSE
+-		/*
+-		 * required_stop and should_stop arn't used in SuSE Linux.
+-		 * Note: Sorting is done symetrical in stop and start!
+-		 * The stop_order is given by max_order + 1 - start_order.
+-		 */
+-		if (script_inf.required_stop && script_inf.required_stop != empty) {
+-		    rememberreq(service, REQ_MUST, script_inf.required_stop);
+-		    requiresv(token, script_inf.required_stop);
+-		}
+-		if (script_inf.should_stop && script_inf.should_stop != empty) {
+-		    rememberreq(service, REQ_SHLD, script_inf.should_stop);
+-		    requiresv(token, script_inf.should_stop);
++	    /*
++	     * required_stop and should_stop arn't used in SuSE Linux.
++	     * Note: Sorting is done symetrical in stop and start!
++	     * The stop_order is given by max_order + 1 - start_order.
++	     */
++	    begin = script_inf.required_stop;
++	    while ((token = strsep(&begin, delimeter)) && *token) {
++		serv_t * service = (serv_t*)0;
++		if (*token == '$') {
++		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
++		    continue;
+ 		}
+-		if (script_inf.stop_after && script_inf.stop_after != empty) {
+-		    reversereq(service, token, script_inf.stop_after);
++		if (!(service = findserv(token)))
++		    service = addserv(token);
++		if (!service)
++		    continue;
++
++		if (script_inf.provides && script_inf.provides != empty) {
++		    rememberreq(service, REQ_MUST, script_inf.provides);
++		    requiresv(token, script_inf.provides);
+ 		}
+-#endif /* not SUSE */
+ 	    }
+-	    script_inf.provides = begin;
++
++	    begin = script_inf.required_stop;
++	    while ((token = strsep(&begin, delimeter)) && *token) {
++		serv_t * service = (serv_t*)0;
++		if (*token == '$') {
++		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
++		    continue;
++		}
++		if (!(service = findserv(token)))
++		    service = addserv(token);
++		if (!service)
++		    continue;
++
++		if (script_inf.provides && script_inf.provides != empty) {
++		    rememberreq(service, REQ_SHLD, script_inf.provides);
++		    requiresv(token, script_inf.provides);
++		}
++	    }
++
++	    begin = script_inf.stop_after;
++	    while ((token = strsep(&begin, delimeter)) && *token) {
++		serv_t * service = (serv_t*)0;
++		if (*token == '$') {
++		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
++		    continue;
++		}
++		if (!(service = findserv(token)))
++		    service = addserv(token);
++		if (!service)
++		    continue;
++
++		if (script_inf.provides && script_inf.provides != empty) {
++		    reversereq(service, token, script_inf.provides);
++		}
++	    }
++#endif /* not SUSE */
+ 
+ 	    xreset(script_inf.provides);
+ 	    xreset(script_inf.required_start);
+@@ -1981,7 +2021,7 @@ int main (int argc, char *argv[])
+ 	    char * provides = xstrdup(script_inf.provides);
+ 
+ 	    begin = provides;
+-	    while ((token = strsep(&provides, delimeter)) && *token) {
++	    while ((token = strsep(&begin, delimeter)) && *token) {
+ 
+ 		if (*token == '$') {
+ 		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
+@@ -2016,7 +2056,7 @@ int main (int argc, char *argv[])
+ 		    boolean known = (service->opts & SERV_KNOWN);
+ 		    service->opts |= SERV_KNOWN;
+ 
+-		    if ((!provides || !*provides) && (count > 1)) { /* Last token */ 
++		    if ((!begin || !*begin) && (count > 1)) { /* Last token */ 
+ 			const char * script = getscript(service->name);
+ 
+ 			if (script) {
+@@ -2046,30 +2086,12 @@ int main (int argc, char *argv[])
+ 			    rememberreq(service, REQ_SHLD, script_inf.should_start);
+ 			    requiresv(token, script_inf.should_start);
+ 			}
+-#ifndef SUSE
+-			/*
+-			 * required_stop and should_stop arn't used in SuSE Linux.
+-			 * Note: Sorting is done symetrical in stop and start!
+-			 * The stop order is given by max order - start order.
+-			 */
+-			if (script_inf.required_stop && script_inf.required_stop != empty) {
+-			    rememberreq(service, REQ_MUST, script_inf.required_stop);
+-			    requiresv(token, script_inf.required_stop);
+-			}
+-			if (script_inf.should_stop && script_inf.should_stop != empty) {
+-			    rememberreq(service, REQ_SHLD, script_inf.should_stop);
+-			    requiresv(token, script_inf.should_stop);
+-			}
+-#endif /* not SUSE */
+ 		    }
++
+ 		    if (script_inf.start_before && script_inf.start_before != empty) {
+ 			reversereq(service, token, script_inf.start_before);
+ 		    }
+-#ifndef SUSE
+-		    if (script_inf.stop_after && script_inf.stop_after != empty) {
+-			reversereq(service, token, script_inf.stop_after);
+-		    }
+-#endif /* not SUSE */
++
+ 		    /*
+ 		     * Use information from symbolic link structure to
+ 		     * check if all services are around for this script.
+@@ -2161,7 +2183,66 @@ int main (int argc, char *argv[])
+ #endif /* not SUSE */
+ 		}
+ 	    }
+-	    free(begin);
++#ifndef SUSE
++	    /*
++	     * required_stop and should_stop arn't used in SuSE Linux.
++	     * Note: Sorting is done symetrical in stop and start!
++	     * The stop order is given by max order - start order.
++	     */
++	    begin = script_inf.required_stop;
++	    while ((token = strsep(&begin, delimeter)) && *token) {
++		serv_t * this = (serv_t*)0;
++		if (*token == '$') {
++		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
++		    continue;
++		}
++		if (!(this = findserv(token)))
++		    this = addserv(token);
++		if (!this)
++		    continue;
++
++		if (provides && provides != empty) {
++		    rememberreq(this, REQ_MUST, provides);
++		    requiresv(token, provides);
++		}
++	    }
++
++	    begin = script_inf.should_stop;
++	    while ((token = strsep(&begin, delimeter)) && *token) {
++		serv_t * this = (serv_t*)0;
++		if (*token == '$') {
++		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
++		    continue;
++		}
++		if (!(this = findserv(token)))
++		    this = addserv(token);
++		if (!this)
++		    continue;
++
++		if (provides && provides != empty) {
++		    rememberreq(this, REQ_SHLD, provides);
++		    requiresv(token, provides);
++		}
++	    }
++
++	    begin = script_inf.stop_after;
++	    while ((token = strsep(&begin, delimeter)) && *token) {
++		serv_t * this = (serv_t*)0;
++		if (*token == '$') {
++		    warn("script %s provides system facility %s, skipped!\n", d->d_name, token);
++		    continue;
++		}
++		if (!(this = findserv(token)))
++		    this = addserv(token);
++		if (!this)
++		    continue;
++
++		if (provides && provides != empty) {
++		    reversereq(this, token, provides);
++		}
++	    }
++#endif /* not SUSE */
++	    free(provides);
+ 	}
+ 
+ #ifdef SUSE

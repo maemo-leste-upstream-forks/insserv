@@ -1,42 +1,71 @@
 # List of scripts missing LSB header that are reported to BTS.  Used
 # to track which scripts and packages are missing a bug report.
 # Format: 
-#   scriptname src-pkgname btsnumber
-aime aime #459550
-anacron anacron #448223
-atd at #376780
-courier-imap courier #458433 
-courier-imap-ssl courier #458433 
-courier-ldap courier #458433 
-courier-mlm courier #458433 
-courier-mta courier #458433 
-courier-mta-ssl courier #458433 
-courier-pcp courier #458433 
-courier-pop courier #458433 
-courier-pop-ssl courier #458433 
-cpqarrayd cpqarrayd #451759
-dmraid dmraid #458626
-hostname.dhcp nfsbooted #458859
-hotkey-setup hotkey-setup #376955
-irqbalance irqbalance #458461
-libpam-devperm pam-devperm #458466
-lvm2 lvm2 #426108
-mountfix nfsbooted #458859
-mpd mpd #458393
-netatalk netatalk #459442
-nethack-common nethack #458465
-nfs-user-server nfs-user-server #458390
-nstxcd nstx #457756
-nstxd nstx #457756
-pcmcia pcmcia-cs #361054
-pptpd pptp #458476
-racoon racoon #458488
+#   scriptname bin-pkgname src-pkgname btsnumber
+aime aime aime #459550
+alamin-server alamin-server alamin #460051
+anacron anacron anacron #448223
+and and and #460052
+arpwatch arpwatch arpwatch #460248
+atd at at #376780
+bacula-director bacula-director-common bacula #460252
+bacula-fd bacula-fd bacula #460252
+bacula-sd bacula-sd bacula #460252
+check-network-interfaces gibraltar-bootsupport gibraltar-bootcd #459872
+console-cyrillic console-cyrillic console-cyrillic #459878
+courier-authdaemon courier-authdaemon courier-authlib #460221
+courier-imap courier-imap courier #458433 
+courier-imap-ssl courier-imap-ssl courier #458433 
+courier-ldap courier-ldap courier #458433 
+courier-mlm courier-mlm courier #458433 
+courier-mta courier-mta courier #458433 
+courier-mta-ssl courier-mta-ssl courier #458433 
+courier-pcp courier-pcp courier #458433 
+courier-pop courier-pop courier #458433 
+courier-pop-ssl courier-pop-ssl courier #458433 
+cpqarrayd cpqarrayd cpqarrayd #451759
+cpudyn cpudyn cpudyn #459553
+dictd dictd dictd #460201
+distcc distcc distcc #460249
+dmraid dmraid dmraid #458626
+gdomap gnustep-base-runtime gnustep-base #460224
+greylist greylistd greylistd #460151
+guarddog guarddog guarddog #460298
+hostname.dhcp nfsbooted nfsbooted #458859
+hpoj hpoj hpoj #459450
+irqbalance irqbalance irqbalance #458461
+lastfmsubmitd lastfmsubmitd lastfmsubmitd #460206
+libpam-devperm libpam-devperm pam-devperm #458466
+lirc lirc lirc #460212
+lvm2 lvm2 lvm2 #426108
+mbmon mbmon xmbmon #460243
+monit monit monit #460299
+mountfix nfsbooted nfsbooted #458859
+mountvar gibraltar-bootsupport gibraltar-bootcd #459872
+nessusd nessusd nessus-core #460250
+netatalk netatalk netatalk #459442
+nethack-common nethack-common nethack #458465
+nfs-user-server nfs-user-server nfs-user-server #458390
+nstxcd nstx nstx #457756
+nstxd nstx nstx #457756
+ntop ntop ntop #460225
+openhpid openhpid openhpi #460216
+openntpd openntpd openntpd #460227
+pptpd pptpd pptp #458476
+pure-ftpd pure-ftpd  pure-ftpd #460303
+pure-ftpd-ldap pure-ftpd-ldap pure-ftpd #460303
+pure-ftpd-mysql pure-ftpd-mysql pure-ftpd #460303
+pure-ftpd-postgresql pure-ftpd-postgresql pure-ftpd #460303
+racoon racoon racoon #458488
 scsitools-pre.sh scsitools scsitools #458649
 scsitools.sh scsitools scsitools #458649
-setkey ipsec-tools #458488
-smartmontools smartmontools #458391
-snmptrapfmt snmptrapfmt #457752
-spamassassin spamassassin #451762
-sqwebmail courier #458433 
-swapd swapd #458624
-cpudyn cpudyn #459553
+setkey ipsec-tools ipsec-tools #458488
+smartmontools smartmontools smartmontools #458391
+snmptrapfmt snmptrapfmt snmptrapfmt #457752
+spamassassin spamassassin spamassassin #451762
+sqwebmail sqwebmail courier #458433
+swapd swapd swapd #458624
+uptimed uptimed uptimed #460058
+uptimed.sh uptimed uptimed #460058
+vsftpd vsftpd vsftpd #460211
+xpilot-ng-server xpilot-ng-server xpilot-ng #460522
