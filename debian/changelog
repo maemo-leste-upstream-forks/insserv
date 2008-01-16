@@ -1,3 +1,15 @@
+insserv (1.10.0-5) unstable; urgency=low
+
+  * Made sure to initialize the badstate variable before it is used in
+    update-bootsystem-insserv.
+  * Removed override files for uptimed and uptimed.sh, as the uptimed
+    package now include the LSB headers.
+  * Make sure to give a proper error message when failing to enable
+    dependency based boot system and insserv return an error code
+    (Closes: #461141).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 16 Jan 2008 23:29:09 +0100
+
 insserv (1.10.0-4) unstable; urgency=low
 
   * Made problematic test cases for bug #460034 and #458582 fatal

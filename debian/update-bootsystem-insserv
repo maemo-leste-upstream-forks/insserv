@@ -142,6 +142,7 @@ activate_insserv() {
     # Refuse to convert when there are obsolete init.d scripts left
     # behind, as these tend to confuse the boot sequence.
     echo "info: Checking if it is safe to convert to dependency based boot."
+    badstate=""
     for package in $(dpkg -S $(find /etc/init.d -type f -perm /+x) \
                      2>/dev/null | cut -d: -f1 | sort -u); do
         obsolete_initscripts=$(dpkg-query -W -f='${Conffiles}\n' $package | \
@@ -156,7 +157,7 @@ activate_insserv() {
         fi
     done
 
-    insserv -nv > $logfile 2>&1
+    insserv -nv > $logfile 2>&1 || true
     if egrep -q 'There is a loop between|already provided!' $logfile ; then
 	echo "error: Problems running insserv:"
 	egrep 'There is a loop between|loop involving service|already provided!' $logfile | sed 's/^/  /'
