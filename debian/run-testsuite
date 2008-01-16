@@ -3,6 +3,12 @@
 basedir=$(dirname $0)
 . $basedir/testsuite-common
 
+if head -1 debian/changelog | grep UNRELEASED ; then
+    severity=check
+else
+    severity=test
+fi
+
 runlevel_path() {
     runlevel=$1
     echo $initddir/../rc$runlevel.d/
@@ -568,8 +574,8 @@ list_rclinks
 
 # These are checking real bugs, but until bug #458582 is fixed, they
 # will fail.  Making the tests non-fatal because of this.
-test_order S startfirst_stopfirst startsecond_stoplast
-test_order 6 startfirst_stopfirst startsecond_stoplast 
+${severity}_order S startfirst_stopfirst startsecond_stoplast
+${severity}_order 6 startfirst_stopfirst startsecond_stoplast 
 
 echo
 echo "info: test if bad script in init.d/ with no symlinks in rc*.d/ make problems"
@@ -685,10 +691,10 @@ insserv_reg oldscript
 
 list_rclinks
 
-test_script_not_present 0 oldscript
-test_script_present 1 oldscript
-test_script_present 2 oldscript
-test_script_not_present 3 oldscript
-test_script_not_present 6 oldscript
+${severity}_script_not_present 0 oldscript
+${severity}_script_present 1 oldscript
+${severity}_script_present 2 oldscript
+${severity}_script_not_present 3 oldscript
+${severity}_script_not_present 6 oldscript
 
 finish_test

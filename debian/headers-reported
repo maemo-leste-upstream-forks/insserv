@@ -6,11 +6,13 @@ aime aime aime #459550
 alamin-server alamin-server alamin #460051
 anacron anacron anacron #448223
 and and and #460052
+apt-proxy apt-proxy apt-proxy 460908
 arpwatch arpwatch arpwatch #460248
 atd at at #376780
 bacula-director bacula-director-common bacula #460252
 bacula-fd bacula-fd bacula #460252
 bacula-sd bacula-sd bacula #460252
+bastille-firewall bastille bastille #460860
 check-network-interfaces gibraltar-bootsupport gibraltar-bootcd #459872
 console-cyrillic console-cyrillic console-cyrillic #459878
 courier-authdaemon courier-authdaemon courier-authlib #460221
@@ -33,7 +35,9 @@ greylist greylistd greylistd #460151
 guarddog guarddog guarddog #460298
 hostname.dhcp nfsbooted nfsbooted #458859
 hpoj hpoj hpoj #459450
+icecast2 icecast2 icecast2 #460853
 irqbalance irqbalance irqbalance #458461
+jabber jabber jabber #460855
 lastfmsubmitd lastfmsubmitd lastfmsubmitd #460206
 libpam-devperm libpam-devperm pam-devperm #458466
 lirc lirc lirc #460212
@@ -42,7 +46,7 @@ mbmon mbmon xmbmon #460243
 monit monit monit #460299
 mountfix nfsbooted nfsbooted #458859
 mountvar gibraltar-bootsupport gibraltar-bootcd #459872
-nessusd nessusd nessus-core #460250
+netapplet netapplet netapplet #460911
 netatalk netatalk netatalk #459442
 nethack-common nethack-common nethack #458465
 nfs-user-server nfs-user-server nfs-user-server #458390

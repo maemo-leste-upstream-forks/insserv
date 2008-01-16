@@ -11,7 +11,7 @@ Package: insserv
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, sysv-rc
 Suggests: bootchart
-Conflict: initscripts (<< 2.86.ds1-48)
+Conflicts: initscripts (<< 2.86.ds1-48)
 Description: Reorder boot sequence based on LSB init.d script dependencies
  Reorder the boot order based on init.d script dependencies as
  documented in LSB comment headers in the script or in override files

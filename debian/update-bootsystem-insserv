@@ -144,12 +144,15 @@ activate_insserv() {
     echo "info: Checking if it is safe to convert to dependency based boot."
     for package in $(dpkg -S $(find /etc/init.d -type f -perm /+x) \
                      2>/dev/null | cut -d: -f1 | sort -u); do
-        if dpkg-query -W -f='${Conffiles}' $package | \
-            grep /etc/init.d/ | grep -q obsolete; then
-            echo "error: Obsolete init.d conffile left behind by package $package:"
-            dpkg-query -W -f='${Conffiles}' $package | \
-                grep /etc/init.d/ | grep obsolete | sed 's/^/  /'
-            badstate=1
+        obsolete_initscripts=$(dpkg-query -W -f='${Conffiles}\n' $package | \
+	    grep 'obsolete$' | grep -o '/etc/init.d/[^ ]\+') || :
+        if [ "$obsolete_initscripts" ]; then
+            for initscript in $obsolete_initscripts; do
+                if [ -e "$initscript" ]; then
+                    echo "error: Obsolete conffile $initscript left behind by package $package"
+                    badstate=1
+                fi
+            done
         fi
     done
 
@@ -157,13 +160,19 @@ activate_insserv() {
     if egrep -q 'There is a loop between|already provided!' $logfile ; then
 	echo "error: Problems running insserv:"
 	egrep 'There is a loop between|loop involving service|already provided!' $logfile | sed 's/^/  /'
-	echo "info: Please check out this manually."
-	echo "info: Refusing to convert boot sequence until this is fixed"
 	rm $logfile
 	badstate=1
     fi
 
     if [ 1 = "$badstate" ] ; then
+	cat <<EOF
+info: Please check out this manually.
+info: Refusing to convert boot sequence until this is fixed
+info: See http://wiki.debian.org/LSBInitScripts/DependencyBasedBoot
+info: for more information on how to solve these issues.  Most likely,
+info: it is a bug in the binary package with the init.d script, and
+info: not with insserv.
+EOF
 	exit 1
     fi
 
