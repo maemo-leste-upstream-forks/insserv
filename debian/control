@@ -15,7 +15,7 @@ Conflicts: initscripts (<< 2.86.ds1-48)
 Description: Reorder boot sequence based on LSB init.d script dependencies
  Reorder the boot order based on init.d script dependencies as
  documented in LSB comment headers in the script or in override files
- included in the package or in /etc/.
+ included in the insserv package or in /etc/insserv/overrides/.
  .
  Use this package with care, as incorrect or missing dependencies can
  give you an unbootable system.

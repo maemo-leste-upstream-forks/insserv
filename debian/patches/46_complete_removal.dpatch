@@ -1,0 +1,43 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 46_complete_removal.dpatch by Petter Reinholdtsen
+
+Make sure symlink removal removes all symlinks, not just the ones in
+rulevels listed in default-start and default-stop.  Solves debian bug
+#460034.  Based on patch and feedback from Kel Modderman.
+
+@DPATCH@
+diff -urNad insserv~/insserv.c insserv/insserv.c
+--- insserv~/insserv.c	2008-01-19 14:38:06.000000000 +0100
++++ insserv/insserv.c	2008-01-19 14:39:48.000000000 +0100
+@@ -1460,8 +1460,15 @@
+ 	    order = atoi(ptr);
+ 	    ptr += 2;
+ 
++/*
++ * Make sure removal removes all existing symlinks by disabling this
++ * for the non-SUSE case.  No idea if why this is needed for the SUSE
++ * case. [Petter Reinholdtsen 2008-01-19]
++ */
++#ifdef SUSE
+ 	    if (iargv && chkfor(ptr, iargv, icnt))
+ 		continue;		/* ignore scripts if removed later */
++#endif
+ 
+ 	    if (stat(d->d_name, &st_script) < 0) {
+ 		xremove(d->d_name);	/* dangling sym link */
+@@ -1491,6 +1498,15 @@
+ 		}
+ 		service = current_structure(token, order, runlevel, type);
+ 
++/*
++ * Break out here (and not above), as the rest of this loop is not
++ * used during removals.  [Petter Reinholdtsen 2008-01-19]
++ */
++#ifndef SUSE
++		if (iargv && chkfor(ptr, iargv, icnt))
++		    break;
++#endif /* not SUSE */
++
+ 		if (service->opts & SERV_KNOWN)
+ 		    continue;
+ 		service->opts |= (SERV_KNOWN|SERV_ENABLED);

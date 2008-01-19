@@ -1,3 +1,19 @@
+insserv (1.10.0-6) unstable; urgency=low
+
+  * Implement support for preseeding insserv, to make it possible to
+    enable it at install time.  This only work the first time the
+    package is installed and config is executed when
+    /usr/sbin/update-rc.d-insserv does not exist yet.
+  * Changed check-initd-order to load virtual facilities from
+    /etc/insserv.conf (Closes: #459522)
+  * Extended testsuite to more closely match real Debian for the
+    shutdown sequence.
+  * New patch 46_complete_removal.dpatch to make sure all symlinks are
+    removed on removal (Closes: #460034).  Based on patch from Kel
+    Modderman.  Made failing removal test fatal.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 19 Jan 2008 14:45:27 +0100
+
 insserv (1.10.0-5) unstable; urgency=low
 
   * Made sure to initialize the badstate variable before it is used in

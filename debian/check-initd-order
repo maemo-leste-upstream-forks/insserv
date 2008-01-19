@@ -33,33 +33,13 @@ my %rcmap =
      '6' => 'rc6.d',
      );
 
-# Map packages to system metapackages.  These dependencies should
-# probably be more complex
-my %sysmap =
-    (
-     'network'      => '$network',
-     'networking'   => '$network',
-     'syslog'       => '$syslog',
-     'sysklogd'     => '$syslog',
-     'mountall'     => '$local_fs',
-     'umountfs'     => '$local_fs',
-     'mountnfs'     => '$remote_fs',
-     'mountnfs-bootclean' => '$remote_fs',
-     'umountnfs'    => '$remote_fs',
-     'sendsigs'     => '$remote_fs',
-     'hwclock'      => '$time',
-     'ntpdate'      => '$time',
-     'ntp-server'   => '$time',
-     'named'        => '$named',
-     'dnsmasq'      => '$named',
-     'lwresd'       => '$named',
-     'bind9'        => '$named',
-     'portmap'      => '$portmap',
-     );
+my %sysmap;
 
 my %provideslist;
 my %scriptorder;
 my %opts;
+
+load_sysmap("/etc/insserv.conf");
 
 while($#ARGV >= 0 && ($_ = $ARGV[0]) =~ /^-/) {
         shift @ARGV;
@@ -97,6 +77,26 @@ sub basename {
     my $path = shift;
     $path =~ s%^.*/([^/]+)$%$1%;
     return $path;
+}
+
+# Map packages to system metapackages.  These dependencies should
+# probably be more complex
+sub load_sysmap {
+    my $filename = shift;
+    open(CONF, "<", "$filename") || die "Unable to load $filename";
+    while (<CONF>) {
+        chomp;
+        s/\#.*$//;
+        next if m/^\s*$/;
+        if (m/^(\$\S+)\s+(\S.*\S*)\S*$/) {
+            my $virt = $1;
+            for my $dep (split(/\s+/, $2)) {
+                $dep =~ s/^\+//g;
+                $sysmap{$dep} = $virt;
+            }
+        }
+    }
+    close(CONF);
 }
 
 sub graph_addnode {

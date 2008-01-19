@@ -34,8 +34,9 @@ Background info on alternative boot systems in Debian is available from
 <URL:http://alioth.debian.org/docman/view.php/30730/38/debconf2-initscripts-bkg.pdf>.
 
 Information on the LSB initscript comment convention is available from
-<URL:http://refspecs.freestandards.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html>
-and <URL:http://wiki.debian.net/?LSBInitScripts>.
+<URL:http://refspecs.freestandards.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html>,
+<URL:http://wiki.debian.net/?LSBInitScripts> and
+<URL:http://wiki.debian.org/LSBInitScripts/DependencyBasedBoot>.
 
 Information on an alternative approach to parallelism during boot is
 available from

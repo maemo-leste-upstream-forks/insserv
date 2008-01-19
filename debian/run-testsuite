@@ -257,6 +257,7 @@ insertscript umountnfs <<'EOF'
 # Provides:          umountnfs
 # Required-Start:
 # Required-Stop:     umountfs
+# Should-Stop:       $network $portmap nfs-common
 # Default-Start:
 # Default-Stop:      0 6
 ### END INIT INFO
@@ -320,6 +321,8 @@ check_order 2 needallfs2 needallfs
 check_order 6 needallfs umountnfs
 check_order 6 nolsbheader umountnfs
 check_order 6 umountfs umountroot
+check_order 6 umountnfs networking
+check_order 6 networking ifupdown
 check_order 6 umountnfs umountfs
 check_order 6 umountroot reboot
 check_order 6 umountroot kexec
@@ -691,10 +694,10 @@ insserv_reg oldscript
 
 list_rclinks
 
-${severity}_script_not_present 0 oldscript
-${severity}_script_present 1 oldscript
-${severity}_script_present 2 oldscript
-${severity}_script_not_present 3 oldscript
-${severity}_script_not_present 6 oldscript
+check_script_not_present 0 oldscript
+check_script_present 1 oldscript
+check_script_present 2 oldscript
+check_script_not_present 3 oldscript
+check_script_not_present 6 oldscript
 
 finish_test
