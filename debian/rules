@@ -58,6 +58,7 @@ install: build
 
 	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/.
 	$(INSTALL) debian/check-initd-order $(DESTDIR)$(pkgdatadir)/.
+	$(INSTALL) debian/make-testsuite $(DESTDIR)$(pkgdatadir)/.
 	$(INSTALL) debian/update-bootsystem-insserv $(DESTDIR)$(sbindir)/.
 	$(INSTALL) debian/update-rc.d-insserv $(DESTDIR)$(sbindir)/.
 

@@ -7,7 +7,7 @@ initddir=$tmpdir/etc/init.d
 
 insserv=`pwd`/insserv
 # Relative to $tmpdir
-insconf=/etc/insserv.conf
+insconf=$tmpdir/etc/insserv.conf
 overridedir=$tmpdir/etc/insserv/override
 
 retval=0

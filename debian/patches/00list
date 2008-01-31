@@ -1,15 +1,2 @@
 10_nosuse
-20_path_at_runtime
-21_overrides
 31_debian_conf
-32_debian_nolsb
-33_debian_localok
-#34_debian_fixedscripts
-38_debuginfo
-40_nosusescript
-41_debiandefault
-42_redundantlvl
-43_shutdown
-44_reportloopmemb
-45_loopsarefatal
-46_complete_removal

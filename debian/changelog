@@ -1,3 +1,22 @@
+insserv (1.11.0-1) unstable; urgency=low
+
+  * New upstream version.
+    - Drop patches 20_path_at_runtime, 21_overrides, 32_debian_nolsb,
+      33_debian_localok, 38_debuginfo, 40_nosusescript,
+      41_debiandefault, 42_redundantlvl, 43_shutdown,
+      44_reportloopmemb, 45_loopsarefatal and 46_complete_removal
+      merged upstream.
+    - Updated insserv(8) manual page for Debian (Closes: #462064).
+    - Correct path to insserv.conf in test suite to keep it working.
+    - A lot faster (Closes: #462211).
+  * New example script make-testsuite useful to generate a test script
+    demonstrating a problem.
+  * Added override files for guidedog and puppet.
+  * Removed override file for atd and lvm2, as the packages now include
+    the LSB header.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 31 Jan 2008 09:05:07 +0100
+
 insserv (1.10.0-6) unstable; urgency=low
 
   * Implement support for preseeding insserv, to make it possible to

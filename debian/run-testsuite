@@ -3,7 +3,7 @@
 basedir=$(dirname $0)
 . $basedir/testsuite-common
 
-if head -1 debian/changelog | grep UNRELEASED ; then
+if head -1 debian/changelog | grep -q UNRELEASED ; then
     severity=check
 else
     severity=test
@@ -28,7 +28,7 @@ echo
 echo "info: test normal boot sequence scripts, and their order"
 echo
 
-cat <<'EOF' > $tmpdir$insconf
+cat <<'EOF' > $insconf
 $local_fs       +mountall +umountfs
 $network        +networking +ifupdown
 $named          +named +dnsmasq +lwresd +bind9 $network
@@ -547,6 +547,7 @@ list_rclinks
 
 echo
 echo "info: test handling of 'fake' loops using reverse depends"
+echo "warning: This test should be fatal, but is non-fatal until a fix is found."
 echo
 
 rm -rf $initddir
@@ -648,7 +649,6 @@ check_script_not_present S onlystop
 
 echo
 echo "info: test if script removal removes all symlinks."
-echo "warning: This test should be fatal, but is non-fatal until a fix is found."
 echo
 # This test check that the common way to update the runlevels used by
 # a given script is working.  It simulates these calls to update-rc.d:

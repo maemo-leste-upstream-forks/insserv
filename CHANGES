@@ -1,4 +1,30 @@
 -------------------------------------------------------------------
+Wed Jan 30 17:49:55 CET 2008 - werner@suse.de
+
+- New version 1.11.0 of insserv
+- Code cleanup, update copyrights, and manual pages
+- Use __attribute__ of gcc for better function management
+- Use __attribute__ of gcc for alignment of list_t pointers
+- Some preparation listing.c for kill link sorting (TODO)
+
+-------------------------------------------------------------------
+Thu Jan 24 18:59:14 CET 2008 - werner@suse.de
+
+- Add and integrate many patches from Debian svn tree done by
+  Petter Reinholdtsen
+  * Make it possible to set the path at runtime, to make it easier
+    to write test suites
+  * Support for reading LSB headers info from override directroy
+  * Accept script names like 'rc.local' for Debian build
+  * Use other defaults on Debian systems (start, stop levels)
+  * Put redundant level informations in one API
+  * Fix the handling of stop scripts and the shutdown sequence
+    on Debian systems
+  * Better loop report
+  * Make loops fatal if not forced
+- Clean the API for listing the services
+
+-------------------------------------------------------------------
 Wed Oct 10 12:39:25 CEST 2007 - werner@suse.de
 
 - Even disabled scripts should be occur in dependcies (#331615)
