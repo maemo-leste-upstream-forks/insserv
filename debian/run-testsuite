@@ -700,4 +700,41 @@ check_script_present 2 oldscript
 check_script_not_present 3 oldscript
 check_script_not_present 6 oldscript
 
+echo
+echo "info: detect segfault caused by script providing virtual facility."
+echo
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript badheaderscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          $syslog
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+# Problem is only triggered if there are start or stop symlinks for
+# the script present.
+mkdir -p $initddir/../rc2.d
+ln -s ../init.d/badheaderscript $initddir/../rc2.d/S02badheaderscript
+
+# This one segfaults
+insertscript okscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          okscript
+# Required-Start:    $syslog
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_script_present 2 okscript
+
 finish_test

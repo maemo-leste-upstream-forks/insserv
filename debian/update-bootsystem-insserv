@@ -158,9 +158,9 @@ activate_insserv() {
     done
 
     insserv -nv > $logfile 2>&1 || true
-    if egrep -q 'There is a loop between|already provided!' $logfile ; then
+    if egrep -q 'There is a loop between|already provided!|provides system facility' $logfile ; then
 	echo "error: Problems running insserv:"
-	egrep 'There is a loop between|loop involving service|already provided!' $logfile | sed 's/^/  /'
+	egrep 'There is a loop between|loop involving service|already provided!|provides system facility' $logfile | sed 's/^/  /'
 	rm $logfile
 	badstate=1
     fi

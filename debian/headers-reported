@@ -48,6 +48,7 @@ mbmon mbmon xmbmon #460243
 monit monit monit #460299
 mountfix nfsbooted nfsbooted #458859
 mountvar gibraltar-bootsupport gibraltar-bootcd #459872
+mzscheme mzscheme drscheme #463491
 netapplet netapplet netapplet #460911
 netatalk netatalk netatalk #459442
 nethack-common nethack-common nethack #458465

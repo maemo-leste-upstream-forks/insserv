@@ -41,7 +41,7 @@ diff -urNad insserv~/insserv.conf insserv/insserv.conf
  # System logger is operational
  #
 -$syslog		syslog
-+$syslog		+syslog +sysklogd
++$syslog		+syslog +sysklogd +rsyslog +syslog-ng
  
  #
  # SunRPC portmapper available

@@ -1,0 +1,35 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 40_segfault_virtprov.dpatch by Petter Reinholdtsen
+
+Avoid segfault when an enabled service provide a virtual system
+facility.
+
+@DPATCH@
+--- insserv-1.11.0.orig/insserv.c
++++ insserv-1.11.0/insserv.c
+@@ -2856,7 +2861,8 @@
+ 	 */
+ 	while ((d = readdir(rcdir)) != (struct dirent*)0) {
+ 	    const char * ptr = d->d_name;
+-	    serv_t * serv;
++	    serv_t * serv = 0;
++	    const char * prov;
+ 
+ 	    if (*ptr != 'S' && *ptr != 'K')
+ 		continue;
+@@ -2865,11 +2871,14 @@
+ 	    if (strspn(ptr, "0123456789") != 2)
+ 		continue;
+ 	    ptr += 2;
+-	    serv = findserv(getprovides(ptr));
+ 
+ 	    if (stat(d->d_name, &st_script) < 0)
+ 		xremove(d->d_name);	/* dangling sym link */
+ 
++	    prov = getprovides(ptr);
++	    if (prov)
++	        serv = findserv(prov);
++
+ 	    if (!serv) continue;
+ 
+ 	    if (defaults && !(serv->opts & SERV_ENABLED))

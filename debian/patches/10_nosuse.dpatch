@@ -2,7 +2,7 @@
 ## 10_nosuse.dpatch by Petter Reinholdtsen
 ## Updated for insserv v1.10 by PEtter Reinholdtsen
 
-Disable the SUSE specific parts.
+Disable the SUSE specific parts and make sure to build with debugging.
 
 @DPATCH@
 diff -urNad insserv-1.10.0~/Makefile insserv-1.10.0/Makefile
@@ -17,3 +17,12 @@ diff -urNad insserv-1.10.0~/Makefile insserv-1.10.0/Makefile
  DESTDIR	 =
  VERSION	 =	1.10.0
  DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
+@@ -25,7 +25,7 @@
+ ifeq ($(ARCH),i386)
+ 	  COPTS = -O2 -mcpu=i586 -mtune=i686
+ else
+-	  COPTS = -O2
++	  COPTS = -O2 -g
+ endif
+ endif
+ 	 CFLAGS = -Wall $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \

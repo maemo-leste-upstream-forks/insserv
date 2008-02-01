@@ -1,3 +1,19 @@
+insserv (1.11.0-2) unstable; urgency=low
+
+  * Changed patch 31_debian_conf to accept rsyslog and syslog-ng as
+    implementations for the $syslog facility.
+  * Added test case to detect insserv crashing when it find scripts
+    providing virtual system facilities.
+  * Changed update-bootsystem-insserv to refuse to enable dependency
+    based boot sequencing when a script provide a virtual system
+    facility.
+  * Changed patch 10_nosuse.dpatch to make sure we build with -g.
+  * Added patch debian/patches/40_segfault_virtprov.dpatch to avoid
+    segfault when finding an enabled script that provide a virtual
+    system facility.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri,  1 Feb 2008 09:24:10 +0100
+
 insserv (1.11.0-1) unstable; urgency=low
 
   * New upstream version.
