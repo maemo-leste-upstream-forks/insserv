@@ -1,3 +1,9 @@
 10_nosuse
+11_more_warnings
 31_debian_conf
+32_debug_option
+33_nosuse_scripts
 40_segfault_virtprov
+41_cleansystem
+50_sign_warning
+51_overwrite_output

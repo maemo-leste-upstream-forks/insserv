@@ -1,0 +1,16 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+
+Remove the generated .system file when cleaning.
+
+@DPATCH@
+--- insserv-1.11.0.orig/Makefile
++++ insserv-1.11.0/Makefile
+@@ -81,7 +81,7 @@
+ .force:
+ 
+ clean:
+-	$(RM) *.o *~ $(TODO) .depend.*
++	$(RM) *.o *~ $(TODO) .depend.* .system
+ 
+ -include .depend.listing .depend.insserv
+ 

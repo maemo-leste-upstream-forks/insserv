@@ -12,10 +12,10 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, sysv-rc
 Suggests: bootchart
 Conflicts: initscripts (<< 2.86.ds1-48)
-Description: Reorder boot sequence based on LSB init.d script dependencies
- Reorder the boot order based on init.d script dependencies as
- documented in LSB comment headers in the script or in override files
- included in the insserv package or in /etc/insserv/overrides/.
+Description: boot sequence organizer using LSB init.d script dependencies
+ This utility reorders the init.d boot scripts based on dependencies
+ given in scripts' LSB comment headers, or in override files
+ included in this package or added in /etc/insserv.
  .
- Use this package with care, as incorrect or missing dependencies can
- give you an unbootable system.
+ This package should be used with care, as incorrect or missing dependencies
+ can lead to an unbootable system.

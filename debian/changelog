@@ -1,3 +1,39 @@
+insserv (1.11.0-3) unstable; urgency=low
+
+  * Rewrote patch debian/patches/40_segfault_virtprov.dpatch with a
+    solution provided by upstream.
+  * Added script debian/seq-changes from Frans Pop installed in
+    /usr/share/insserv/ to extract the sequence changes done by
+    insserv.
+  * New testsuite check to detect incorrectly inserted stop symlinks
+    when scripts with incorrect headers are encountered.
+  * Removed override file for snmptrapfmt, as the package now include
+    the LSB header.
+  * Removed override file save-etc-disk.  It is not present in Debian.
+  * Update the package description and debconf question text (Closes: #464109).
+  * New patch 11_more_warnings to activate more warning flags during
+    build.  Obsoletes setting the same flags in debian/rules.
+  * New patch 50_sign_warning getting rid of some signed/unsigned
+    compare issues.
+  * Update test suite to the one provided by Werner Fink.
+  * Extended test suite to report status at the end.
+  * New patch 32_debug_option to add new option -D to print debug
+    output.
+  * New patch 33_nosuse_scripts to disable some SUSE specific settings.
+  * New patch 51_overwrite_output to improve output when symlinks on
+    disk do not match the default-* headers.
+  * Added override file for slashem-common.
+  * New patch 41_cleansystem to clean the .system file.  Changed rules
+    file to make sure it take effect.
+  * Change test suite to use /bin/bash, as it uses bash-features.
+  * Debconf translations:
+    - Added Galician from Jacobo Tarrio (Closes: #465067).
+    - Added Vietnamese from Clytie Siddall (Closes: #465437).
+    - Added Portugese from Américo Monteiro  (Closes: #465519).
+    - Added Finnish from Esko Arajärvi (Closes: #465800).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 17 Feb 2008 13:54:03 +0100
+
 insserv (1.11.0-2) unstable; urgency=low
 
   * Changed patch 31_debian_conf to accept rsyslog and syslog-ng as

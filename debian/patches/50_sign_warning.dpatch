@@ -1,0 +1,52 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 50_sign_warning.dpatch by Petter Reinholdtsen
+
+Get rid of signed/unsigned compare warnings visible with gcc option
+-W.
+
+@DPATCH@
+--- insserv-1.11.0.orig/insserv.c
++++ insserv-1.11.0/insserv.c
+@@ -1350,7 +1350,7 @@
+     int n;
+ 
+     n = snprintf(&fullpath[0], sizeof(fullpath), "%s%s/%s", (root && !set_override) ? root : "", dir, name);
+-    if (n >= sizeof(fullpath) || n < 0)
++    if (n >= (int)sizeof(fullpath) || n < 0)
+ 	error("snprintf(): %s\n", strerror(errno));
+ 
+     if (stat(fullpath, &statbuf) == 0 && S_ISREG(statbuf.st_mode))
+@@ -1456,7 +1456,7 @@
+ #endif		/* not SUSE */
+ };
+ 
+-#define RUNLEVLES (sizeof(runlevel_locations)/sizeof(runlevel_locations[0]))
++#define RUNLEVLES (int)(sizeof(runlevel_locations)/sizeof(runlevel_locations[0]))
+ 
+ int map_has_runlevels(void)
+ {
+@@ -1847,13 +1847,13 @@
+     regcompiler(&creg.isactive, CONFLINE2, REG_EXTENDED|REG_ICASE);
+ 
+     n = snprintf(&path[0], sizeof(path), "%s%s",   (root && !set_insconf) ? root : "", file);
+-    if (n >= sizeof(path) || n < 0)
++    if (n >= (int)sizeof(path) || n < 0)
+ 	error("snprintf(): %s\n", strerror(errno));
+ 
+     scan_conf_file(path);
+ 
+     n = snprintf(&path[0], sizeof(path), "%s%s.d", (root && !set_insconf) ? root : "", file);
+-    if (n >= sizeof(path) || n < 0)
++    if (n >= (int)sizeof(path) || n < 0)
+ 	error("snprintf(): %s\n", strerror(errno));
+ 
+     n = scandir(path, &namelist, cfgfile_filter, alphasort);
+@@ -1863,7 +1863,7 @@
+ 	    int r;
+ 
+ 	    r = snprintf(&buf[0], sizeof(buf), "%s/%s", path, namelist[n]->d_name);
+-	    if (r >= sizeof(buf) || r < 0)
++	    if (r >= (int)sizeof(buf) || r < 0)
+ 		error("snprintf(): %s\n", strerror(errno));
+ 
+ 	    scan_conf_file(buf);

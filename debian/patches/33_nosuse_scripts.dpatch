@@ -1,0 +1,25 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 33_nosuse_scripts.dpatch by Petter Reinholdtsen <pere@hungry.com>
+
+Disable some suse specific code.
+
+@DPATCH@
+diff -u insserv-1.11.0/insserv.c insserv-1.11.0/insserv.c
+--- insserv-1.11.0/insserv.c
++++ insserv-1.11.0/insserv.c
+@@ -2655,6 +2665,7 @@
+     if (is_loop_detected() && !ignore)
+ 	error("exiting now!\n");
+ 
++#ifdef SUSE
+     /*
+      * Re-order some well known scripts to get
+      * a more stable order collection.
+@@ -2663,6 +2674,7 @@
+      */
+     setorder("route",	(getorder("network") + 2), true);
+     setorder("single",	(getorder("kbd") + 2),	   true);
++#endif /* SUSE */
+ 
+     /*
+      * Be sure that interactive scripts are the only member of

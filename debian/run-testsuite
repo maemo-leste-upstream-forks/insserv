@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 basedir=$(dirname $0)
 . $basedir/testsuite-common
@@ -9,25 +9,8 @@ else
     severity=test
 fi
 
-runlevel_path() {
-    runlevel=$1
-    echo $initddir/../rc$runlevel.d/
-}
-
-list_rclinks() {
-    (cd $initddir/../. && ls *)
-}
-
-insserv_reg() {
-    script=$initddir/$1
-    shift
-    $insserv $debug -c $insconf -p $initddir -o $overridedir $@ $script
-}
-
-echo
-echo "info: test normal boot sequence scripts, and their order"
-echo
-
+update_conf() {
+set +C
 cat <<'EOF' > $insconf
 $local_fs       +mountall +umountfs
 $network        +networking +ifupdown
@@ -38,6 +21,12 @@ $portmap        portmap
 $time           hwclock
 <interactive>   udev mountdevsubfs checkroot checkfs console-screen
 EOF
+set -C
+}
+test_normal_sequence() {
+echo
+echo "info: test normal boot sequence scripts, and their order"
+echo
 
 insertscript mountkernfs.sh <<EOF
 ### BEGIN INIT INFO
@@ -90,18 +79,6 @@ insertscript ifupdown <<'EOF'
 # Required-Stop:     $local_fs
 # Default-Start:     S
 # Default-Stop:      0 6
-### END INIT INFO
-EOF
-
-insertscript checkroot.sh <<'EOF'
-### BEGIN INIT INFO
-# Provides:          checkroot
-# Required-Start:    mountdevsubfs
-# Required-Stop:
-# Should-Start:      keymap hwclockfirst
-# Should-stop:
-# Default-Start:     S
-# Default-Stop:
 ### END INIT INFO
 EOF
 
@@ -327,7 +304,9 @@ check_order 6 umountnfs umountfs
 check_order 6 umountroot reboot
 check_order 6 umountroot kexec
 check_order 6 kexec reboot
+}
 
+test_override_files() {
 echo
 echo "info: test if override files replace headers in the file"
 echo
@@ -375,7 +354,9 @@ list_rclinks
 
 # Make sure the override file moved mover before base
 check_order S mover base
+}
 
+test_override_loop() {
 echo
 echo "info: testing to insert scripts with a loop, and the effect of an override file"
 echo
@@ -424,7 +405,10 @@ insserv_reg loop1 || true
 insserv_reg loop2 || true
 
 check_order S loop1 loop2
+}
 
+
+test_long_loop() {
 echo
 echo "info: testing to insert scripts with a longer loop, making sure it fail"
 echo
@@ -466,7 +450,9 @@ if insertscript loop3 <<'EOF' ; then
 EOF
     error "inserting script causing a loop did not fail"
 fi
+}
 
+test_combined_loop() {
 # Test real loop in the combined start and stop sequence.  There is no
 # loop in the start sequence, and no loop in the stop sequence, but in
 # the combined graph insserv is creating internally, there is a loop.
@@ -504,7 +490,9 @@ list_rclinks
 
 test_order S startfirst startsecond
 test_order 6 startsecond startfirst
+}
 
+test_fake_loop() {
 # Test another fake loop.  This one should work, as it is possible to
 # install the two scripts in sequence because one of the dependencies
 # are optional.  It does not with insserv today.
@@ -537,7 +525,9 @@ insertscript startsecond_stoplast <<'EOF' || true
 EOF
 
 list_rclinks
+}
 
+test_fake_loop_reverse() {
 # Test another fake loop using reverse dependencies to document that
 # it can happen based on information provided in one package only.
 # This should work, as it is possible to install the two scripts in
@@ -580,7 +570,9 @@ list_rclinks
 # will fail.  Making the tests non-fatal because of this.
 ${severity}_order S startfirst_stopfirst startsecond_stoplast
 ${severity}_order 6 startfirst_stopfirst startsecond_stoplast 
+}
 
+test_badscript() {
 echo
 echo "info: test if bad script in init.d/ with no symlinks in rc*.d/ make problems"
 echo
@@ -611,7 +603,9 @@ EOF
 list_rclinks
 
 check_script_present S distroglobal
+}
 
+test_onlystop() {
 echo
 echo "info: check that it work to insert scripts with only stop runlevels"
 echo
@@ -625,7 +619,6 @@ rm -rf $initddir
 mkdir -p $initddir
 
 insertscript onlystop <<'EOF' || true
-addscript onlystop <<'EOF' || true
 ### BEGIN INIT INFO
 # Provides:          onlystop
 # Required-Start:    $remote_fs
@@ -646,7 +639,9 @@ check_script_not_present 3 onlystop
 check_script_not_present 4 onlystop
 check_script_not_present 5 onlystop
 check_script_not_present S onlystop
+}
 
+test_removal() {
 echo
 echo "info: test if script removal removes all symlinks."
 echo
@@ -660,7 +655,6 @@ rm -rf $initddir
 mkdir -p $initddir
 
 insertscript oldscript <<'EOF' || true
-addscript oldscript <<'EOF' || true
 ### BEGIN INIT INFO
 # Provides:          oldscript
 # Required-Start:    $remote_fs
@@ -677,6 +671,7 @@ check_script_present 1 oldscript
 check_script_present 3 oldscript
 check_script_present 6 oldscript
 
+set +C
 addscript oldscript <<'EOF' || true
 ### BEGIN INIT INFO
 # Provides:          oldscript
@@ -686,9 +681,10 @@ addscript oldscript <<'EOF' || true
 # Default-Stop:      1
 ### END INIT INFO
 EOF
+set -C
 
 # Remove old symlinks
-insserv_reg oldscript -r
+insserv_del oldscript
 # Insert new ones, this time without runlevel 0 and 6
 insserv_reg oldscript
 
@@ -699,7 +695,10 @@ check_script_present 1 oldscript
 check_script_present 2 oldscript
 check_script_not_present 3 oldscript
 check_script_not_present 6 oldscript
+}
 
+##########################################################################
+test_segfault_virtfac() {
 echo
 echo "info: detect segfault caused by script providing virtual facility."
 echo
@@ -736,5 +735,63 @@ EOF
 list_rclinks
 
 check_script_present 2 okscript
+}
 
-finish_test
+test_incorrect_stopscripts() {
+##########################################################################
+echo
+echo "info: Check if insserv add stop symlinks for scripts that"
+echo "info: currently do not have them."
+echo
+
+rm -rf $initddir/../rc*.d/*
+rm -rf $initddir/*
+mkdir -p $initddir
+
+list_rclinks
+insertscript script <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          script
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+list_rclinks
+
+check_script_present 2 script
+check_script_present 5 script
+check_script_not_present S script
+check_script_present 1 script
+
+rm $initddir/../rc0.d/K??script
+rm $initddir/../rc1.d/K??script
+
+# Update symlinks, see if it add stop symlinks
+insserv_reg .
+
+list_rclinks
+
+check_script_present 2 script
+check_script_present 5 script
+check_script_not_present S script
+${severity}_script_not_present 0 script
+${severity}_script_not_present 1 script
+check_script_not_present 1 nostopscript
+}
+##########################################################################
+
+update_conf
+test_normal_sequence
+test_override_files
+test_override_loop
+test_long_loop
+test_combined_loop
+test_fake_loop
+test_fake_loop_reverse
+test_badscript
+test_onlystop
+test_removal
+test_segfault_virtfac
+test_incorrect_stopscripts
