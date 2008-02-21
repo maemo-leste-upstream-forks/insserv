@@ -1,0 +1,5 @@
+### BEGIN INIT INFO
+# Provides:          pppd-dns
+# Required-Start:    $local_fs
+# Default-Start:     S
+### END INIT INFO

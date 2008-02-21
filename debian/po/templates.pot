@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: pere@debian.org\n"
-"POT-Creation-Date: 2008-01-13 17:55+0100\n"
+"POT-Creation-Date: 2008-02-17 13:56+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,35 +18,28 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../insserv.templates:1001
-msgid "Enable (or keep enabled) dependency based boot sequence?"
+#: ../insserv.templates:2001
+msgid "Enable (or keep enabled) the dependency-based boot sequence?"
 msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../insserv.templates:1001
+#: ../insserv.templates:2001
 msgid ""
-"Enabling this will reorder all the scripts in /etc/rc*.d/ using the "
-"dependency information provided in each script.  If such information is "
-"missing, default dependency info will be used.  It will also change all S* "
-"symlinks in rc0.d/ and rc6.d/ to K* symlinks, to make sure the way they are "
-"used (with 'stop' argument) matches their names.  The change will only be "
-"done after it is verified that it is safe to convert.  Disabling it when "
-"enabled will try to revert the change."
+"If you choose to enable the dependency-based boot sequence the scripts in /"
+"etc/rc*.d/ will be reordered using dependency information provided by LSB "
+"comment headers (or defaults where these are not present). All S* symlinks "
+"in rc0.d/ and rc6.d/ will be turned into K* symlinks, to make sure the way "
+"they are used (with the argument 'stop') matches their names. The change "
+"will only be done after it is verified that it is safe to convert. Disabling "
+"it when enabled will try to revert the change."
 msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../insserv.templates:1001
+#: ../insserv.templates:2001
 msgid ""
-"WARNING: It is very hard to revert from dependency based boot sequencing to "
-"the non-dependency based boot sequencing. Reinstallation might be required."
-msgstr ""
-
-#. Type: boolean
-#. Description
-#: ../insserv.templates:1001
-msgid ""
-"This is an experimental feature, and is at the moment only intended for "
-"testing of insserv and the LSB style dependecy information in init.d scripts."
+"Please note that this feature is experimental. Attempting to revert from "
+"dependency-based boot sequencing is not guaranteed to be safe, and may "
+"require the reinstallation of the system."
 msgstr ""

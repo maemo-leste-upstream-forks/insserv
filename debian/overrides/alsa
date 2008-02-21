@@ -1,0 +1,8 @@
+### BEGIN INIT INFO
+# Provides:          alsa
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      0 1 6
+### END INIT INFO
+# Reported to Debian BTS as #337638, updated deps after reporting

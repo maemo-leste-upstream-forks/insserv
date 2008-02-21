@@ -1,3 +1,15 @@
+insserv (1.11.0-4) unstable; urgency=low
+
+  * Added override file for whitelister.
+  * Reinsert previously removed override file for lvm2 and others
+    while we wait for the packages in testing to be fixed (Closes:
+    #466700).  These should be removed when lenny is verified to have
+    headers in place.
+  * Debconf translations:
+    - Added French from Christian Perrier (Closes: #466345).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 21 Feb 2008 09:27:34 +0100
+
 insserv (1.11.0-3) unstable; urgency=low
 
   * Rewrote patch debian/patches/40_segfault_virtprov.dpatch with a

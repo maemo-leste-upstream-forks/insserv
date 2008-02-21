@@ -1,0 +1,11 @@
+### BEGIN INIT INFO
+# Provides:          lvm2 lvm
+# Required-Start:    mountdevsubfs
+# Required-Stop:
+# Should-Start:      udev devfsd raid2 mdadm cryptdisks-early
+# Should-Stop:       reboot halt umountroot
+# X-Start-Before     checkfs mountall
+# X-Stop-after       umountfs
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO

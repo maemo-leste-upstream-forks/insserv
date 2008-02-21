@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          raid2
+# Required-Start:
+# Required-Stop:
+# Should-Start:      modutils module-init-tools devfsd udev
+# Should-Stop:       modutils module-init-tools
+# Default-Start:     S 1 2 3 4 5
+# Default-Stop:      0 6
+### END INIT INFO

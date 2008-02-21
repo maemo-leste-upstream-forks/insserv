@@ -94,7 +94,7 @@ binary: binary-indep binary-arch
 
 # List the init.d missing LSB headers and override files
 missing-overrides:
-	@GET http://lintian.debian.org/reports/Tinit.d-script-missing-lsb-section.html| grep W: | rev | cut -d/ -f1 | rev | sort -u > missing
+	@GET http://lintian.debian.org/reports/tags/init.d-script-missing-lsb-section.html | grep W: | rev | cut -d/ -f1 | rev | sort -u > missing
 	@(ls debian/overrides/; cut -d" " -f1 debian/headers-reported |grep -v '#' ) |sort -u > overrides
 	@echo -n "Init.d scripts missing overrides and BTS reports:         "; comm -23 missing overrides|wc -l
 	@echo $$(comm -23 missing overrides) |fold -s | sed 's/^/  /'
@@ -108,7 +108,7 @@ missing-overrides:
 bin-by-inst.txt:
 	@GET http://popcon.debian.org/by_inst > bin-by-inst.txt
 missingpkgs:
-	@GET http://lintian.debian.org/reports/Tinit.d-script-missing-lsb-section.html| grep W: | cut -d'<' -f 2 | cut -d'>' -f2 | sort -u > missingpkgs
+	@GET http://lintian.debian.org/reports/tags/init.d-script-missing-lsb-section.html| grep W: | cut -d'<' -f 2 | cut -d'>' -f2 | sort -u > missingpkgs
 missing-by-popcon: bin-by-inst.txt missingpkgs
 	@for pkg in $$(cat missingpkgs); do \
 		if grep -q " $$pkg " debian/headers-reported ; then \

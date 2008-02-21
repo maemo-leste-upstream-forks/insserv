@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          ltsp-client
+# Required-Start:    ltsp-client-setup $network $syslog
+# Required-Stop:     ltsp-client-setup $network $syslog
+# Should-Start:      xdebconfigurator
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+# Already present in package

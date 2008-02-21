@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: insserv 1.10.0-4\n"
-"Report-Msgid-Bugs-To: insserv@packages.debian.org\n"
-"POT-Creation-Date: 2008-02-10 12:28+0100\n"
+"Report-Msgid-Bugs-To: pere@debian.org\n"
+"POT-Creation-Date: 2008-02-17 13:56+0100\n"
 "PO-Revision-Date: 2008-02-12 00:09+0000\n"
 "Last-Translator: Américo Monteiro <a_monteiro@netcabo.pt>\n"
 "Language-Team: Portuguese <traduz@debianpt.org>\n"
@@ -20,7 +20,8 @@ msgstr ""
 #. Description
 #: ../insserv.templates:2001
 msgid "Enable (or keep enabled) the dependency-based boot sequence?"
-msgstr "Activar (ou manter activa) a sequência de arranque baseada em dependências?"
+msgstr ""
+"Activar (ou manter activa) a sequência de arranque baseada em dependências?"
 
 #. Type: boolean
 #. Description
@@ -51,7 +52,6 @@ msgid ""
 "dependency-based boot sequencing is not guaranteed to be safe, and may "
 "require the reinstallation of the system."
 msgstr ""
-"Por favor note que esta funcionalidade é experimental. A tentativa de reverter "
-"de sequência de arranque baseada em dependências não é garantidamente "
-"segura, e poderá necessitar da re-instalação do sistema."
-
+"Por favor note que esta funcionalidade é experimental. A tentativa de "
+"reverter de sequência de arranque baseada em dependências não é "
+"garantidamente segura, e poderá necessitar da re-instalação do sistema."
