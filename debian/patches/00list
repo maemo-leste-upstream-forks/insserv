@@ -5,5 +5,7 @@
 33_nosuse_scripts
 40_segfault_virtprov
 41_cleansystem
+42_loopnochangemsg
 50_sign_warning
 51_overwrite_output
+52_shutdown_links

@@ -1,0 +1,30 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 53_debugoutput.dpatch by Petter Reinholdtsen
+
+Provide more debug output to help finding bugs in insserv.
+
+@DPATCH@
+--- insserv-1.11.0.orig/listing.h
++++ insserv-1.11.0/listing.h
+@@ -136,7 +136,7 @@
+ #define xsymlink(x,y) ({ if ((dryrun ? 0 : (symlink(x, y) < 0))) \
+ 	warn ("can not symlink(%s, %s%s): %s\n", x, rcd, y, strerror(errno)); \
+ 	else \
+-	info("enable service %s -> %s/%s%s\n", x, path, rcd, y); })
++	info("enable service %s -> %s/%s%s %d\n", x, path, rcd, y, __LINE__); })
+ 
+ /*
+  * Bits of the runlevels
+--- insserv-1.11.0.orig/insserv.c
++++ insserv-1.11.0/insserv.c
+@@ -2911,6 +2914,10 @@
+ 	    if ((serv->lvls & lvl) == 0 && (serv->lvlk & lvl) == 0)
+ 		continue;		/* We aren't suppose to be on this runlevel */
+ 
++	    if (verbose)
++	        printf("S: %s K: %s\n", lvl2str(serv->lvls),
++		       lvl2str(serv->lvlk));
++
+ 	    sprintf(olink, "../init.d/%s", script);
+ 	    sprintf(nlink, "%c%.2d%s", mode, order, script);
+ 

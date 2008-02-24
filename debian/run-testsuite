@@ -737,8 +737,8 @@ list_rclinks
 check_script_present 2 okscript
 }
 
-test_incorrect_stopscripts() {
 ##########################################################################
+test_incorrect_stopscripts() {
 echo
 echo "info: Check if insserv add stop symlinks for scripts that"
 echo "info: currently do not have them."
@@ -781,6 +781,89 @@ ${severity}_script_not_present 1 script
 check_script_not_present 1 nostopscript
 }
 ##########################################################################
+test_newbug_keepoldorder() {
+echo
+echo "info: Verify that introducing a loop in a working system do"
+echo "info: not change the order of the scripts currently on disk."
+echo
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript mountall <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          mountall
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript needlocal <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          needlocal
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      6
+### END INIT INFO
+EOF
+
+insertscript needremote <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          needremote
+# Required-Start:    $remote_fs needlocal
+# Required-Stop:     $remote_fs needlocal
+# Default-Start:     S
+# Default-Stop:      6
+### END INIT INFO
+EOF
+
+insertscript needboth <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          needboth
+# Required-Start:    needlocal needremote
+# Required-Stop:     needlocal needremote
+# Default-Start:     S
+# Default-Stop:      6
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_order S mountall needlocal
+check_order S mountall needremote
+check_order S mountall needboth
+check_order S needlocal needremote
+check_order S needlocal needboth
+check_order S needremote needboth
+
+# Then introduce buggy dependencies in an existing script
+set +C
+addscript needboth <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          needboth
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# X-Start-Before:    $local_fs
+# Default-Start:     S
+# Default-Stop:      6
+### END INIT INFO
+EOF
+set -C
+
+echo "info: calling insserv after introducing a bug in script needboth"
+insserv_reg needboth || true
+
+check_order S mountall needlocal
+check_order S mountall needremote
+check_order S mountall needboth
+check_order S needlocal needremote
+check_order S needlocal needboth
+check_order S needremote needboth
+}
+##########################################################################
 
 update_conf
 test_normal_sequence
@@ -795,3 +878,4 @@ test_onlystop
 test_removal
 test_segfault_virtfac
 test_incorrect_stopscripts
+test_newbug_keepoldorder

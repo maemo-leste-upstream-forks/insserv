@@ -16,8 +16,10 @@ courier-authdaemon courier-authdaemon courier-authlib #460221
 cpqarrayd cpqarrayd cpqarrayd #451759
 cpudyn cpudyn cpudyn #459553
 dictd dictd dictd #460201
+distmp3 distmp3 distmp3 #466937
 dmraid dmraid dmraid #458626
 dropbear dropbear dropbear #466257
+fcron fcron fcron #466982
 fwlogwatch fwlogwatch fwlogwatch #466255
 gdomap gnustep-base-runtime gnustep-base #460224
 genpower genpower genpower #466203
@@ -34,6 +36,7 @@ icecast2 icecast2 icecast2 #460853
 ipfm ipfm ipfm #466653
 ipmasq ipmasq ipmasq #466151 (no patch)
 ipvsadm ipvsadm ipvsadm #466256
+ipx ipx ncpfs #466936
 isdnutils isdnutils-base isdnutils #464677
 jabber jabber jabber #460855
 ldapdns ldapdns ldapdns #464059
@@ -56,7 +59,9 @@ nstxd nstx nstx #457756
 ntop ntop ntop #460225
 oidentd oidentd oidentd #462212
 openhpid openhpid openhpi #460216
+pop-before-smtp pop-before-smtp pop-before-smtp #466975
 portsentry portsentry portsentry #462220
+postfix-policyd postfix-policyd postfix-policyd #467141
 powerfail genpower genpower #466203
 pptpd pptpd pptp #458476
 psad psad psad #465412
@@ -67,13 +72,17 @@ pure-ftpd-ldap pure-ftpd-ldap pure-ftpd #460303
 pure-ftpd-mysql pure-ftpd-mysql pure-ftpd #460303
 pure-ftpd-postgresql pure-ftpd-postgresql pure-ftpd #460303
 racoon racoon racoon #458488
+rarpd rarpd rarpd #466973
 realtime realtime-lsm realtime-lsm #462918
+rinetd rinetd rinetd #466976
+rng-tools rng-tools rng-tools #466917
 scsitools-pre.sh scsitools scsitools #458649
 scsitools.sh scsitools scsitools #458649
 setkey ipsec-tools ipsec-tools #458488
 slashem-common slashem-common slashem #465433
 slpd slpd openslp #462219
 smartmontools smartmontools smartmontools #458391
+spamass-milter spamass-milter spamass-milter #467145
 spamassassin spamassassin spamassassin #451762
 ssbd ssbd ssbd #466649
 swapd swapd swapd #458624

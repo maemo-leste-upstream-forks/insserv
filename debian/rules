@@ -112,7 +112,7 @@ missingpkgs:
 missing-by-popcon: bin-by-inst.txt missingpkgs
 	@for pkg in $$(cat missingpkgs); do \
 		if grep -q " $$pkg " debian/headers-reported ; then \
-			: ; \
+			grep " $$pkg " bin-by-inst.txt | sed 's/$$/ */'; \
 		else \
 			grep " $$pkg " bin-by-inst.txt ; \
 		fi ; \

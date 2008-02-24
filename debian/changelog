@@ -1,3 +1,21 @@
+insserv (1.11.0-5) unstable; urgency=low
+
+  * Add test to verify that introducing a loop will not change the boot
+    sequence, but make insserv exit with an error.
+  * Added patch 42_loopnochangemsg to change the message printed when
+    a loop is detected, to let the user know that the boot sequence is
+    untouched.
+  * Added patch 52_shutdown_links to fix incorrecly inserted stop
+    symlinks (Closes: #464017).
+  * Added patch 53_debugoutput to provide more useful debug output
+    used to track down the stop symlink issues.  Not enabled by default.
+  * Debconf translations:
+    - Added Russian from Yuri Kozlov (Closes: #467164).
+    - Added Czech from Miroslav Kure (Closes: #467170).
+    - Added Italian from Luca Monducci (Closes: #467295).
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 24 Feb 2008 23:49:12 +0100
+
 insserv (1.11.0-4) unstable; urgency=low
 
   * Added override file for whitelister.
