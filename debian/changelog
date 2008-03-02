@@ -1,3 +1,30 @@
+insserv (1.11.0-6) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Added override files for at, fiaif, gom, ifupdown-scripts-zg2 and tspc.
+  * Correct typo in override file for lvm2.
+  * Changed postinst and update-bootsystem-insserv to remove the
+    generated files /etc/init.d/.depend.* when disabled or removed.
+  * Implemented better support in check-initd-orderfor graphing $all
+    relations.
+  * Restructure update-bootsystem-insserv slightly to make it possible
+    to check if it is safe to convert to dependency based boot
+    sequencing without doing the conversion.
+  * Updated 31_debian_conf to list glibc, hostname and keymap as interactive
+    scripts, as none of them can use a pseudoterminal.
+  * Add two new tests to verify that x-start-before and x-stop-after
+    work as they should.
+  * Debconf translations:
+    - Added Spanish from Steve Lord Flaubert (Closes: #467391).
+    - Added German from Erik Schanze (Closes: #467483).
+    - Added Dutch from Bart Cornelis (Closes: #467418).
+
+  [ Kel Modderman ]
+  * Modify debian/insserv.config debconf script to honour a preseeded debconf
+    value enabling dependency based boot on first installation only.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun,  2 Mar 2008 18:00:02 +0100
+
 insserv (1.11.0-5) unstable; urgency=low
 
   * Add test to verify that introducing a loop will not change the boot

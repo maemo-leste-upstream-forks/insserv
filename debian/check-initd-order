@@ -39,6 +39,10 @@ my %provideslist;
 my %scriptorder;
 my %opts;
 
+# Used to draw graphs
+my %gotrevdeps;
+my %allprovides;
+
 load_sysmap("/etc/insserv.conf");
 
 while($#ARGV >= 0 && ($_ = $ARGV[0]) =~ /^-/) {
@@ -144,18 +148,27 @@ sub graph_addnode {
         for $key (keys %deps) {
             if (exists $lsbinfo{$key} && $lsbinfo{$key}) {
                 my @depends = split(/\s+/, $lsbinfo{$key});
+
+                my $dependonall = 0;
+                for my $pkg (@depends) {
+                    $dependonall = 1 if ($pkg eq '$all');
+                }
+
                 for my $pkg (@depends) {
                     my $color = $deps{$key};
                     if ($revkey eq $key) {
                         print "\"$provide\" -> \"$pkg\"[color=$color] ;\n";
+                        $gotrevdeps{$pkg} = 1 unless $dependonall;
                     } else {
                         print "\"$pkg\" -> \"$provide\"[color=$color] ;\n";
+                        $gotrevdeps{$provide} = 1 unless $dependonall;
                     }
                 }
             }
         }
 
-        print "\"$provide\" [shape=box];\n";
+        print "\"$provide\" [shape=box];\n" unless $allprovides{$provide};
+        $allprovides{$provide} = 1;
     }
 }
 
@@ -178,6 +191,15 @@ sub graph_generate_mode {
             }
             graph_addnode($isstopseq, $lsbinforef);
         }
+    }
+    # Mark all packages without any reverse dependencies as depending
+    # on $all
+    for my $provide (keys %allprovides) {
+        next unless (exists $gotrevdeps{$provide});
+        my $lsbinforef = {'provides'       => '$all',
+                          'required-start' => "$provide",
+                          'required-stop'  => "$provide"};
+        graph_addnode($isstopseq, $lsbinforef);
     }
 }
 

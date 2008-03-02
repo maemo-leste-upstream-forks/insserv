@@ -1,0 +1,10 @@
+### BEGIN INIT INFO
+# Provides:          atm
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# X-Start-Before:    ifupdown networking
+# X-Stop-After:      ifupdown networking
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+# Reported to BTS as #468459

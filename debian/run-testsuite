@@ -864,6 +864,74 @@ check_order S needlocal needboth
 check_order S needremote needboth
 }
 ##########################################################################
+test_start_before() {
+echo
+echo "info: Verify that X-start-before work as it should."
+echo
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript startlast <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          startlast
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript startfirst <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          startfirst
+# Required-Start:
+# Required-Stop:
+# X-Start-Before:    startlast
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_order S startfirst startlast
+}
+##########################################################################
+test_stop_after() {
+echo
+echo "info: Verify that X-stop-after work as it should."
+echo
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript stopfirst <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          stopfirst
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insertscript stopafter <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          stopafter
+# Required-Start:
+# Required-Stop:
+# X-Stop-After:      stopfirst
+# Default-Start:
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_order 0 stopfirst stopafter
+}
+##########################################################################
 
 update_conf
 test_normal_sequence
@@ -879,3 +947,5 @@ test_removal
 test_segfault_virtfac
 test_incorrect_stopscripts
 test_newbug_keepoldorder
+test_start_before
+test_stop_after

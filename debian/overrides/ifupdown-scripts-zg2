@@ -1,0 +1,9 @@
+### BEGIN INIT INFO
+# Provides:          ifupdown-scripts-zg2
+# Required-Start:    $local_fs
+# Required-Stop:
+# X-Start-Before:    ifupdown
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+# Reported to BTS as #467491

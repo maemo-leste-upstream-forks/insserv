@@ -1,0 +1,8 @@
+### BEGIN INIT INFO
+# Provides:          tspc
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+# Reported to BTS as #467540

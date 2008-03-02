@@ -56,4 +56,4 @@ diff -urNad insserv~/insserv.conf insserv/insserv.conf
  # Services which need to be interactive
  #
 -<interactive>   boot.crypto boot.localfs boot.rootfsck apache apache2 kdump
-+<interactive>   udev mountdevsubfs checkroot checkfs console-screen
++<interactive>   glibc hostname mountkernfs udev mountdevsubfs checkroot checkfs console-screen keymap
