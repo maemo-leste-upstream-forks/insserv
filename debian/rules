@@ -105,10 +105,11 @@ missing-overrides:
 	@echo -n "Override files that need a bug report:                    "; sh debian/bts-lefttoreport|wc -l
 	@echo $$(sh debian/bts-lefttoreport | sort -u) |fold -s | sed 's/^/  /'
 
-bin-by-inst.txt:
+.PHONY: phony
+bin-by-inst.txt: phony
 	@GET http://popcon.debian.org/by_inst > bin-by-inst.txt
-missingpkgs:
-	@GET http://lintian.debian.org/reports/tags/init.d-script-missing-lsb-section.html| grep W: | cut -d'<' -f 2 | cut -d'>' -f2 | sort -u > missingpkgs
+missingpkgs: phony
+	@GET http://lintian.debian.org/reports/tags/init.d-script-missing-lsb-section.html | grep W: | cut -d'<' -f 2 | cut -d'>' -f2 | sort -u > missingpkgs
 missing-by-popcon: bin-by-inst.txt missingpkgs
 	@for pkg in $$(cat missingpkgs); do \
 		if grep -q " $$pkg " debian/headers-reported ; then \

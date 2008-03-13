@@ -1,3 +1,11 @@
+insserv (1.11.0-7) unstable; urgency=low
+
+  * Added override files for digitools and ddns3-client.
+  * Make sure the dependency based update-rc.d check the argument list
+    slightly, to avoid bugs like #470062.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 13 Mar 2008 13:54:31 +0100
+
 insserv (1.11.0-6) unstable; urgency=low
 
   [ Petter Reinholdtsen ]

@@ -1,0 +1,8 @@
+### BEGIN INIT INFO
+# Provides:          ddns3-client
+# Required-Start:    $network
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+# Reported to BTS as #469141

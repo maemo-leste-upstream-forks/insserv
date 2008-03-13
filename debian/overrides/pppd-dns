@@ -1,5 +1,8 @@
 ### BEGIN INIT INFO
 # Provides:          pppd-dns
 # Required-Start:    $local_fs
+# Required-Stop:
 # Default-Start:     S
+# Default-Stop:
 ### END INIT INFO
+# Reported to BTS as #466273

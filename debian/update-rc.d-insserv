@@ -20,9 +20,11 @@ if ("remove" eq $ARGV[1]) {
         # what to look for.
         exec "insserv", @opts;
     }
-} else {
-    # Ignore start/stop/etc arguments, just add it
+} elsif ("defaults" eq $ARGV[1] || "start" eq $ARGV[1] || "stop" eq $ARGV[1]) {
+    # Ignore start/stop/defaults arguments, just add it
     exec "insserv", @opts, $scriptname;
+} else {
+    usage();
 }
 
 sub usage {
