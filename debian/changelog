@@ -1,3 +1,10 @@
+insserv (1.11.0-8) unstable; urgency=low
+
+  * Make sure the consistency check in update-bootsystem-insserv
+    report all problems and not only the first one.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon, 24 Mar 2008 23:32:22 +0100
+
 insserv (1.11.0-7) unstable; urgency=low
 
   * Added override files for digitools and ddns3-client.

@@ -147,6 +147,7 @@ is_unsafe_to_activate() {
     # Refuse to convert when there are obsolete init.d scripts left
     # behind, as these tend to confuse the boot sequence.
     echo "info: Checking if it is safe to convert to dependency based boot."
+    retval=1
     for package in $(dpkg -S $(find /etc/init.d -type f -perm /+x) \
                      2>/dev/null | cut -d: -f1 | sort -u); do
         obsolete_initscripts=$(dpkg-query -W -f='${Conffiles}\n' $package | \
@@ -155,7 +156,7 @@ is_unsafe_to_activate() {
             for initscript in $obsolete_initscripts; do
                 if [ -e "$initscript" ]; then
                     echo "error: Obsolete conffile $initscript left behind by package $package"
-                    return 0
+                    retval=0
                 fi
             done
         fi
@@ -166,9 +167,9 @@ is_unsafe_to_activate() {
 	echo "error: Problems running insserv:"
 	egrep 'There is a loop between|loop involving service|already provided!|provides system facility' $logfile | sed 's/^/  /'
 	rm $logfile
-	return 0
+	retval=0
     fi
-    return 1
+    return $retval
 }
 
 activate_insserv() {

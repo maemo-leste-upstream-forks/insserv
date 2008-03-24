@@ -13,6 +13,7 @@ ax25spyd ax25spyd ax25spyd #469367
 battery-stats battery-stats battery-stats #468299
 binkd binkd binkd #469268
 bird bird bird #469618
+bitlbee bitlbee bitlbee #472567
 bld bld bld #468374
 blootbot blootbot blootbot #469623
 bnetd bnetd bnetd #469121
@@ -130,6 +131,7 @@ openhpid openhpid openhpi #460216
 oss-preserve oss-preserve oss-preserve #469749
 p3scan p3scan p3scan #469763
 pads pads pads #468882
+pathfinderd pathfinderd pathfinder #471593
 pcapdump pcaputils pcaputils #468368
 perdition perdition perdition #469760
 pimd pimd pimd #469226
