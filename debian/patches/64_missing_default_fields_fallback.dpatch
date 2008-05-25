@@ -1,0 +1,70 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 64_missing_default_fields_fallback.dpatch by Kel Modderman <kel@otaku42.de>
+##
+## DP: Goal: In the cases where Default-Start or Default-Stop are undefined for
+## DP: a script, assume runlevel links to be empty. If Default-Start is defined
+## DP: and empty, do not overwrite it. Likewise for Default-Stop.
+## DP:
+## DP: Fixes: none
+## DP:
+## DP: Status: Intend to submit upstream.
+## DP:
+## DP: Notes: test_no_default_start and test_no_default_stop expose these
+## DP: cases.
+
+@DPATCH@
+diff -urNad insserv~/insserv.c insserv/insserv.c
+--- insserv~/insserv.c	2008-05-20 09:03:51.156011876 +1000
++++ insserv/insserv.c	2008-05-20 09:04:18.929013402 +1000
+@@ -2507,11 +2507,6 @@
+ 			     * Could be a none LSB script, use info from current link scheme.
+ 			     */
+ 			    script_inf.default_start = lvl2str(service->lvls);
+-			else
+-			    /*
+-			     * Ahh ... set default multiuser with network
+-			     */
+-			    script_inf.default_start = xstrdup(DEFAULT_START_LVL);
+ 		    }
+ #ifdef USE_STOP_TAGS
+ 		    /*
+@@ -2554,9 +2549,6 @@
+ 			     * Could be a none LSB script, use info from current link scheme.
+ 			     */
+ 			    script_inf.default_stop = lvl2str(service->lvlk);
+-			/*
+-			 * Do _not_ set default stop levels
+-			 */
+ 		    }
+ #endif /* USE_STOP_TAGS */
+ 		}
+@@ -2564,12 +2556,28 @@
+ 	    free(provides);
+ 	}
+ 
++#ifdef SUSE
+ 	/* Ahh ... set default multiuser with network */
+ 	if (!script_inf.default_start || script_inf.default_start == empty)
+ 	    script_inf.default_start = xstrdup(DEFAULT_START_LVL);
++#else /* SUSE */
++	if (!script_inf.default_start) {
++	    warn("Default-Start undefined, assuming empty start runlevel(s) for script `%s'\n",
++	         d->d_name);
++	    script_inf.default_start = empty;
++	}
++#endif /* Not SUSE */
+ #ifdef USE_STOP_TAGS
+-	if (!script_inf.default_stop  || script_inf.default_start == empty)
++#ifdef SUSE
++	if (!script_inf.default_stop  || script_inf.default_stop == empty)
+ 	    script_inf.default_stop  = xstrdup(DEFAULT_STOP_LVL);
++#else /* SUSE */
++	if (!script_inf.default_stop) {
++	    warn("Default-Stop undefined, assuming empty stop runlevel(s) for script `%s'\n",
++	         d->d_name);
++	    script_inf.default_stop  = empty;
++	}
++#endif /* Not SUSE */
+ #endif /* USE_STOP_TAGS */
+ 
+ 	if (chkfor(d->d_name, argv, argc) && !defaults) {

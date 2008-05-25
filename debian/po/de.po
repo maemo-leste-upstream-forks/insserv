@@ -1,14 +1,14 @@
-# translation of insserv_1.10.0-6_de.po to German
+# translation of insserv_1.11.0-8_de.po to German
 # Copyright (C) 2008, Erik Schanze <eriks@debian.org>
 # This file is distributed under the same license as the insserv package.
 #
 # Erik Schanze <eriks@debian.org>, 2008.
 msgid ""
 msgstr ""
-"Project-Id-Version: insserv_1.10.0-6_de\n"
+"Project-Id-Version: insserv_1.11.0-8_de\n"
 "Report-Msgid-Bugs-To: pere@debian.org\n"
 "POT-Creation-Date: 2008-02-17 13:56+0100\n"
-"PO-Revision-Date: 2008-02-25 21:02+0100\n"
+"PO-Revision-Date: 2008-05-04 00:19+0200\n"
 "Last-Translator: Erik Schanze <eriks@debian.org>\n"
 "Language-Team: German <debian-l10n-german@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
@@ -19,7 +19,6 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../insserv.templates:2001
-#, fuzzy
 msgid "Enable (or keep enabled) the dependency-based boot sequence?"
 msgstr ""
 "Abhängigkeitsgestützte Reihenfolge beim Hochfahren aktivieren (oder "
@@ -28,7 +27,6 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../insserv.templates:2001
-#, fuzzy
 msgid ""
 "If you choose to enable the dependency-based boot sequence the scripts in /"
 "etc/rc*.d/ will be reordered using dependency information provided by LSB "
@@ -38,7 +36,7 @@ msgid ""
 "will only be done after it is verified that it is safe to convert. Disabling "
 "it when enabled will try to revert the change."
 msgstr ""
-"Wenn Sie hier zustimmen, werden alle Skripte im Verzeichnis /etc/rc*.d "
+"Wenn Sie hier zustimmen, werden alle Skripte im Verzeichnis /etc/rc*.d/ "
 "anhand der in jedem Skript enthaltenen Informationen über die Abhängigkeiten "
 "neu sortiert. Wenn diese Information fehlt, wird die Standardinformation "
 "über Abhängigkeiten benutzt. Es werden auch alle symbolischen Links »S*« in "
@@ -56,21 +54,9 @@ msgid ""
 "dependency-based boot sequencing is not guaranteed to be safe, and may "
 "require the reinstallation of the system."
 msgstr ""
+"Bitte beachten Sie, dass es sich um eine experimentelle "
+"Funktionalität handelt. Es gibt keine Garantie, dass man von einer "
+"abhängigkeitsgestützten zu einer nicht abhängigkeitsgestützten "
+"Reihenfolge des Hochfahrens sicher zurückzukehren kann. Eine "
+"Neuinstallation des Systems könnte erforderlich werden."
 
-#~ msgid ""
-#~ "WARNING: It is very hard to revert from dependency based boot sequencing "
-#~ "to the non-dependency based boot sequencing. Reinstallation might be "
-#~ "required."
-#~ msgstr ""
-#~ "WARNUNG: Es ist sehr schwierig, von einer abhängigkeitsgestützten zu "
-#~ "einer nicht abhängigkeitsgestützten Reihenfolge des Hochfahrens "
-#~ "zurückzukehren. Eine Neuinstallation könnte erforderlich werden."
-
-#~ msgid ""
-#~ "This is an experimental feature, and is at the moment only intended for "
-#~ "testing of insserv and the LSB style dependecy information in init.d "
-#~ "scripts."
-#~ msgstr ""
-#~ "Das ist eine experimentelle Funktionalität und momentan nur zum Testen "
-#~ "von Insserv und den LSB-konformen Abhängigkeitsinformationen in Init.d-"
-#~ "Skripten vorgesehen."

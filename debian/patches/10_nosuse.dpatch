@@ -1,8 +1,11 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
 ## 10_nosuse.dpatch by Petter Reinholdtsen
-## Updated for insserv v1.10 by PEtter Reinholdtsen
+## Updated for insserv v1.10 by Petter Reinholdtsen
 
-Disable the SUSE specific parts and make sure to build with debugging.
+Goal:                Disable the SUSE specific parts and make sure to build with debugging.
+Fixes:               none, made as part of Debian porting.nb
+Status wrt upstream: Debian specific, showed to upstream.
+Notes:               The debug symbol change might make sense to get included upstream.
 
 @DPATCH@
 diff -urNad insserv-1.10.0~/Makefile insserv-1.10.0/Makefile

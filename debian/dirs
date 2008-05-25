@@ -1,3 +1,5 @@
+etc/insserv.conf.d
+etc/insserv/overrides
 usr/sbin
 usr/share/insserv/examples
 usr/share/insserv/overrides

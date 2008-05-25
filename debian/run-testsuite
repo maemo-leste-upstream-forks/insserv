@@ -605,6 +605,36 @@ list_rclinks
 check_script_present S distroglobal
 }
 
+test_onlystart() {
+echo
+echo "info: check that it work to insert scripts with only start runlevels"
+echo
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript onlystart <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          onlystart
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_script_present 2 onlystart
+check_script_present 3 onlystart
+check_script_present 4 onlystart
+check_script_present 5 onlystart
+
+check_script_not_present 0 onlystart
+check_script_not_present 1 onlystart
+check_script_not_present 6 onlystart
+}
+
 test_onlystop() {
 echo
 echo "info: check that it work to insert scripts with only stop runlevels"
@@ -932,6 +962,360 @@ list_rclinks
 check_order 0 stopfirst stopafter
 }
 ##########################################################################
+test_adding_start() {
+echo
+echo "info: Make sure that adding start levels do not change an existing installation."
+echo
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript addstartscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          addstartscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:      0
+### END INIT INFO
+EOF
+
+check_script_present 0 addstartscript
+
+check_script_not_present S addstartscript
+check_script_not_present 1 addstartscript
+check_script_not_present 2 addstartscript
+check_script_not_present 3 addstartscript
+check_script_not_present 4 addstartscript
+check_script_not_present 5 addstartscript
+check_script_not_present 6 addstartscript
+
+# Then change runlevel in existing script
+set +C
+addscript addstartscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          addstartscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:      0
+### END INIT INFO
+EOF
+set -C
+
+# Update script after changing the header
+insserv_reg addstartscript || true
+
+list_rclinks
+
+check_script_present 0 addstartscript
+
+check_script_not_present S addstartscript
+${severity}_script_not_present 1 addstartscript
+check_script_not_present 2 addstartscript
+check_script_not_present 3 addstartscript
+check_script_not_present 4 addstartscript
+check_script_not_present 5 addstartscript
+check_script_not_present 6 addstartscript
+}
+##########################################################################
+test_adding_stop() {
+echo
+echo "info: Make sure that adding stop levels do not change an existing installation."
+echo
+
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript addstopscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          addstopscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+check_script_present S addstopscript
+check_script_not_present 0 addstopscript
+check_script_not_present 1 addstopscript
+check_script_not_present 2 addstopscript
+check_script_not_present 3 addstopscript
+check_script_not_present 4 addstopscript
+check_script_not_present 5 addstopscript
+check_script_not_present 6 addstopscript
+
+# Then change runlevel in existing script
+set +C
+addscript addstopscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          addstopscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:      0
+### END INIT INFO
+EOF
+set -C
+
+# Update script after changing the header
+insserv_reg addstopscript || true
+
+list_rclinks
+
+check_script_present S addstopscript
+${severity}_script_not_present 0 addstopscript
+check_script_not_present 1 addstopscript
+check_script_not_present 2 addstopscript
+check_script_not_present 3 addstopscript
+check_script_not_present 4 addstopscript
+check_script_not_present 5 addstopscript
+check_script_not_present 6 addstopscript
+}
+##########################################################################
+test_duplicate_provides() {
+echo
+echo "info: test two initscripts providing same facility."
+echo "info: Not sure if this should fail or not."
+echo
+rm -rf $initddir
+mkdir -p $initddir
+
+insertscript one <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          samefac
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+addscript two <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          samefac
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insserv_reg two || true
+
+list_rclinks
+
+${severity}_script_not_present S two
+}
+##########################################################################
+test_bogus_facility() {
+echo
+echo "info: test insertion of script requiring a virtual facility that doesn't exist"
+echo
+rm -rf $initddir
+mkdir -p $initddir
+
+addscript needbogusvirtual <<'EOF'
+### BEGIN INIT INFO
+# Provides:          needbogusvirtual
+# Required-Start:    $bogusvirtualfacility
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insserv_reg needbogusvirtual || true
+
+list_rclinks
+
+${severity}_script_not_present S needbogusvirtual
+}
+##########################################################################
+test_insserv_conf_d() {
+echo
+echo "info: test that /etc/insserv.conf.d/ is used"
+echo
+rm -rf $initddir ${insconf}.d
+mkdir -p $initddir ${insconf}.d
+
+# add a base service, to ensure check_order() is accurate
+insertscript dummy <<'EOF'
+### BEGIN INIT INFO
+# Provides:          dummy
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+cat <<'EOF' > ${insconf}.d/facone
+$commvirtfac       +facone
+EOF
+
+insertscript facone <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          facone
+# Required-Start:    dummy
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+cat <<'EOF' > ${insconf}.d/factwo
+$commvirtfac       +factwo
+EOF
+
+insertscript factwo <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          factwo
+# Required-Start:    dummy
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+addscript service <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          service
+# Required-Start:    $commvirtfac
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insserv_reg service || true
+
+list_rclinks
+
+check_script_present S service
+check_order S facone service
+check_order S factwo service
+
+rm -rf ${insconf}.d
+}
+##########################################################################
+test_broken_header() {
+echo
+echo "info: test insertion of script missing Required-{Start,Stop} fields"
+echo
+rm -rf $initddir
+mkdir -p $initddir
+
+addscript badheader <<'EOF'
+### BEGIN INIT INFO
+# Provides:          badheader
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+insserv_reg badheader || true
+
+list_rclinks
+
+test_script_present 0 badheader
+test_script_present 1 badheader
+test_script_present 2 badheader
+test_script_present 3 badheader
+test_script_present 4 badheader
+test_script_present 5 badheader
+test_script_present 6 badheader
+}
+##########################################################################
+test_noprovides_header() {
+echo
+echo "info: test insertion of script missing Provides fields"
+echo
+rm -rf $initddir
+mkdir -p $initddir
+
+addscript badheader <<'EOF'
+### BEGIN INIT INFO
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+insserv_reg badheader || true
+
+list_rclinks
+
+test_script_present 0 badheader
+test_script_present 1 badheader
+test_script_present 2 badheader
+test_script_present 3 badheader
+test_script_present 4 badheader
+test_script_present 5 badheader
+test_script_present 6 badheader
+}
+##########################################################################
+test_no_default_start() {
+echo
+echo "info: test insertion of script missing Default-Start field"
+echo
+rm -rf $initddir
+mkdir -p $initddir
+
+addscript nodefstart <<'EOF'
+### BEGIN INIT INFO
+# Provides:          nodefstart
+# Required-Start:
+# Required-Stop:
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insserv_reg nodefstart || true
+
+list_rclinks
+
+check_script_present 0 nodefstart
+check_script_present 6 nodefstart
+
+check_script_not_present 2 nodefstart
+check_script_not_present 3 nodefstart
+check_script_not_present 4 nodefstart
+check_script_not_present 5 nodefstart
+}
+##########################################################################
+test_no_default_stop() {
+echo
+echo "info: test insertion of script missing Default-Stop field"
+echo
+rm -rf $initddir
+mkdir -p $initddir
+
+addscript nodefstop <<'EOF'
+### BEGIN INIT INFO
+# Provides:          nodefstop
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+### END INIT INFO
+EOF
+
+insserv_reg nodefstop || true
+
+list_rclinks
+
+check_script_present 2 nodefstop
+check_script_present 3 nodefstop
+check_script_present 4 nodefstop
+check_script_present 5 nodefstop
+
+check_script_not_present 0 nodefstop
+check_script_not_present 1 nodefstop
+check_script_not_present 6 nodefstop
+}
+##########################################################################
 
 update_conf
 test_normal_sequence
@@ -942,6 +1326,7 @@ test_combined_loop
 test_fake_loop
 test_fake_loop_reverse
 test_badscript
+test_onlystart
 test_onlystop
 test_removal
 test_segfault_virtfac
@@ -949,3 +1334,12 @@ test_incorrect_stopscripts
 test_newbug_keepoldorder
 test_start_before
 test_stop_after
+test_adding_start
+test_adding_stop
+test_duplicate_provides
+test_bogus_facility
+test_insserv_conf_d
+test_broken_header
+test_noprovides_header
+test_no_default_start
+test_no_default_stop

@@ -1,3 +1,55 @@
+insserv (1.11.0-9) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * New test case to demonstrate the bug reported in #477415.
+  * Include empty directories /etc/insserv.conf.d and
+    /etc/insserv/overrides in the package, to get dpkg to warn about
+    content there when purging insserv (Closes: #471237).
+  * Debconf translations:
+    - Updated German from Erik Schanze (Closes: #479254).
+
+  [ Kel Modderman ]
+  * Add patch 60_disable_cfgfilter_stat to remove stat check from the
+    callback function that filters the scanning of /etc/insserv.conf.d/ dir
+    for confiuration file snippets. Instead do stat check in scan_conf().
+  * New test case to show that two initscripts cannot have the same Provides
+    field.
+  * New test case exposing ability to insert a script into runlevel
+    configuration that depends on virtual facility that is not provided or
+    does not exist.
+  * New test case to check that /etc/insserv.conf.d/ can be used to allow one
+    or more services to define and provide a virtual facility.
+  * Ensure custom insserv.conf.d/* files are cleaned after
+    test_insserv_conf_d() in run-testsuite.
+  * Add test_onlystart() test case to check we can insert scripts with empty
+    stop runlevel configuration.
+  * Add test_broken_header() test case to show it seems possible to insert a
+    script missing Required-{Start,Stop} lsb info fields.
+  * Add test_no_default_start() to show that it seems possible to insert script
+    missing Default-Start field.
+  * Add test_no_default_stop() to show that it seems possible to insert script
+    missing Default-Stop field, and that links are created in stop runlevels.
+  * Add 62_warn_on_missing_required_fields and
+    63_warn_on_missing_default_fields to enable warnings by default about
+    missing Provides, Required-Start, Required-Stop, Default-Start or
+    Default-Stop  LSB comment keywords.
+  * Add a note to new patches to relate them to a case function of the test
+    suite.
+  * Add 64_missing_default_fields_fallback to ensure sane fallback of
+    empty runlevel configuration is used for scripts missing Default-
+    Start or Default-Stop lsb keywords.
+  * Add test_noprovides_header() to show that it is possible to insert script
+    missing Provides keyword, and many warnings are exposed as a result.
+  * Add test_adding_start() to expose that adding start levels uncleanly
+    modifies on disk configuration. Give test_adding_start and
+    test_adding_stop test script unique names.
+
+  [ Petter Reinholdtsen ]
+  * Made test_adding_start and test_adding_stop checks non-fatal for
+    production builds, as this problem is no regression from earlier versions.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 25 May 2008 21:46:04 +0200
+
 insserv (1.11.0-8) unstable; urgency=low
 
   * Make sure the consistency check in update-bootsystem-insserv
