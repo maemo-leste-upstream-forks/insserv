@@ -1,8 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          anacron
-# Required-Start:    $syslog $time
-# Required-Stop:     $syslog $time
-# Default-Start:     1 2 3 4 5
-# Default-Stop:      0 6
-### END INIT INFO
-# Reported to BTS as #448223

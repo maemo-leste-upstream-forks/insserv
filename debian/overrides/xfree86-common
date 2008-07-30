@@ -1,9 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          xfree86-common
-# Required-Start:    $remote_fs
-# Required-Stop:     $remote_fs
-# Should-Start:      $named
-# Should-Stop:       $named
-# Default-Start:     S
-# Default-Stop:      0 6
-### END INIT INFO

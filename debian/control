@@ -2,8 +2,9 @@ Source: insserv
 Section: misc
 Priority: optional
 Maintainer: Petter Reinholdtsen <pere@debian.org>
+Uploaders: Kel Modderman <kel@otaku42.de>
 Build-Depends: debhelper (>= 4.0.0), po-debconf, dpatch
-Standards-Version: 3.7.3
+Standards-Version: 3.8.0
 Vcs-Svn: svn://svn.debian.org/initscripts-ng/trunk/src/insserv
 Vcs-Browser: http://svn.debian.org/wsvn/initscripts-ng/trunk/src/insserv
 

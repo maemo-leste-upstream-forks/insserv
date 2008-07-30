@@ -1,7 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          hibernate
-# Required-Start:    checkfs
-# Required-Stop: 
-# Default-Start:     S
-# Default-Stop:
-### END INIT INFO

@@ -1,31 +1,19 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
 ## 10_nosuse.dpatch by Petter Reinholdtsen
-## Updated for insserv v1.10 by Petter Reinholdtsen
-
-Goal:                Disable the SUSE specific parts and make sure to build with debugging.
-Fixes:               none, made as part of Debian porting.nb
-Status wrt upstream: Debian specific, showed to upstream.
-Notes:               The debug symbol change might make sense to get included upstream.
+##
+## DP: Purpose: Disable the SUSE flag.
+## DP: Fixes:   None, made as part of Debian porting.
+## DP: Status:  Debian specific, showed to upstream.
 
 @DPATCH@
-diff -urNad insserv-1.10.0~/Makefile insserv-1.10.0/Makefile
---- insserv-1.10.0~/Makefile	2008-01-07 17:21:15.000000000 +0100
-+++ insserv-1.10.0/Makefile	2008-01-07 17:21:18.000000000 +0100
-@@ -11,7 +11,7 @@
- #DEBUG	 =	-DDEBUG=1
- #LOOPS	 =	-DIGNORE_LOOPS=1
+--- a/Makefile
++++ b/Makefile
+@@ -9,7 +9,7 @@
+ #DESTDIR =	/tmp/root
+ #DEBUG	 =	-DDEBUG=1 -Wpacked
  DEBUG	 =
 -ISSUSE	 =	-DSUSE
 +#ISSUSE	 =	-DSUSE
  DESTDIR	 =
- VERSION	 =	1.10.0
+ VERSION	 =	1.11.10
  DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
-@@ -25,7 +25,7 @@
- ifeq ($(ARCH),i386)
- 	  COPTS = -O2 -mcpu=i586 -mtune=i686
- else
--	  COPTS = -O2
-+	  COPTS = -O2 -g
- endif
- endif
- 	 CFLAGS = -Wall $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \

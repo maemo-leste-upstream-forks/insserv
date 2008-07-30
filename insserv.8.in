@@ -10,11 +10,11 @@
 .\" (at your option) any later version.
 .\"
 @@BEGIN_SUSE@@
-.TH INSSERV 8 "Jan 30, 2008" "Version 1.11" "The SuSE boot concept"
+.TH INSSERV 8 "Jul 29, 2008" "Version 1.11" "The SuSE boot concept"
 .UC 8
 .OS SuSE Linux
 @@ELSE_SUSE@@
-.TH INSSERV 8 "Jan 30, 2008" "Version 1.11"
+.TH INSSERV 8 "Jul 29, 2008" "Version 1.11"
 .UC 8
 .OS Debian
 @@END_SUSE@@
@@ -85,10 +85,6 @@ by reading the comment header of the script, e.g.:
 and calculating the dependencies between all scripts.
 @@BEGIN_SUSE@@
 Please note, that the
-.BR Required-Stop,
-.BR Should-Stop ,
-.BR X-Stop-After,
-and
 .B Default\-Stop
 are ignored in SuSE Linux, because the SuSE boot script concept
 uses a differential link scheme (see
@@ -126,8 +122,14 @@ The optional
 keyword implies that the script using this keyword
 should be started
 .B before
-the specified service names. This implies that those
-services now depend on the specifying script.
+the specified service names.
+Wereas the optional
+.B X\-Stop\-After
+keyword implies that the script using this keyword
+should be stopped
+.B after
+the specified service names. Both implies that those
+services now depend on the specifying script. 
 With known dependencies and runlevel(s)
 .B insserv
 sets and reorders the corresponding symbolic links
@@ -298,7 +300,7 @@ the script is used.
 .RI [[ / ] path/to/init.d/ ] script [ ,start=<lvl1> [ ,<lvl2> ]]\ ...
 List of scripts which have to be added to
 the specified runlevels to be started with.
-You may use this extension to overwrite the default values
+You may use this extension to override the default values
 for start and stop runlevels of the script.
 Note that
 .BR <lvl1> ,\  <lvl2> ,\ ...
@@ -319,6 +321,17 @@ should point to the absolute or relative
 location of the boot scripts.
 .B insserv
 checks for the existence of these scripts.
+.\"
+.SH OVERRIDES
+Beside using the extensions
+.IR ,start=<lvl1> [ ,<lvl2> ]]
+and
+.IR ,stop=<lvl1> [ ,<lvl2> ]]
+it is possible to use override files replace a LSB comment header
+or simple provide a missing LSB comment header.  This can be done
+by placing a file with the new LSB comment header using the same
+name as the boot or init script in the directory
+.IR /etc/insserv/overrides/ .
 .\"
 .SH EXIT CODES
 The exit codes have the following conditions:
@@ -377,6 +390,10 @@ which defines the LSB System Facilities.
 .I /etc/insserv.conf.d/
 directory for further configuration files for declaring
 LSB System Facilities.
+.TP
+.I /etc/insserv/overrides/
+path to replace existing LSB comment headers with the comment
+headers found in this path.
 .TP
 .I /etc/init.d/
 path to the

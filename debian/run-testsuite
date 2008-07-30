@@ -310,8 +310,8 @@ test_override_files() {
 echo
 echo "info: test if override files replace headers in the file"
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 # Two scripts with a loop between them
 insertscript base <<'EOF' || true
@@ -360,8 +360,8 @@ test_override_loop() {
 echo
 echo "info: testing to insert scripts with a loop, and the effect of an override file"
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 # Two scripts with a loop between them
 if insertscript loop1 <<'EOF' ; then
@@ -412,8 +412,8 @@ test_long_loop() {
 echo
 echo "info: testing to insert scripts with a longer loop, making sure it fail"
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 # Three scripts with a loop between them, make sure introducing the
 # loop fail, as it will make insserv generate a unstable and broken
@@ -463,8 +463,7 @@ echo
 echo "info: test handling of loops in the combination of start and stop sequences"
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript startfirst <<'EOF' || true
 ### BEGIN INIT INFO
@@ -500,8 +499,7 @@ echo
 echo "info: test handling of 'fake' loops in the combination of start and stop sequences"
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript startfirst_stopfirst <<'EOF' || true
 ### BEGIN INIT INFO
@@ -537,11 +535,9 @@ test_fake_loop_reverse() {
 
 echo
 echo "info: test handling of 'fake' loops using reverse depends"
-echo "warning: This test should be fatal, but is non-fatal until a fix is found."
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript startfirst_stopfirst <<'EOF' || true
 ### BEGIN INIT INFO
@@ -577,8 +573,7 @@ echo
 echo "info: test if bad script in init.d/ with no symlinks in rc*.d/ make problems"
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 addscript sitelocal <<'EOF' || true
 ### BEGIN INIT INFO
@@ -610,8 +605,7 @@ echo
 echo "info: check that it work to insert scripts with only start runlevels"
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript onlystart <<'EOF' || true
 ### BEGIN INIT INFO
@@ -645,8 +639,7 @@ echo
 #  update-rc.d -f oldscript remove
 #  update-rc.d oldscript start 20 2 3 4 5 . stop 20 1 .
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript onlystop <<'EOF' || true
 ### BEGIN INIT INFO
@@ -681,8 +674,7 @@ echo
 #  update-rc.d -f oldscript remove
 #  update-rc.d oldscript start 20 2 3 4 5 . stop 20 1 .
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript oldscript <<'EOF' || true
 ### BEGIN INIT INFO
@@ -733,8 +725,7 @@ echo
 echo "info: detect segfault caused by script providing virtual facility."
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript badheaderscript <<'EOF' || true
 ### BEGIN INIT INFO
@@ -766,22 +757,18 @@ list_rclinks
 
 check_script_present 2 okscript
 }
-
 ##########################################################################
-test_incorrect_stopscripts() {
+test_incorrect_startscripts() {
 echo
-echo "info: Check if insserv add stop symlinks for scripts that"
-echo "info: currently do not have them."
+echo "info: Check if insserv add start symlinks for scripts that"
+echo "info: currently do not have them. #492526"
 echo
 
-rm -rf $initddir/../rc*.d/*
-rm -rf $initddir/*
-mkdir -p $initddir
+initdir_purge
 
-list_rclinks
-insertscript script <<'EOF' || true
+insertscript disablestartscript <<'EOF' || true
 ### BEGIN INIT INFO
-# Provides:          script
+# Provides:          disablestartscript
 # Required-Start:
 # Required-Stop:
 # Default-Start:     2 3 4 5
@@ -790,25 +777,63 @@ insertscript script <<'EOF' || true
 EOF
 list_rclinks
 
-check_script_present 2 script
-check_script_present 5 script
-check_script_not_present S script
-check_script_present 1 script
+check_script_present 2 disablestartscript
+check_script_present 5 disablestartscript
+check_script_not_present S disablestartscript
+check_script_present 1 disablestartscript
 
-rm $initddir/../rc0.d/K??script
-rm $initddir/../rc1.d/K??script
+rm $initddir/../rc{2,3,4,5}.d/S??disablestartscript
+
+# Update symlinks, see if it add start symlinks
+insserv_reg .
+
+list_rclinks
+
+check_script_not_present 2 disablestartscript
+check_script_not_present 3 disablestartscript
+check_script_not_present 4 disablestartscript
+check_script_not_present 5 disablestartscript
+check_script_not_present S disablestartscript
+check_script_present 0 disablestartscript
+check_script_present 1 disablestartscript
+}
+##########################################################################
+test_incorrect_stopscripts() {
+echo
+echo "info: Check if insserv add stop symlinks for scripts that"
+echo "info: currently do not have them."
+echo
+
+initdir_purge
+
+insertscript disablestopscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          disablestopscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+list_rclinks
+
+check_script_present 2 disablestopscript
+check_script_present 5 disablestopscript
+check_script_not_present S disablestopscript
+check_script_present 1 disablestopscript
+
+rm $initddir/../rc{0,1}.d/K??disablestopscript
 
 # Update symlinks, see if it add stop symlinks
 insserv_reg .
 
 list_rclinks
 
-check_script_present 2 script
-check_script_present 5 script
-check_script_not_present S script
-${severity}_script_not_present 0 script
-${severity}_script_not_present 1 script
-check_script_not_present 1 nostopscript
+check_script_present 2 disablestopscript
+check_script_present 5 disablestopscript
+check_script_not_present S disablestopscript
+check_script_not_present 0 disablestopscript
+check_script_not_present 1 disablestopscript
 }
 ##########################################################################
 test_newbug_keepoldorder() {
@@ -817,8 +842,7 @@ echo "info: Verify that introducing a loop in a working system do"
 echo "info: not change the order of the scripts currently on disk."
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript mountall <<'EOF' || true
 ### BEGIN INIT INFO
@@ -886,12 +910,33 @@ set -C
 echo "info: calling insserv after introducing a bug in script needboth"
 insserv_reg needboth || true
 
-check_order S mountall needlocal
-check_order S mountall needremote
-check_order S mountall needboth
-check_order S needlocal needremote
-check_order S needlocal needboth
-check_order S needremote needboth
+list_rclinks
+
+# The severity of this test should be fatal, below is explanation about how
+# new (1.11.10) and old (1.11.0) insserv version behaviour changed in this
+# test.
+#
+# Hmm ... with this I've found out that the old insserv will
+# run on a loop and therefore exit.  This loop was caused
+# by the system facility $local_fs make the old insserv
+# to do an exit ... now the problem is that the new insserv
+# expands all system facility to their real requirements.
+# This leads to the new behaviour as there is no node during
+# the sorting algorithm which would cause such a loop.
+#
+# In other words: that the old insserv hasn't changed the
+# order was simply a side effect of having a ghost node
+# whereas the new insserv does not use such nodes anymore.
+#
+# If you would remove the `X-Start-Before: $local_fs' the
+# old insserv will also change the boot order.
+
+${severity}_order S mountall needlocal
+${severity}_order S mountall needremote
+${severity}_order S mountall needboth
+${severity}_order S needlocal needremote
+${severity}_order S needlocal needboth
+${severity}_order S needremote needboth
 }
 ##########################################################################
 test_start_before() {
@@ -899,8 +944,7 @@ echo
 echo "info: Verify that X-start-before work as it should."
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript startlast <<'EOF' || true
 ### BEGIN INIT INFO
@@ -933,8 +977,7 @@ echo
 echo "info: Verify that X-stop-after work as it should."
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript stopfirst <<'EOF' || true
 ### BEGIN INIT INFO
@@ -967,8 +1010,7 @@ echo
 echo "info: Make sure that adding start levels do not change an existing installation."
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript addstartscript <<'EOF' || true
 ### BEGIN INIT INFO
@@ -976,14 +1018,14 @@ insertscript addstartscript <<'EOF' || true
 # Required-Start:
 # Required-Stop:
 # Default-Start:
-# Default-Stop:      0
+# Default-Stop:      1
 ### END INIT INFO
 EOF
 
-check_script_present 0 addstartscript
+check_script_present 1 addstartscript
 
 check_script_not_present S addstartscript
-check_script_not_present 1 addstartscript
+check_script_not_present 0 addstartscript
 check_script_not_present 2 addstartscript
 check_script_not_present 3 addstartscript
 check_script_not_present 4 addstartscript
@@ -997,8 +1039,8 @@ addscript addstartscript <<'EOF' || true
 # Provides:          addstartscript
 # Required-Start:
 # Required-Stop:
-# Default-Start:     1
-# Default-Stop:      0
+# Default-Start:     2 3 4 5
+# Default-Stop:      1
 ### END INIT INFO
 EOF
 set -C
@@ -1008,10 +1050,10 @@ insserv_reg addstartscript || true
 
 list_rclinks
 
-check_script_present 0 addstartscript
+check_script_present 1 addstartscript
 
 check_script_not_present S addstartscript
-${severity}_script_not_present 1 addstartscript
+check_script_not_present 0 addstartscript
 check_script_not_present 2 addstartscript
 check_script_not_present 3 addstartscript
 check_script_not_present 4 addstartscript
@@ -1019,13 +1061,61 @@ check_script_not_present 5 addstartscript
 check_script_not_present 6 addstartscript
 }
 ##########################################################################
+test_removing_start() {
+echo
+echo "info: Make sure that removing start levels do not change an existing installation."
+echo
+
+initdir_purge
+
+insertscript remstartscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          remstartscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+check_script_present 0 remstartscript
+check_script_present 1 remstartscript
+check_script_present 2 remstartscript
+check_script_present 3 remstartscript
+check_script_present 4 remstartscript
+check_script_present 5 remstartscript
+check_script_present 6 remstartscript
+
+# Then change runlevel in existing script
+set +C
+addscript remstartscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          remstartscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+set -C
+
+# Update script after changing the header
+insserv_reg remstartscript || true
+
+list_rclinks
+
+check_script_present 2 remstartscript
+check_script_present 3 remstartscript
+check_script_present 4 remstartscript
+check_script_present 5 remstartscript
+}
+##########################################################################
 test_adding_stop() {
 echo
 echo "info: Make sure that adding stop levels do not change an existing installation."
 echo
 
-rm -rf $initddir
-mkdir -p $initddir
+initdir_purge
 
 insertscript addstopscript <<'EOF' || true
 ### BEGIN INIT INFO
@@ -1065,7 +1155,7 @@ insserv_reg addstopscript || true
 list_rclinks
 
 check_script_present S addstopscript
-${severity}_script_not_present 0 addstopscript
+check_script_not_present 0 addstopscript
 check_script_not_present 1 addstopscript
 check_script_not_present 2 addstopscript
 check_script_not_present 3 addstopscript
@@ -1074,13 +1164,62 @@ check_script_not_present 5 addstopscript
 check_script_not_present 6 addstopscript
 }
 ##########################################################################
+test_removing_stop() {
+echo
+echo "info: Make sure that removing stop levels do not change an existing installation."
+echo
+
+initdir_purge
+
+insertscript remstopscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          remstopscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+check_script_present S remstopscript
+check_script_present 0 remstopscript
+check_script_present 6 remstopscript
+
+check_script_not_present 1 remstopscript
+check_script_not_present 2 remstopscript
+check_script_not_present 3 remstopscript
+check_script_not_present 4 remstopscript
+check_script_not_present 5 remstopscript
+
+# Then change runlevel in existing script
+set +C
+addscript remstopscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          remstopscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+set -C
+
+# Update script after changing the header
+insserv_reg remstopscript || true
+
+list_rclinks
+
+check_script_present 0 remstopscript
+check_script_present 6 remstopscript
+}
+##########################################################################
 test_duplicate_provides() {
 echo
 echo "info: test two initscripts providing same facility."
 echo "info: Not sure if this should fail or not."
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 insertscript one <<'EOF' || true
 ### BEGIN INIT INFO
@@ -1113,8 +1252,8 @@ test_bogus_facility() {
 echo
 echo "info: test insertion of script requiring a virtual facility that doesn't exist"
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 addscript needbogusvirtual <<'EOF'
 ### BEGIN INIT INFO
@@ -1130,15 +1269,17 @@ insserv_reg needbogusvirtual || true
 
 list_rclinks
 
-${severity}_script_not_present S needbogusvirtual
+test_script_not_present S needbogusvirtual
 }
 ##########################################################################
 test_insserv_conf_d() {
 echo
 echo "info: test that /etc/insserv.conf.d/ is used"
 echo
-rm -rf $initddir ${insconf}.d
-mkdir -p $initddir ${insconf}.d
+
+initdir_purge
+rm -rf ${insconf}.d
+mkdir -p ${insconf}.d
 
 # add a base service, to ensure check_order() is accurate
 insertscript dummy <<'EOF'
@@ -1204,8 +1345,8 @@ test_broken_header() {
 echo
 echo "info: test insertion of script missing Required-{Start,Stop} fields"
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 addscript badheader <<'EOF'
 ### BEGIN INIT INFO
@@ -1232,8 +1373,8 @@ test_noprovides_header() {
 echo
 echo "info: test insertion of script missing Provides fields"
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 addscript badheader <<'EOF'
 ### BEGIN INIT INFO
@@ -1261,8 +1402,8 @@ test_no_default_start() {
 echo
 echo "info: test insertion of script missing Default-Start field"
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 addscript nodefstart <<'EOF'
 ### BEGIN INIT INFO
@@ -1290,8 +1431,8 @@ test_no_default_stop() {
 echo
 echo "info: test insertion of script missing Default-Stop field"
 echo
-rm -rf $initddir
-mkdir -p $initddir
+
+initdir_purge
 
 addscript nodefstop <<'EOF'
 ### BEGIN INIT INFO
@@ -1316,13 +1457,50 @@ check_script_not_present 1 nodefstop
 check_script_not_present 6 nodefstop
 }
 ##########################################################################
+test_initd_symlink() {
+echo
+echo "info: test that a symlink in /etc/init.d/ to another script does not cause problems"
+echo
+
+initdir_purge
+
+addscript symlinked <<'EOF'
+### BEGIN INIT INFO
+# Provides:          symlinked
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      1
+### END INIT INFO
+EOF
+
+# Now make an illegal symlink to see if it causes problems, #485045
+ln -s symlinked ${initddir}/symlink
+
+insserv_reg symlinked || true
+insserv_reg symlink || true
+
+list_rclinks
+
+check_script_present 1 symlinked
+check_script_present 2 symlinked
+check_script_present 3 symlinked
+check_script_present 4 symlinked
+check_script_present 5 symlinked
+check_script_not_present 1 symlink
+check_script_not_present 2 symlink
+check_script_not_present 3 symlink
+check_script_not_present 4 symlink
+check_script_not_present 5 symlink
+}
+##########################################################################
 
 update_conf
 test_normal_sequence
 test_override_files
 test_override_loop
 test_long_loop
-test_combined_loop
+test_combined_loop		# 1 non-fatal test failing
 test_fake_loop
 test_fake_loop_reverse
 test_badscript
@@ -1330,16 +1508,20 @@ test_onlystart
 test_onlystop
 test_removal
 test_segfault_virtfac
+test_incorrect_startscripts
 test_incorrect_stopscripts
-test_newbug_keepoldorder
+test_newbug_keepoldorder	# 3 non-fatal tests failing
 test_start_before
 test_stop_after
 test_adding_start
+test_removing_start
 test_adding_stop
+test_removing_stop
 test_duplicate_provides
-test_bogus_facility
+test_bogus_facility		# 1 non-fatal test failing
 test_insserv_conf_d
 test_broken_header
 test_noprovides_header
 test_no_default_start
 test_no_default_stop
+test_initd_symlink

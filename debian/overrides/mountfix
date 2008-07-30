@@ -1,9 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          mountfix
-# Required-Start:    $remote_fs
-# Required-Stop:
-# Should-Start:      $network
-# Default-Start:     S
-# Default-Stop:
-### END INIT INFO
-# Reported to BTS as #458859

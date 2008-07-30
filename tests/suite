@@ -94,13 +94,6 @@ insserv_del ()
     $insserv $debug -c $insconf -p $initddir -o $overridedir -r $script
 }
 
-initdir_purge ()
-{
-    rm -f ${initddir}/.depend.*
-    rm -rf ${initddir}
-    mkdir -p ${initddir}
-}
-
 relpath ()
 {
     local OLDIFS IFS

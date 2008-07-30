@@ -7,9 +7,9 @@
 PACKAGE = insserv
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
-	CFLAGS += -O0
+	CFLAGS = -g -O0
 else
-	CFLAGS += -O2
+	CFLAGS = -g -O2
 endif
 
 #CFLAGS += -DDEBUG=1
@@ -55,9 +55,14 @@ install: build
 	dh_installdirs
 
 	# Add here commands to install the package into debian/$(PACKAGE).
-	$(MAKE) install DESTDIR=$(DESTDIR)
+	$(MAKE) install COPTS="$(CFLAGS)" DESTDIR=$(DESTDIR)
 
-	$(INSTALL_DATA) debian/overrides/* $(DESTDIR)$(pkgdatadir)/overrides/.
+	# Install overrides if present
+	for data in debian/overrides/* ; do \
+		test -f $$data || continue ; \
+		$(INSTALL_DATA) $$data $(DESTDIR)$(pkgdatadir)/overrides/. ;\
+	done
+
 	$(INSTALL) debian/check-initd-order $(DESTDIR)$(pkgdatadir)/.
 	$(INSTALL) debian/seq-changes $(DESTDIR)$(pkgdatadir)/.
 	$(INSTALL) debian/make-testsuite $(DESTDIR)$(pkgdatadir)/.

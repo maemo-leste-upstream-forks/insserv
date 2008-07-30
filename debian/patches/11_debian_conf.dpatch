@@ -1,15 +1,13 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## 31_debian_conf_doc.dpatch
-## by Petter Reinholdtsen <pere@hungry.com>
+## 31_debian_conf_doc.dpatch by Petter Reinholdtsen <pere@hungry.com>
 ##
-## All lines beginning with `## DP:' are a description of the patch.
-## DP: Adjust the insserv configuration to match the debian init.d
-## DP: script names.
+## DP: Purpose: Adjust the insserv configuration for Debian init.d script names.
+## DP: Fixes:   None, made as part of Debian porting.
+## DP: Status:  Debian specific, showed to upstream.
 
 @DPATCH@
-diff -urNad insserv~/insserv.conf insserv/insserv.conf
---- insserv~/insserv.conf	2008-01-04 11:19:42.000000000 +0100
-+++ insserv/insserv.conf	2008-01-04 11:21:59.000000000 +0100
+--- a/insserv.conf
++++ b/insserv.conf
 @@ -1,29 +1,29 @@
  #
  # All local filesystems are mounted (done during boot phase)

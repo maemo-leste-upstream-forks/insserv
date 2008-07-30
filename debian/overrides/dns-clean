@@ -1,8 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          dns-clean
-# Required-Start:    $local_fs
-# Required-Stop:     $local_fs
-# Default-Start:     S
-# Default-Stop:
-### END INIT INFO
-# Reported to BTS as bug #332857

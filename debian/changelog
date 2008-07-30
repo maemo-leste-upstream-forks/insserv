@@ -1,3 +1,71 @@
+insserv (1.12.0-1) unstable; urgency=low
+
+  [ Kel Modderman ]
+  * New upstream version.
+    - preserve empty runlevel configurations, override adding or removoval of
+      existing start/top runlevel configration (Closes: #477415, #492526)
+  * Discard patches applied to or no longer relevant to new upstream:
+    - 11_more_warnings.dpatch
+    - 32_debug_option.dpatch
+    - 33_nosuse_scripts.dpatch
+    - 40_segfault_virtprov.dpatch
+    - 41_cleansystem.dpatch
+    - 42_loopnochangemsg.dpatch
+    - 50_sign_warning.dpatch
+    - 51_overwrite_output.dpatch
+    - 52_shutdown_links.dpatch
+    - 60_disable_cfgfilter_stat.dpatch
+    - 62_warn_on_missing_required_fields.dpatch
+    - 63_warn_on_missing_default_fields.dpatch
+    - 64_missing_default_fields_fallback.dpatch
+  * Discard patches not applied in series:
+    - 32_debug_option.dpatch
+    - 34_debian_fixedscripts.dpatch
+  * Refresh patches that still apply to new upstream:
+    - 10_nosuse.dpatch
+    - 31_debian_conf.dpatch
+  * Add an extra call to list_rclinks() in test_newbug_keepoldorder()
+    function of run-testsuite, after introducing the bug.
+  * Make test_adding_start() and test_adding_stop() run-testsuite
+    functions unconditionally fatal on failure.
+  * Make test_bogus_facility() run-testsuite function non-fatal.
+  * Mark tests that are currently failing with a comment in run-testsuite.
+  * Add test_removing_start() and test_removing_stop() to run-testsuite,
+    showing that insserv will preserve existing links when script header is
+    unproperly replaced with empty Default-Start or Default-Stop.
+  * Make test_adding_start() case a more realistic example.
+  * Make test_incorrect_stopscripts() a fatal test, insserv should not
+    add shutdown links when none are present.
+  * Make test_newbug_keepoldorder() test case non-fatal, the fact that it
+    passed before was not by design but by luck, as per upstream analysis
+    which is included with test code.
+  * Handle CFLAGS in debian/rules more consistently, different options were
+    passed to make in build and install targets, and dpkg now also tampers
+    with the variable.
+  * Remove a bunch of overrides for scripts now with valid LSB information in
+    testing distribution today, or have been removed from archive.
+  * Add common test suite function for purging init directory, runlevel links
+    and dependency makefiles.
+  * Add test_incorrect_startscripts() to replicate bug report described in
+    #492526, and make sure insserv do not regress in this behaviour.
+  * Now we have no overrides to install by default, but we may in future,
+    modify debian/rules to only install overrides from ./debian/overrides/* if
+    they are present, but not fail otherwise.
+  * Add test_initd_symlink() test suite function to test if illegal
+    symlinks in /etc/init.d/ cause problems.
+  * Bump Standards Version to 3.8.0, add debian/README.source to describe patch
+    system to conform. No other changes required.
+  * Add myself to Uploaders.
+  * Rename 31_debian_conf.dpatch to 11_debian_conf.dpatch, to keep
+    Debian port patches in tight sequence.
+
+  [ Petter Reinholdtsen ]
+  * Mention initcycle tool from Adam Jensen in README.Debian.
+  * Adjust test_initd_symlink test to accept the first insertion
+    and reject the second, as both scripts have the same provide.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 30 Jul 2008 18:18:00 +0200
+
 insserv (1.11.0-9) unstable; urgency=low
 
   [ Petter Reinholdtsen ]

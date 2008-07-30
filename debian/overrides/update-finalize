@@ -1,8 +1,0 @@
-### BEGIN INIT INFO
-# Provides:          update-finalize
-# Required-Start:    $remote_fs
-# Required-Stop:
-# Default-Start:     2 3 4 5
-# Default-Stop:
-### END INIT INFO
-# Reported to BTS as #459872

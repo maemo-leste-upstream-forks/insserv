@@ -1,15 +1,2 @@
 10_nosuse
-11_more_warnings
-31_debian_conf
-32_debug_option
-33_nosuse_scripts
-40_segfault_virtprov
-41_cleansystem
-42_loopnochangemsg
-50_sign_warning
-51_overwrite_output
-52_shutdown_links
-60_disable_cfgfilter_stat
-62_warn_on_missing_required_fields
-63_warn_on_missing_default_fields
-64_missing_default_fields_fallback
+11_debian_conf
