@@ -1,3 +1,18 @@
+insserv (1.12.0-2) unstable; urgency=low
+
+  [ Kel Modderman ]
+  * Make test_duplicate_provides() test case more realistic by placing
+    initscripts in init.d dir before registering with insserv. Make sure first
+    script is registered.
+  * Add test_deterministic_order() test function to make sure that when two or
+    more initscripts provide the same facility, the first script actually can
+    be registered with insserv reliably.
+  * Add 30_deterministic_order.dpatch to defend against the inconsistent
+    directory stream sequence returned by readdir(3) under different
+    circumstances. (Closes: #494514)
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 20 Aug 2008 21:08:13 +0200
+
 insserv (1.12.0-1) unstable; urgency=low
 
   [ Kel Modderman ]

@@ -1221,7 +1221,7 @@ echo
 
 initdir_purge
 
-insertscript one <<'EOF' || true
+addscript one <<'EOF' || true
 ### BEGIN INIT INFO
 # Provides:          samefac
 # Required-Start:
@@ -1241,10 +1241,12 @@ addscript two <<'EOF' || true
 ### END INIT INFO
 EOF
 
+insserv_reg one || true
 insserv_reg two || true
 
 list_rclinks
 
+check_script_present S one
 ${severity}_script_not_present S two
 }
 ##########################################################################
@@ -1494,6 +1496,55 @@ check_script_not_present 4 symlink
 check_script_not_present 5 symlink
 }
 ##########################################################################
+test_deterministic_order() {
+echo
+echo "info: test two or more initscripts providing same facility, making sure"
+echo "info: that the first script can be registered with insserv, but others fail." 
+echo
+
+initdir_purge
+
+addscript abc <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          service
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+addscript xyz <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          service
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+addscript hjk <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          service
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insserv_reg xyz || true
+insserv_reg hjk || true
+insserv_reg abc || true
+
+list_rclinks
+
+check_script_present S xyz
+check_script_not_present S abc
+check_script_not_present S hjk
+}
+##########################################################################
 
 update_conf
 test_normal_sequence
@@ -1525,3 +1576,4 @@ test_noprovides_header
 test_no_default_start
 test_no_default_stop
 test_initd_symlink
+test_deterministic_order
