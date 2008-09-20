@@ -23,12 +23,13 @@ $time           hwclock
 EOF
 set -C
 }
+##########################################################################
 test_normal_sequence() {
 echo
 echo "info: test normal boot sequence scripts, and their order"
 echo
 
-insertscript mountkernfs.sh <<EOF
+insertscript mountkernfs.sh <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          mountkernfs
 # Required-Start:
@@ -305,7 +306,7 @@ check_order 6 umountroot reboot
 check_order 6 umountroot kexec
 check_order 6 kexec reboot
 }
-
+##########################################################################
 test_override_files() {
 echo
 echo "info: test if override files replace headers in the file"
@@ -355,7 +356,7 @@ list_rclinks
 # Make sure the override file moved mover before base
 check_order S mover base
 }
-
+##########################################################################
 test_override_loop() {
 echo
 echo "info: testing to insert scripts with a loop, and the effect of an override file"
@@ -406,8 +407,7 @@ insserv_reg loop2 || true
 
 check_order S loop1 loop2
 }
-
-
+##########################################################################
 test_long_loop() {
 echo
 echo "info: testing to insert scripts with a longer loop, making sure it fail"
@@ -451,7 +451,7 @@ EOF
     error "inserting script causing a loop did not fail"
 fi
 }
-
+##########################################################################
 test_combined_loop() {
 # Test real loop in the combined start and stop sequence.  There is no
 # loop in the start sequence, and no loop in the stop sequence, but in
@@ -490,7 +490,7 @@ list_rclinks
 test_order S startfirst startsecond
 test_order 6 startsecond startfirst
 }
-
+##########################################################################
 test_fake_loop() {
 # Test another fake loop.  This one should work, as it is possible to
 # install the two scripts in sequence because one of the dependencies
@@ -523,8 +523,11 @@ insertscript startsecond_stoplast <<'EOF' || true
 EOF
 
 list_rclinks
-}
 
+check_order S startfirst_stopfirst startsecond_stoplast
+check_order 6 startfirst_stopfirst startsecond_stoplast
+}
+##########################################################################
 test_fake_loop_reverse() {
 # Test another fake loop using reverse dependencies to document that
 # it can happen based on information provided in one package only.
@@ -562,12 +565,11 @@ EOF
 
 list_rclinks
 
-# These are checking real bugs, but until bug #458582 is fixed, they
-# will fail.  Making the tests non-fatal because of this.
-${severity}_order S startfirst_stopfirst startsecond_stoplast
-${severity}_order 6 startfirst_stopfirst startsecond_stoplast 
+# #458582
+check_order S startfirst_stopfirst startsecond_stoplast
+check_order 6 startfirst_stopfirst startsecond_stoplast 
 }
-
+##########################################################################
 test_badscript() {
 echo
 echo "info: test if bad script in init.d/ with no symlinks in rc*.d/ make problems"
@@ -599,7 +601,7 @@ list_rclinks
 
 check_script_present S distroglobal
 }
-
+##########################################################################
 test_onlystart() {
 echo
 echo "info: check that it work to insert scripts with only start runlevels"
@@ -628,7 +630,7 @@ check_script_not_present 0 onlystart
 check_script_not_present 1 onlystart
 check_script_not_present 6 onlystart
 }
-
+##########################################################################
 test_onlystop() {
 echo
 echo "info: check that it work to insert scripts with only stop runlevels"
@@ -663,7 +665,7 @@ check_script_not_present 4 onlystop
 check_script_not_present 5 onlystop
 check_script_not_present S onlystop
 }
-
+##########################################################################
 test_removal() {
 echo
 echo "info: test if script removal removes all symlinks."
@@ -1476,13 +1478,31 @@ addscript symlinked <<'EOF'
 ### END INIT INFO
 EOF
 
+addscript outsider <<'EOF'
+### BEGIN INIT INFO
+# Provides:          outsider
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      1
+### END INIT INFO
+EOF
+
+#addscript halt <<'EOF'
+### BEGIN INIT INFO
+# Provides:          halt
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:      0 6
+### END INIT INFO
+#EOF
+
 # Now make an illegal symlink to see if it causes problems, #485045
 ln -s symlinked ${initddir}/symlink
 
 insserv_reg symlinked || true
 insserv_reg symlink || true
-
-list_rclinks
 
 check_script_present 1 symlinked
 check_script_present 2 symlinked
@@ -1494,6 +1514,32 @@ check_script_not_present 2 symlink
 check_script_not_present 3 symlink
 check_script_not_present 4 symlink
 check_script_not_present 5 symlink
+
+# Add a /etc/init.d/reboot -> halt symlink, to make sure the SUSE case
+# is not broken with stricter symlink sanity checking
+#ln -s halt ${initddir}/reboot
+
+#insserv_reg reboot || true
+
+#check_script_present 0 reboot
+#check_script_present 6 reboot
+
+# Move outsider to a location other than /etc/init.d/ and create a symlink
+# to it. insserv should register it without problems.
+mv ${initddir}/outsider ${initddir}/../
+ln -s ../outsider ${initddir}/outsidelink
+
+insserv_reg outsidelink || true
+
+list_rclinks
+
+check_script_present 1 outsidelink
+check_script_present 2 outsidelink
+check_script_present 3 outsidelink
+check_script_present 4 outsidelink
+check_script_present 5 outsidelink
+
+rm -f ${initddir}/../outsider
 }
 ##########################################################################
 test_deterministic_order() {
@@ -1540,9 +1586,138 @@ insserv_reg abc || true
 
 list_rclinks
 
+# #494514
 check_script_present S xyz
 check_script_not_present S abc
 check_script_not_present S hjk
+}
+##########################################################################
+test_all_keyword() {
+echo
+echo "info: test behaviour of a script depending on another with the \$all keyword"
+echo "info: #491391"
+echo
+
+initdir_purge
+
+# Insert a few scripts to flesh out $initdir
+for script in one two three
+do
+insertscript $script <<EOF || true
+### BEGIN INIT INFO
+# Provides:          $script
+# Required-Start:    \$remote_fs
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+EOF
+done
+
+insertscript four <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          four
+# Required-Start:    $remote_fs
+# Required-Stop:
+# Should-Start:      one two three
+# Should-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript rmnologin <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          rmnologin
+# Required-Start:    $remote_fs $all
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+EOF
+
+# This version of bootchart LSB info is not the best, but it does reveal
+# an interesting and unexpected behaviour.
+insertscript bootchart <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          bootchart
+# Required-Start:    $remote_fs rmnologin
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_script_present 5 rmnologin
+check_script_present 5 bootchart
+test_order 5 rmnologin bootchart
+
+echo
+echo "info: now add \$all keyword to bootchart script and reinsert"
+echo
+
+remscript bootchart
+# This information looks correct, but due to the way all_links() works two or
+# more scripts with keyword $all in Required-Start start at same sequence, but
+# do start after all other scripts
+addscript bootchart <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          bootchart
+# Required-Start:    $all rmnologin
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insserv_reg bootchart || true
+
+list_rclinks
+check_script_present 5 bootchart
+test_order 5 rmnologin bootchart
+
+echo
+echo "info: add yet another script depending on \$all"
+echo
+insertscript all <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          all
+# Required-Start:    $all
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+check_script_present 5 all
+}
+##########################################################################
+test_script_in_runlevel() {
+echo
+echo "info: add a regular file where only symlinks are expected (#493202)"
+echo
+
+initdir_purge
+
+# Create a regular file in runlevel directory where only symlinks are expected
+touch $initddir/../rcS.d/S06badboy
+
+insertscript goodboy <<'EOF'
+### BEGIN INIT INFO
+# Provides:          goodboy
+# Required-Start:    $remote_fs
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_script_present S goodboy
 }
 ##########################################################################
 
@@ -1577,3 +1752,5 @@ test_no_default_start
 test_no_default_stop
 test_initd_symlink
 test_deterministic_order
+test_all_keyword
+test_script_in_runlevel

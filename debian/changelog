@@ -1,3 +1,30 @@
+insserv (1.12.0-3) unstable; urgency=low
+
+  [ Kel Modderman ]
+  * test_fake_loop() and test_fake_loop_reverse() are now unconditionally fatal
+    tests because they pass with insserv >= 1.12.0.
+  * Modify 10_nosuse.dpatch to define ISSUSE as -DNOTSUSE instead of unsetting
+    it, to avoid fooling the build system.
+  * Purge the rc symlinks in initddir_purge() function of testsuite-common.
+  * Add a remscript() function to testsuite-common for deleting initscripts
+    from test init.d/ directory.
+  * Add test_all_keyword() function to run-testsuite to observe the
+    semantics of using the $all keyword. It is currently a non-fatal
+    test.
+  * Add test_script_in_runlevel() function to expose segfault reported
+    in #493202.
+  * Add 40_badboy_segfault.dpatch to fix segfault when scriptname()
+    function of insserv does not return script name due to script in
+    runlevel directory not being a symlink (or corrupt). (Closes: #493202)
+  * Add 50_symlink_in_initddir.dpatch to defend aginst symlinks
+    installed to /etc/init.d/ that point to other scripts in
+    /etc/init.d/, causing insserv to fail due to duplicate provides.
+    (Closes: #485045)
+  * Extend test_initd_symlink() test suite case to handle cases which
+    50_symlink_in_initddir.dpatch must handle.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 20 Sep 2008 21:31:55 +0200
+
 insserv (1.12.0-2) unstable; urgency=low
 
   [ Kel Modderman ]

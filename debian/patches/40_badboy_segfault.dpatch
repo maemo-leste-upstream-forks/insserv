@@ -1,0 +1,23 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 40_badboy_segfault.patch by Kel Modderman <kel@otaku42.de>
+##
+## DP: Purpose: Defend against corrupt or invalid scripts living in
+## DP:          /etc/rc[S0-6].d/
+## DP: Fixes:   #493202
+## DP: Status:  Acked by upstream.
+
+@DPATCH@
+--- a/insserv.c
++++ b/insserv.c
+@@ -1696,6 +1696,11 @@
+ 	    }
+ 
+ 	    lsb = scan_script_defaults(dfd, d->d_name, override_path, &name, true, ignore);
++	    if (!name) {
++		warn("warning: script is corrupt or invalid: %s/%s%s\n", path, rcd, d->d_name);
++		continue;
++	    }
++
+ 	    if (!script_inf.provides || script_inf.provides == empty)
+ 		script_inf.provides = xstrdup(ptr);
+ 

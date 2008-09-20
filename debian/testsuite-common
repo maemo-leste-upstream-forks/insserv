@@ -96,8 +96,7 @@ insserv_del ()
 
 initdir_purge ()
 {
-    rm -f ${initddir}/.depend.*
-    rm -rf ${initddir}
+    rm -rf ${initddir} ${initddir}/../rc*.d/
     mkdir -p ${initddir}
 }
 
@@ -206,6 +205,13 @@ addscript ()
     local script=${initddir}/$scriptname
     cat > $script
     chmod u+w,a+rx $script
+}
+
+remscript ()
+{
+    local scriptname=$1
+    local script=${initddir}/$scriptname
+    rm -f $script
 }
 
 insertscript ()

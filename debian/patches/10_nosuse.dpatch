@@ -13,7 +13,7 @@
  #DEBUG	 =	-DDEBUG=1 -Wpacked
  DEBUG	 =
 -ISSUSE	 =	-DSUSE
-+#ISSUSE	 =	-DSUSE
++ISSUSE	 =	-DNOTSUSE
  DESTDIR	 =
  VERSION	 =	1.11.10
  DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')

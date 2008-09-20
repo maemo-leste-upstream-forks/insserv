@@ -5,7 +5,7 @@
 ## DP:          returned by readdir(3). Make sure script which is being
 ## DP:          registered is processed before all others.
 ## DP: Fixes:   #494514
-## DP: Status:  Work in progress.
+## DP: Status:  Applied upstream.
 
 @DPATCH@
 --- a/insserv.c
