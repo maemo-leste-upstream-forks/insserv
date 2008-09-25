@@ -1695,6 +1695,66 @@ list_rclinks
 check_script_present 5 all
 }
 ##########################################################################
+test_early_all() {
+echo
+echo "info: Check that \$all only affect the start or stop sequence"
+echo "BTS #485307"
+echo
+
+initdir_purge
+
+# Insert a few scripts to flesh out $initdir
+insertscript early <<EOF || true
+### BEGIN INIT INFO
+# Provides:          early
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2
+# Default-Stop:      0
+### END INIT INFO
+EOF
+
+insertscript center <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          center
+# Required-Start:    early
+# Required-Stop:     early
+# Default-Start:     2
+# Default-Stop:      0
+### END INIT INFO
+EOF
+
+insertscript late <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          late
+# Required-Start:    center
+# Required-Stop:     center
+# Default-Start:     2
+# Default-Stop:      0
+### END INIT INFO
+EOF
+
+# This script should start early and stop before all other scripts
+insertscript complex <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          compex
+# Required-Start:    early
+# X-Start-Before:    center
+# Required-Stop:     $all
+# Default-Start:     2
+# Default-Stop:      0
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_script_present 2 early
+check_script_present 2 complex
+check_order 2 early complex
+check_order 2 complex center
+check_order 0 complex late
+}
+##########################################################################
 test_script_in_runlevel() {
 echo
 echo "info: add a regular file where only symlinks are expected (#493202)"
@@ -1753,4 +1813,5 @@ test_no_default_stop
 test_initd_symlink
 test_deterministic_order
 test_all_keyword
+test_early_all
 test_script_in_runlevel

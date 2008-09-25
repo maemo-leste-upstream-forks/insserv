@@ -3,3 +3,4 @@
 30_deterministic_order
 40_badboy_segfault
 50_symlink_in_initddir
+60_all_keyword_start_only
