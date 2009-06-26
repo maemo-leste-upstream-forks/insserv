@@ -1,0 +1,30 @@
+Purpose: Correct dependency information written to .depend.* files
+         for scripts which declare Required-Start: $all
+Fixes:   nil
+Status:  Applied upstream.
+---
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-06-26 08:14:31.000000000 +0200
++++ insserv/insserv.c	2009-06-26 08:14:31.000000000 +0200
+@@ -779,9 +779,6 @@
+ 	    continue;
+ #endif /* not MINIMAL_RULES */
+ 
+-	if (list_empty(&serv->sort.req))
+-	    continue;
+-
+ 	if (serv->start->lvl & LVL_BOOT)
+ 	    out = boot;
+ 	else
+@@ -823,6 +820,10 @@
+ 		fprintf(out, " %s", name);
+ 	    }
+ 	} else {
++
++	    if (list_empty(&serv->sort.req))
++		continue;
++
+ 	    np_list_for_each(pos, &serv->sort.req) {
+ 		req_t * req = getreq(pos);
+ 		service_t * dep = req->serv;

@@ -1,0 +1,33 @@
+Purpose: Debian runlevels are a bit different to SUSE.
+Fixes:   #500542
+Status:  Not yet submitted upstream.
+---
+Index: insserv/insserv.8.in
+===================================================================
+--- insserv.orig/insserv.8.in	2009-06-26 12:33:36.000000000 +0200
++++ insserv/insserv.8.in	2009-06-26 12:33:36.000000000 +0200
+@@ -143,6 +143,7 @@
+ @@ELSE_SUSE@@
+ directories.
+ @@END_SUSE@@
++@@BEGIN_SUSE@@
+ Known runlevels are:
+ .sp 1
+ .in +1l
+@@ -154,15 +155,12 @@
+  \fB4\fR\   reserved for local use
+  \fB5\fR\   used for full multiuser with network and xdm
+  \fB6\fR\   used for System reboot
+-@@BEGIN_SUSE@@
+  \fBS\fR\   used during boot into single user mode
+  \fBB\fR\   used during boot before any other runlevel
+-@@ELSE_SUSE@@
+- \fBS\fR\   used during boot before any other runlevel
+-@@END_SUSE@@
+ .fi
+ .in -1l
+ .sp 1
++@@END_SUSE@@
+ .PP
+ .B insserv
+ scans for

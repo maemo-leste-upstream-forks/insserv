@@ -1,13 +1,9 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## 30_deterministic_order.patch.dpatch by Kel Modderman <kel@otaku42.de>
-##
-## DP: Purpose: Defend against undeterministic directory stream sequence
-## DP:          returned by readdir(3). Make sure script which is being
-## DP:          registered is processed before all others.
-## DP: Fixes:   #494514
-## DP: Status:  Applied upstream.
-
-@DPATCH@
+Purpose: Defend against undeterministic directory stream sequence
+         returned by readdir(3). Make sure script which is being
+         registered is processed before all others.
+Fixes:   #494514
+Status:  Applied upstream.
+---
 --- a/insserv.c
 +++ b/insserv.c
 @@ -2238,6 +2238,7 @@

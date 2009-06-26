@@ -1,3 +1,71 @@
+insserv (1.12.0-6) unstable; urgency=low
+
+  * Add keyboard-setup, console-setup, cryptdisks, cryptdisks-early
+    and checkfs-loop as interactive scripts while we wait for scripts
+    to use X-Interactive: true as documented in bug #458224 (Closes:
+    #510517, #534711).
+  * Fix typo in testsuite function initdir_purge(), making sure the
+    rc?.d directories are removed during purge.
+  * Add new patch introducing a new keyword 'X-Interactive: true' in
+    the LSB header (Closes: #458224).  Add test suite to verify that
+    it is working.
+  * Add DM-Upload-Allowed: yes header to allow my co-maintainer to
+    upload this package.
+  * Add testcase for incomplete .depend.boot file based on test
+    created by Raphael Geissert for bug #534526.  Make this a
+    non-fatal error in production builds while we figure out what is
+    wrong.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 26 Jun 2009 20:18:36 +0200
+
+insserv (1.12.0-5) unstable; urgency=low
+
+  [ Kel Modderman ]
+  * Convert dpatches to quilt series and adjust debian/rules and
+    debian/control.
+  * Refresh debian/patches/10_nosuse.patch to apply without fuzz.
+  * Add debian/patches/70_req_start_all_depends.patch to correct
+    dependency information written to .depend.* files for scripts which
+    declare Required-Start: $all. Thanks to upstream developer Werner
+    Fink for giving us th heads up about this problem and patch.
+  * Add Japanese translation. Thanks Hideki Yamane. (Closes: #512858)
+  * Add Swedish translation. Thanks Martin Bagge. (Closes: #503603)
+  * Add debian/manpages and call dh_installman without specific
+    arguments in debian/rules.
+  * Depend on debhelper >= 6 and use compat level of 6.
+  * Update to Standards-Version 3.8.1 without any required changes.
+  * Add Homepage field to debian/control.
+  * Add debian/patches/80_manual_warnings.patch to correct format,
+    spelling and grammar errors in manual page.
+  * Add debian/patches/90_no_runlevel_spec_for_debian.patch to remove
+    reference to known runlevels on Debian systems. These should be
+    defined in Debian policy. (Closes: #500542)
+  * Add interface to disable|enable service symlinks for all Default-
+    Start runlevels or those specified on the command line. This is
+    analogous to the interface introduced to update-rc.d of 2.86.ds1-62.
+  * Make sure disable|enable action does not call insserv if it did not
+    alter any runlevel symlinks.
+  * Consolidate debian/insserv.dirs into debian/dirs, only one should
+    exist.
+  * Add debian/bash-completion and install it to /etc/bash_completion.d/
+    to enhance usability for bash shell users.
+  * When arguments to start/stop/defaults action are given to update-
+    rc.d wrapper, emit a warning that the LSB information of script
+    overrides the given arguments.
+  * Improve the way in which update-rc.d disable/enable function
+    determines index of S or K bit of runlevel symlink by using rindex
+    instead of a hardcoded index.
+  * Improve update-rc.d enable/disable function for when an unhandled
+    runlevel is given as argument.
+  * Also look in /usr/share/insserv/overrides/ when performing
+    disable/enable function in update-rc.d.
+
+  [ Petter Reinholdtsen ]
+  * Make a note in the usage text that update-rc.d disable and enable
+    API is not yet set in stone.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Tue, 23 Jun 2009 08:19:19 +0200
+
 insserv (1.12.0-4) unstable; urgency=low
 
   [ Petter Reinholdtsen ]

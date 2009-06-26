@@ -21,11 +21,11 @@ DESTDIR = $(CURDIR)/debian/$(PACKAGE)
 pkgdatadir = /usr/share/$(PACKAGE)
 sbindir = /usr/sbin
 
-include /usr/share/dpatch/dpatch.make
+include /usr/share/quilt/quilt.make
 
 build: build-stamp
 
-build-stamp: patch-stamp
+build-stamp: $(QUILT_STAMPFN)
 	dh_testdir
 
 	# Add here commands to compile the package.
@@ -69,6 +69,8 @@ install: build
 	$(INSTALL) debian/update-bootsystem-insserv $(DESTDIR)$(sbindir)/.
 	$(INSTALL) debian/update-rc.d-insserv $(DESTDIR)$(sbindir)/.
 
+	# Install bash(1) completion
+	$(INSTALL_DATA) debian/bash-completion $(DESTDIR)/etc/bash_completion.d/insserv
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -83,7 +85,7 @@ binary-arch: build install
 	dh_installexamples
 	dh_installdebconf
 #	dh_install
-	dh_installman debian/update-bootsystem-insserv.8 debian/update-rc.d-insserv.8
+	dh_installman
 	dh_link
 	dh_strip
 	dh_compress

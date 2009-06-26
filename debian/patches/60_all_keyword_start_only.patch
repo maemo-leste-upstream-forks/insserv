@@ -1,11 +1,7 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## 60_all_keyword_start_only.patch by Kel Modderman <kel@otaku42.de>
-##
-## DP: Purpose: Prevent Required-Stop: $all from modifying start links
-## DP: Fixes:   #485307
-## DP: Status:  Work in progress.
-
-@DPATCH@
+Purpose: Prevent Required-Stop: $all from modifying start links
+Fixes:   #485307
+Status:  Work in progress.
+---
 --- a/insserv.c
 +++ b/insserv.c
 @@ -291,8 +291,13 @@

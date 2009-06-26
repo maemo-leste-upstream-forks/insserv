@@ -1,0 +1,10 @@
+10_nosuse.patch
+11_debian_conf.patch
+30_deterministic_order.patch
+40_badboy_segfault.patch
+50_symlink_in_initddir.patch
+60_all_keyword_start_only.patch
+61_interactive_keyword.patch
+70_req_start_all_depends.patch 
+80_manual_warnings.patch
+90_no_runlevel_spec_for_debian.patch

@@ -4,37 +4,162 @@ use strict;
 use warnings;
 
 my @opts;
+my $scriptname;
+my $action;
+my $dryrun = 0;
+
 while($#ARGV >= 0 && ($_ = $ARGV[0]) =~ /^-/) {
     shift @ARGV;
-    if (/^-n$/) { push(@opts, $_); next }
+    if (/^-n$/) { push(@opts, $_); $dryrun++; next }
     if (/^-f$/) { push(@opts, $_); next }
     if (/^-h|--help$/) { &usage; }
     &usage("unknown option");
 }
-my $scriptname = $ARGV[0];
-if ("remove" eq $ARGV[1]) {
+
+usage("not enough arguments") if ($#ARGV < 1);
+
+$scriptname = shift @ARGV;
+$action = shift @ARGV;
+if ("remove" eq $action) {
     if ( -f "/etc/init.d/$scriptname" ) {
         exec "insserv", @opts, "-r", $scriptname;
     } else {
-        # insserv remove all dangling symlinks, no need to tell it
+        # insserv removes all dangling symlinks, no need to tell it
         # what to look for.
         exec "insserv", @opts;
     }
-} elsif ("defaults" eq $ARGV[1] || "start" eq $ARGV[1] || "stop" eq $ARGV[1]) {
-    # Ignore start/stop/defaults arguments, just add it
+} elsif ("defaults" eq $action || "start" eq $action || "stop" eq $action) {
+    # All start/stop/defaults arguments are discarded so emit a message if
+    # arguments have been given. When update-rc.d is used in package
+    # maintainer scripts output is almost always redirected to /dev/null
+    # thanks to dh_installinit, so this should not be too noisy.
+    if ($#ARGV >= 0) {
+	info("\`$action @ARGV' overridden by LSB info of $scriptname");
+    }
+    exec "insserv", @opts, $scriptname;
+} elsif ("disable" eq $action || "enable" eq $action) {
+    toggle($action, $scriptname, @ARGV);
+    # Call insserv to resequence modified links
     exec "insserv", @opts, $scriptname;
 } else {
     usage();
 }
 
 sub usage {
-        print STDERR "update-rc.d: error: @_\n" if ($#_ >= 0);
-        print STDERR <<EOF;
+    print STDERR "update-rc.d: error: @_\n" if ($#_ >= 0);
+    print STDERR <<EOF;
 usage: update-rc.d [-n] [-f] <basename> remove
        update-rc.d [-n] <basename> defaults [NN | sNN kNN]
        update-rc.d [-n] <basename> start|stop NN runlvl [runlvl] [...] .
+       update-rc.d [-n] <basename> disable|enable [runlvl1 runlvl2 ...]
                 -n: not really
                 -f: force
+
+The disable|enable API is not stable and might change in the future.
 EOF
-        exit (1);
+    exit (1);
+}
+
+sub info {
+    print STDOUT "update-rc.d: @_\n";
+}
+
+sub warning {
+    print STDERR "update-rc.d: warning: @_\n";
+}
+
+sub error {
+    print STDERR "update-rc.d: error: @_\n";
+    exit (1);
+}
+
+sub parse_def_start {
+    my $script = shift;
+    my (%lsb, @def_start_lvls);
+
+    open my $fh, '<', $script or error("unable to read $script");
+    while (<$fh>) {
+        chomp;
+	if (m/^### BEGIN INIT INFO$/) {
+	    $lsb{'begin'}++;
+	}
+	elsif (m/^### END INIT INFO$/) {
+	    $lsb{'end'}++;
+	    last;
+	}
+	elsif ($lsb{'begin'} and not $lsb{'end'}) {
+	    if (m/^# Default-Start:\s*(\S?.*)$/) {
+		@def_start_lvls = split(' ', $1);
+	    }
+        }
+    }
+    close($fh);
+
+    return @def_start_lvls;
+}
+
+sub toggle {
+    my ($act, $name) = (shift, shift);
+    my ($lsb_header, @runlevels, @symlinks);
+    
+    # Prefer insserv override file if it exists.
+    if (-s "/etc/insserv/overrides/$name") {
+	$lsb_header = "/etc/insserv/overrides/$name";
+    } elsif (-s "/etc/init.d/$name") {
+    	$lsb_header = "/etc/init.d/$name";
+    } elsif (-s "/usr/share/insserv/overrides/$name") {
+	# These overrides take effect only when no LSB info is
+	# in /etc/init.d/$name
+    	$lsb_header = "/usr/share/insserv/overrides/$name";
+    } else {
+	error("cannot find an initscript for $name");
+    }
+
+    # Extra arguments to disable|enable action are runlevels. If none
+    # given parse LSB info for Default-Start value.
+    if ($#_ >= 0) {
+	@runlevels = @_;
+    } else {
+	@runlevels = parse_def_start($lsb_header);
+	if ($#runlevels < 0) {
+	    error("$name Default-Start contains no runlevels, aborting.");
+    	}
+    }
+
+    # Find symlinks in rc.d directories. Refuse to modify links in runlevels
+    # not used for normal system start sequence.
+    for my $lvl (@runlevels) {
+	if ($lvl !~ /^[S2345]$/) {
+	    warning("$act action will have no effect on runlevel $lvl");
+	    next;
+	}
+	push(@symlinks, $_) for glob("/etc/rc$lvl.d/[SK][0-9][0-9]$name");
+    }
+
+    if (!@symlinks) {
+	error("no runlevel symlinks to modify, aborting!");
+    }
+
+    # Toggle S/K bit of script symlink.
+    for my $cur_lnk (@symlinks) {
+	my $sk;
+	my @new_lnk = split(//, $cur_lnk);
+
+	if ("disable" eq $act) {
+	    $sk = rindex($cur_lnk, '/S') + 1;
+	    next if $sk < 1;
+	    $new_lnk[$sk] = 'K';
+	} else {
+	    $sk = rindex($cur_lnk, '/K') + 1;
+	    next if $sk < 1;
+	    $new_lnk[$sk] = 'S';
+	}
+
+	if ($dryrun) {
+	    printf("rename(%s, %s)\n", $cur_lnk, join('', @new_lnk));
+	    next;
+	}
+
+	rename($cur_lnk, join('', @new_lnk)) or error($!);
+    }
 }

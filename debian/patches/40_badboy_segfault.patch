@@ -1,12 +1,8 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## 40_badboy_segfault.patch by Kel Modderman <kel@otaku42.de>
-##
-## DP: Purpose: Defend against corrupt or invalid scripts living in
-## DP:          /etc/rc[S0-6].d/
-## DP: Fixes:   #493202
-## DP: Status:  Acked by upstream.
-
-@DPATCH@
+Purpose: Defend against corrupt or invalid scripts living in
+         /etc/rc[S0-6].d/
+Fixes:   #493202
+Status:  Acked by upstream.
+---
 --- a/insserv.c
 +++ b/insserv.c
 @@ -1696,6 +1696,11 @@

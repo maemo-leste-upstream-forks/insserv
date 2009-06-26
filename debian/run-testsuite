@@ -355,6 +355,7 @@ list_rclinks
 
 # Make sure the override file moved mover before base
 check_order S mover base
+rm -rf $overridedir
 }
 ##########################################################################
 test_override_loop() {
@@ -406,6 +407,7 @@ insserv_reg loop1 || true
 insserv_reg loop2 || true
 
 check_order S loop1 loop2
+rm -rf $overridedir
 }
 ##########################################################################
 test_long_loop() {
@@ -1763,6 +1765,7 @@ echo
 initdir_purge
 
 # Create a regular file in runlevel directory where only symlinks are expected
+mkdir $initddir/../rcS.d
 touch $initddir/../rcS.d/S06badboy
 
 insertscript goodboy <<'EOF'
@@ -1778,10 +1781,153 @@ EOF
 list_rclinks
 
 check_script_present S goodboy
+
+rm $initddir/../rcS.d/S06badboy
+}
+##########################################################################
+test_x_interactive() {
+echo
+echo "info: Check if X-Interactive header work"
+echo "BTS #458224"
+echo
+  
+initdir_purge
+
+# Insert a few scripts to flesh out $initdir
+insertscript first <<EOF || true
+### BEGIN INIT INFO
+# Provides:          first
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2
+# Default-Stop:      0
+### END INIT INFO
+EOF
+
+# This test if X-Interactive work with existing scripts when a new
+# script is inserted.
+insertscript alone1 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          alone1
+# Required-Start:    first
+# Required-Stop:     first
+# Default-Start:     2
+# Default-Stop:      0
+# X-Interactive:     true
+### END INIT INFO
+EOF
+
+insertscript after <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          after
+# Required-Start:    first
+# Required-Stop:     first
+# Default-Start:     2
+# Default-Stop:      0
+### END INIT INFO
+EOF
+
+# This test if X-Interactive work with new scripts too.  The code
+# paths in insserv are different for the two cases.
+insertscript alone2 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          alone2
+# Required-Start:    first
+# Required-Stop:     first
+# Default-Start:     2
+# Default-Stop:      0
+# X-Interactive:     true
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_script_present 2 first
+check_script_present 2 after
+check_script_present 2 alone1
+check_script_present 2 alone2
+check_order 2 first after
+check_order 2 first alone1
+check_order 2 first alone2
+${severity}_order 2 alone1 after # This ordering is not guaranteed
+${severity}_order 2 alone2 after # This ordering is not guaranteed
 }
 ##########################################################################
 
+test_insserv_conf_makefile() {
+echo
+echo "info: test how recursive /etc/insserv.conf settings show up"
+echo "info: in .depend.start.  BTS #534526."
+echo
+
+initdir_purge
+
+list_rclinks
+
+set +C
+cat <<'EOF' > $insconf
+$local_fs       +mountall +mountoverflowtmp +umountfs
+$remote_fs      $local_fs +mountnfs
+EOF
+set -C
+
+insertscript mountall <<'EOF'
+### BEGIN INIT INFO
+# Provides:          mountall
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insertscript mountnfs <<'EOF'
+### BEGIN INIT INFO
+# Provides:          mountnfs
+# Required-Start:    $local_fs
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insertscript dbus <<'EOF'
+### BEGIN INIT INFO
+# Provides:          dbus
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+insertscript hal <<'EOF'
+### BEGIN INIT INFO
+# Provides:          hal
+# Required-Start:    $remote_fs dbus
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:      0 6
+### END INIT INFO
+EOF
+
+list_rclinks
+
+if ! grep -q "^hal: dbus mountall" ${initddir}/.depend.boot ; then
+    msg="hal should depend on dbus, mountall and mountnfs in .depend.boot:"
+    if [ test = "$severity" ] ; then
+        warning "$msg"
+    else
+        error "$msg"
+    fi
+    grep  "^hal: " ${initddir}/.depend.boot | sed 's/^/  /'
+fi
+
 update_conf
+}
+
+#########################
+
 test_normal_sequence
 test_override_files
 test_override_loop
@@ -1815,3 +1961,5 @@ test_deterministic_order
 test_all_keyword
 test_early_all
 test_script_in_runlevel
+test_x_interactive
+test_insserv_conf_makefile

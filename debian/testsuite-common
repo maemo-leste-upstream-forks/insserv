@@ -96,7 +96,7 @@ insserv_del ()
 
 initdir_purge ()
 {
-    rm -rf ${initddir} ${initddir}/../rc*.d/
+    rm -rf ${initddir}/../rc*.d ${initddir}
     mkdir -p ${initddir}
 }
 

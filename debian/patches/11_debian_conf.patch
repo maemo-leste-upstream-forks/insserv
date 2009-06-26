@@ -1,11 +1,7 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## 31_debian_conf_doc.dpatch by Petter Reinholdtsen <pere@hungry.com>
-##
-## DP: Purpose: Adjust the insserv configuration for Debian init.d script names.
-## DP: Fixes:   None, made as part of Debian porting.
-## DP: Status:  Debian specific, showed to upstream.
-
-@DPATCH@
+Purpose: Adjust the insserv configuration for Debian init.d script names.
+Fixes:   None, made as part of Debian porting.
+Status:  Debian specific, showed to upstream.
+---
 --- a/insserv.conf
 +++ b/insserv.conf
 @@ -1,29 +1,29 @@
@@ -54,4 +50,4 @@
  # Services which need to be interactive
  #
 -<interactive>   boot.crypto boot.localfs boot.rootfsck apache apache2 kdump
-+<interactive>   glibc hostname mountkernfs udev mountdevsubfs checkroot checkfs console-screen keymap
++<interactive>   glibc hostname mountkernfs udev mountdevsubfs checkroot checkfs console-screen keymap keyboard-setup console-setup cryptdisks cryptdisks-early checkfs-loop
