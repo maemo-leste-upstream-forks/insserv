@@ -50,4 +50,4 @@ Status:  Debian specific, showed to upstream.
  # Services which need to be interactive
  #
 -<interactive>   boot.crypto boot.localfs boot.rootfsck apache apache2 kdump
-+<interactive>   glibc hostname mountkernfs udev mountdevsubfs checkroot checkfs console-screen keymap keyboard-setup console-setup cryptdisks cryptdisks-early checkfs-loop
++<interactive>   glibc udev console-screen keymap keyboard-setup console-setup cryptdisks cryptdisks-early checkfs-loop

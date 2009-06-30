@@ -1,0 +1,19 @@
+Purpose: Try to get insserv building on hurd, by faking a PATH_MAX value.
+Status:  Not yet submitted upstream.
+---
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-07-01 00:14:51.000000000 +0200
++++ insserv/insserv.c	2009-07-01 00:14:51.000000000 +0200
+@@ -1376,6 +1376,11 @@
+     return ret;
+ }
+ 
++#ifndef PATH_MAX
++/* for example hurd.  Should really dynamically aligh the buffer. */
++# define PATH_MAX 1024
++#endif
++
+ /*
+  * Follow symlinks, return the basename of the file pointed to by
+  * symlinks or the basename of the current path if no symlink.

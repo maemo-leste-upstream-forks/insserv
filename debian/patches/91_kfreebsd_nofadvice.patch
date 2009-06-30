@@ -1,0 +1,20 @@
+Purpose: Get insserv building on kfreebsd, missing the argument values for posix_fadvise().
+Fixes:   #?
+Status:  Not yet submitted upstream.
+---
+--- a/insserv.c
++++ b/insserv.c
+@@ -40,6 +40,13 @@
+ #endif /* USE_RPMLIB */
+ #include "listing.h"
+ 
++#if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
++/* kfreebsd fail to provide working posix_fadvise */
++#  ifndef POSIX_FADV_SEQUENTIAL
++#    define posix_fadvise(fd, off, len, adv)        (-1)
++#  endif
++#endif
++
+ #ifdef SUSE
+ # define DEFAULT_START_LVL	"3 5"
+ # define DEFAULT_STOP_LVL	"3 5"

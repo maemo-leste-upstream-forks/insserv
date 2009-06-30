@@ -4,21 +4,20 @@ Priority: optional
 Maintainer: Petter Reinholdtsen <pere@debian.org>
 Uploaders: Kel Modderman <kel@otaku42.de>
 Build-Depends: debhelper (>= 6), po-debconf, quilt
-Standards-Version: 3.8.1
+Standards-Version: 3.8.2
 DM-Upload-Allowed: yes
 Homepage: http://ftp.suse.com/pub/projects/init/
 Vcs-Svn: svn://svn.debian.org/initscripts-ng/trunk/src/insserv
-Vcs-Browser: http://svn.debian.org/wsvn/initscripts-ng/trunk/src/insserv
+Vcs-Browser: http://svn.debian.org/wsvn/initscripts-ng/trunk/src/insserv/
 
 Package: insserv
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, sysv-rc
+Depends: ${shlibs:Depends}, ${misc:Depends}, sysv-rc, initscripts (>= 2.86.ds1-63), sysvinit-utils (>= 2.86.ds1-62)
 Suggests: bootchart
-Conflicts: initscripts (<< 2.86.ds1-48)
 Description: boot sequence organizer using LSB init.d script dependencies
- This utility reorders the init.d boot scripts based on dependencies
- given in scripts' LSB comment headers, or in override files
- included in this package or added in /etc/insserv.
+ When enabled, this utility reorders the init.d boot scripts based on
+ dependencies given in scripts' LSB comment headers, or in override
+ files included in this package or added in /etc/insserv.
  .
  This package should be used with care, as incorrect or missing dependencies
  can lead to an unbootable system.

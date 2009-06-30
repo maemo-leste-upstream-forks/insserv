@@ -1,3 +1,26 @@
+insserv (1.12.0-7) unstable; urgency=low
+
+  * Update standards-version from 3.8.1 to 3.8.2.  No changes needed.
+  * Fix wrong quote char in insserv(8) manual page.
+  * Add required trailing slash to Vcs-Browser URL.
+  * Improve package description to make it more obvious that insserv
+    is not activated when installed.
+  * Depend on sysvinit-utils (>= 2.86.ds1-62) to get a version of
+    startpar that keep working even when /dev/pts is not yet mounted.
+  * Depend on the initscripts version we want (>= 2.86.ds1-63)
+    (instead of conflicting with the version we do not want which can
+    give upgrade problems), to get one with the X-Interactive flags
+    set in the scripts.  Drop hostname, mountkernfs, mountdevsubfs,
+    checkroot and checkfs from the list of interactive scripts.
+  * New patch 91_kfreebsd_nofadvice.patch trying to get the source
+    building on kfreebsd.
+  * New patch 92_m68k_alignment.patch trying to get the source
+    building on m68k (Closes: #493637).
+  * New patch 93_hurd_no_path_max.patch trying to get the source
+    building on hurd.  Need a better one.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 01 Jul 2009 00:17:13 +0200
+
 insserv (1.12.0-6) unstable; urgency=low
 
   * Add keyboard-setup, console-setup, cryptdisks, cryptdisks-early

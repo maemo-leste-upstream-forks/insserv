@@ -22,7 +22,7 @@ Index: insserv/insserv.8.in
 +The optional X\-Interactive keyword implies that the script using this
 +keyword should be started alone in a concurrent boot configuration
 +because it interact with the user at the console.  Only the value
-+'true' is recogniced.  All other are ignored.
++`true' is recogniced.  All other are ignored.
 +.PP
  The optional
  .B X\-Start\-Before
