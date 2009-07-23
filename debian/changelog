@@ -1,3 +1,27 @@
+insserv (1.12.0-9) unstable; urgency=low
+
+  * Adjust patch 71_complete_makefile to make sure the recursion depth
+    calculation is done correctly in expand_faci().
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 23 Jul 2009 20:41:24 +0200
+
+insserv (1.12.0-8) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Refresh 92_m68k_alignment.patch.
+  * Simplify test for bug #534526, while still triggering the bug.
+  * Change definition of $time to make hwclock optional, as it might
+    be dropped from the boot sequence in the future.
+  * New patch 71_complete_makefile from upstream fixing .depend.*
+    content when processing virtual facility definitions refering to
+    other virtual facilities (Closes: #534526).
+
+  [ Kel Modderman ]
+  * Before inserting an initscript with insserv, check that
+    /etc/init.d/<basename> exists in update-rc.d-insserv.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Wed, 22 Jul 2009 23:53:05 +0200
+
 insserv (1.12.0-7) unstable; urgency=low
 
   * Update standards-version from 3.8.1 to 3.8.2.  No changes needed.

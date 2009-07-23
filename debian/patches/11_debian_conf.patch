@@ -44,7 +44,7 @@ Status:  Debian specific, showed to upstream.
  # The system time has been set correctly
  #
 -$time		boot.clock +xntpd
-+$time		hwclock
++$time		+hwclock
  
  #
  # Services which need to be interactive

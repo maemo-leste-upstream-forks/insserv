@@ -3,9 +3,11 @@ Purpose: Get insserv building on m68k, dropping some problematic
 Fixes:   #493637
 Status:  Not yet submitted upstream.
 ---
---- a/insserv.c	(revision 911)
-+++ b/insserv.c	(working copy)
-@@ -121,6 +121,10 @@
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-07-01 15:43:47.000000000 +0200
++++ insserv/insserv.c	2009-07-01 15:43:47.000000000 +0200
+@@ -129,6 +129,10 @@
  static boolean set_override = false;
  static boolean set_insconf = false;
  

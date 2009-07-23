@@ -36,7 +36,11 @@ if ("remove" eq $action) {
     if ($#ARGV >= 0) {
 	info("\`$action @ARGV' overridden by LSB info of $scriptname");
     }
-    exec "insserv", @opts, $scriptname;
+    if ( -f "/etc/init.d/$scriptname" ) {
+    	exec "insserv", @opts, $scriptname;
+    } else {
+    	error("initscript does not exist: /etc/init.d/$scriptname");
+    }
 } elsif ("disable" eq $action || "enable" eq $action) {
     toggle($action, $scriptname, @ARGV);
     # Call insserv to resequence modified links

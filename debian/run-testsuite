@@ -1857,17 +1857,19 @@ ${severity}_order 2 alone2 after # This ordering is not guaranteed
 test_insserv_conf_makefile() {
 echo
 echo "info: test how recursive /etc/insserv.conf settings show up"
-echo "info: in .depend.start.  BTS #534526."
+echo "info: in .depend.boot.  BTS #534526."
 echo
 
 initdir_purge
 
 list_rclinks
 
+# If $local_fs only depend on the mountall script, the test work.
+# Only the last script in $local_fs make it to the dependency file.
 set +C
 cat <<'EOF' > $insconf
-$local_fs       +mountall +mountoverflowtmp +umountfs
-$remote_fs      $local_fs +mountnfs
+$local_fs       +mountall +nonexisting
+$remote_fs      $local_fs
 EOF
 set -C
 
@@ -1876,18 +1878,8 @@ insertscript mountall <<'EOF'
 # Provides:          mountall
 # Required-Start:
 # Required-Stop:
-# Default-Start:     S
-# Default-Stop:      0 6
-### END INIT INFO
-EOF
-
-insertscript mountnfs <<'EOF'
-### BEGIN INIT INFO
-# Provides:          mountnfs
-# Required-Start:    $local_fs
-# Required-Stop:
-# Default-Start:     S
-# Default-Stop:      0 6
+# Default-Start:     1
+# Default-Stop:
 ### END INIT INFO
 EOF
 
@@ -1896,8 +1888,8 @@ insertscript dbus <<'EOF'
 # Provides:          dbus
 # Required-Start:
 # Required-Stop:
-# Default-Start:     S
-# Default-Stop:      0 6
+# Default-Start:     1
+# Default-Stop:
 ### END INIT INFO
 EOF
 
@@ -1906,21 +1898,21 @@ insertscript hal <<'EOF'
 # Provides:          hal
 # Required-Start:    $remote_fs dbus
 # Required-Stop:
-# Default-Start:     S
-# Default-Stop:      0 6
+# Default-Start:     1
+# Default-Stop:
 ### END INIT INFO
 EOF
 
 list_rclinks
 
-if ! grep -q "^hal: dbus mountall" ${initddir}/.depend.boot ; then
-    msg="hal should depend on dbus, mountall and mountnfs in .depend.boot:"
+if ! grep -q "^hal: mountall dbus" ${initddir}/.depend.start ; then
+    msg="hal should depend on dbus and mountall in .depend.start:"
     if [ test = "$severity" ] ; then
         warning "$msg"
     else
         error "$msg"
     fi
-    grep  "^hal: " ${initddir}/.depend.boot | sed 's/^/  /'
+    grep  "^hal: " ${initddir}/.depend.start | sed 's/^/  /'
 fi
 
 update_conf
