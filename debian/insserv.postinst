@@ -4,6 +4,8 @@ set -e
 
 . /usr/share/debconf/confmodule
 
+db_version 2.0
+
 flagfile=/var/lib/insserv/using-insserv
 
 # Based on code from dash postinst
@@ -20,6 +22,60 @@ check_divert() {
 	fi
     esac
 }
+
+############################## Ask the question (insserv.config) #################################
+#
+# insserv.config moved here to be able to call update-bootsystem-insserv
+#
+if [ "$1" = configure ] && [ -z "$2" ]; then
+    set +e
+    db_fget insserv/enable seen
+    err=$?
+    set -e
+
+    case $err in
+       0)
+           if [ true = "$RET" ]; then
+               db_get insserv/enable
+               if [ true = "$RET" ] && \
+                   ! check_divert status /usr/sbin/update-rc.d \
+                   /usr/sbin/update-rc.d-insserv ; then
+                   # debconf value has been seen and the value is true, but the
+                   # on disk state is false. No previous package version has
+                   # given as second argument, therefore the value must have
+                   # been preseeded before initial installation. Exit.
+                   exit
+               fi
+           fi
+           ;;
+       10)
+           # insserv/enable seen does not exist
+           ;;
+       *)
+           echo "db_fget exited with $err" >&2
+           exit $err
+           ;;
+    esac
+fi
+
+
+# Only update the default from the status on disk if we are already
+# installed, and not on first time install, to allow preseeding.
+if [ -e /usr/sbin/update-rc.d-insserv ] ; then
+    if check_divert status /usr/sbin/update-rc.d \
+	/usr/sbin/update-rc.d-insserv ; then
+	db_set insserv/enable true
+    elif update-bootsystem-insserv check ; then
+	# No problems with the current boot scripts, should be safe to enable
+	db_set insserv/enable true
+    else
+	db_set insserv/enable false
+    fi
+fi
+
+db_input medium insserv/enable || [ $? -eq 30 ]
+db_go || true
+############################ Process the qeustion (insserv.config) ###############################
 
 case "$1" in
     configure)

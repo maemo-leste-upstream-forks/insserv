@@ -1,3 +1,18 @@
+insserv (1.12.0-10) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Change check-initd-order to return a exit code when there is a problem
+    with the boot sequence or dependencies.
+  * Change the default to enable dependency based boot sequencing if
+    it is safe to do.  This should enable it in the common case,
+    while avoiding conversion on problems.
+  * Move all code from insserv.config to insserv.postist and remove
+    insserv.config to make sure update-bootsystem-insserv is available
+    and working when it is needed to test if it is safe to migrate to
+    dependency based boot sequencing.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 26 Jul 2009 21:06:56 +0200
+
 insserv (1.12.0-9) unstable; urgency=low
 
   * Adjust patch 71_complete_makefile to make sure the recursion depth
