@@ -5,8 +5,8 @@ Status:  Work in progress.
 
 Index: insserv/insserv.8.in
 ===================================================================
---- insserv.orig/insserv.8.in	2009-06-26 12:34:17.000000000 +0200
-+++ insserv/insserv.8.in	2009-06-26 12:34:19.000000000 +0200
+--- insserv.orig/insserv.8.in	2009-08-24 00:10:54.000000000 +0200
++++ insserv/insserv.8.in	2009-08-24 00:11:53.000000000 +0200
 @@ -76,6 +76,7 @@
   # X-Stop-After:      boot_facility_1 [ boot_facility_2 ...]
   # Default-Start:     run_level_1 [ run_level_2 ...]
@@ -29,8 +29,8 @@ Index: insserv/insserv.8.in
  keyword implies that the script using this keyword
 Index: insserv/insserv.c
 ===================================================================
---- insserv.orig/insserv.c	2009-06-26 12:34:19.000000000 +0200
-+++ insserv/insserv.c	2009-06-26 12:34:19.000000000 +0200
+--- insserv.orig/insserv.c	2009-08-24 00:11:22.000000000 +0200
++++ insserv/insserv.c	2009-08-24 00:12:02.000000000 +0200
 @@ -97,6 +97,7 @@
  #define DEFAULT_START	DEFAULT  START VALUE
  #define DEFAULT_STOP	DEFAULT  STOP  VALUE
@@ -55,7 +55,7 @@ Index: insserv/insserv.c
  } attribute((aligned(sizeof(regex_t)))) reg_t;
  
  typedef struct creg_struct {
-@@ -1137,6 +1140,7 @@
+@@ -1132,6 +1135,7 @@
      regcompiler(&reg.def_start, DEFAULT_START,  REG_EXTENDED|REG_ICASE|REG_NEWLINE);
      regcompiler(&reg.def_stop,  DEFAULT_STOP,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
      regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
@@ -63,7 +63,7 @@ Index: insserv/insserv.c
  }
  
  static inline void scan_script_reset(void) attribute((always_inline));
-@@ -1152,6 +1156,7 @@
+@@ -1147,6 +1151,7 @@
      xreset(script_inf.default_start);
      xreset(script_inf.default_stop);
      xreset(script_inf.description);
@@ -71,7 +71,7 @@ Index: insserv/insserv.c
  }
  
  #define FOUND_LSB_HEADER   0x01
-@@ -1182,6 +1187,7 @@
+@@ -1177,6 +1182,7 @@
  #define default_start	script_inf.default_start
  #define default_stop	script_inf.default_stop
  #define description	script_inf.description
@@ -79,7 +79,7 @@ Index: insserv/insserv.c
  
      info("Loading %s\n", path);
  
-@@ -1278,6 +1284,14 @@
+@@ -1273,6 +1279,14 @@
  		description = empty;
  	}
  
@@ -94,7 +94,7 @@ Index: insserv/insserv.c
  	/* Skip scanning below from LSB magic end */
  	if ((end = strstr(buf, "### END INIT INFO")))
  	    break;
-@@ -1346,6 +1360,7 @@
+@@ -1341,6 +1355,7 @@
  #undef default_start
  #undef default_stop
  #undef description
@@ -102,7 +102,7 @@ Index: insserv/insserv.c
      return ret;
  }
  
-@@ -1508,6 +1523,7 @@
+@@ -1503,6 +1518,7 @@
      regfree(&reg.def_start);
      regfree(&reg.def_stop);
      regfree(&reg.desc);
@@ -110,7 +110,7 @@ Index: insserv/insserv.c
  }
  
  static struct {
-@@ -1786,6 +1802,9 @@
+@@ -1781,6 +1797,9 @@
  		if (script_inf.stop_after && script_inf.stop_after != empty) {
  		    reversereq(service, REQ_SHLD|REQ_KILL, script_inf.stop_after);
  		}
@@ -120,7 +120,7 @@ Index: insserv/insserv.c
  	    }
  
  	    if (name) 
-@@ -2886,6 +2905,9 @@
+@@ -2881,6 +2900,9 @@
  			if (script_inf.should_stop && script_inf.should_stop != empty) {
  			    rememberreq(service, REQ_SHLD|REQ_KILL, script_inf.should_stop);
  			}

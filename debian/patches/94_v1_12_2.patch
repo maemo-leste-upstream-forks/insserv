@@ -1,0 +1,82 @@
+Patch from upstream to detect and reject loops in virtual
+facilities (#541613) and warn about indirect dependencies to $all.
+
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-08-18 15:59:23.000000000 +0200
++++ insserv/insserv.c	2009-08-18 15:59:23.000000000 +0200
+@@ -231,6 +231,7 @@
+ typedef struct repl {
+     list_t     r_list;
+     string_t	 r[1];
++    ushort	flags;
+ } __align repl_t;
+ #define getrepl(arg)	list_entry((arg), struct repl, r_list)
+ 
+@@ -1890,6 +1891,7 @@
+ 				if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
+ 				    error("%s", strerror(errno));
+ 				insert(&subst->r_list, r_list->prev);
++				subst->flags = 0;
+ 				r = &subst->r[0];
+ 				if (posix_memalign((void*)&r->ref, sizeof(void*), alignof(typeof(r->ref))+strsize(token)) != 0)
+ 				    error("%s", strerror(errno));
+@@ -1919,6 +1921,7 @@
+ 				error("%s", strerror(errno));
+ 			    insert(&subst->r_list, r_list->prev);
+ 			    r = &subst->r[0];
++			    subst->flags = 0;
+ 			    if (posix_memalign((void*)&r->ref, sizeof(void*), alignof(typeof(r->ref))+strsize(token)) != 0)
+ 				error("%s", strerror(errno));
+ 			    *r->ref = 1;
+@@ -2071,13 +2074,19 @@
+ 
+ 	list_for_each_safe(tmp, safe, ptr) {
+ 	    repl_t * rnxt = getrepl(tmp);
++	    if (rnxt->flags & 0x0001) {
++		error("Loop detected during expanding system facilities in the insserv.conf file(s): %s\n",
++		      rnxt->r[0].name);
++	    }
+ 	    if (*rnxt->r[0].name == '$') {
+ 		if (*deep > 10) {
+ 		    warn("The nested level of the system facilities in the insserv.conf file(s) is to large\n");
+ 		    goto out;
+ 		}
+ 		(*deep)++;
++		rnxt->flags |= 0x0001;
+ 		expand_faci(tmp, head, deep);
++		rnxt->flags &= ~0x0001;
+ 		(*deep)--;
+ 	    } else if (*deep > 0) {
+ 		repl_t *restrict subst;
+@@ -2098,9 +2107,12 @@
+     list_for_each(ptr, sysfaci_start) {
+ 	list_t * rlist, * safe, * head = &getfaci(ptr)->replace;
+ 	list_for_each_safe(rlist, safe, head) {
+-	    if (*getrepl(rlist)->r[0].name == '$') {
++	    repl_t * tmp = getrepl(rlist);
++	    if (*tmp->r[0].name == '$') {
+ 		int deep = 0;
++		tmp->flags |= 0x0001;
+ 		expand_faci(rlist, rlist, &deep);
++		tmp->flags &= ~0x0001;
+ 	    }
+ 	}
+     }
+Index: insserv/listing.c
+===================================================================
+--- insserv.orig/listing.c	2009-08-18 15:58:35.000000000 +0200
++++ insserv/listing.c	2009-08-18 15:59:23.000000000 +0200
+@@ -398,6 +398,12 @@
+ 		break;				/* Loop detected, stop recursion */
+ 	    }
+ 
++	    if ((mode == 'S') && (attof(tmp)->flags & SERV_ALL)) {
++		warn("%s depends on %s and therefore on system facility `$all' which can not be true!\n",
++		     target->script ? target->script : target->name, tmp->script ? tmp->script : tmp->name);
++		continue;
++	    }
++
+ 	    if (ptrg->deep >= deep)		/* Nothing new */
+ 		continue;
+ 						/* The inner recursion */

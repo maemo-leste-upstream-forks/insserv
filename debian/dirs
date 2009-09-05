@@ -3,4 +3,4 @@ etc/insserv.conf.d
 etc/insserv/overrides
 usr/sbin
 usr/share/insserv/overrides
-var/lib/insserv
+var/lib/update-rc.d

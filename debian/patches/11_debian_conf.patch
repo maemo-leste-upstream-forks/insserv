@@ -35,7 +35,7 @@ Status:  Debian specific, showed to upstream.
  # System logger is operational
  #
 -$syslog		syslog
-+$syslog		+syslog +sysklogd +rsyslog +syslog-ng
++$syslog		+rsyslog +sysklogd +syslog-ng +dsyslog +inetutils-syslogd 
  
  #
  # SunRPC portmapper available

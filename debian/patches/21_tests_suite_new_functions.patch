@@ -1,0 +1,34 @@
+Purpose: Add some extra functions used by Debian test suite script
+Authour: Kel Modderman
+Fixes:   -
+Status:  Should be sent upstream
+
+--- a/tests/suite
++++ b/tests/suite
+@@ -94,6 +94,12 @@ insserv_del ()
+     $insserv $debug -c $insconf -p $initddir -o $overridedir -r $script
+ }
+ 
++initdir_purge ()
++{
++    rm -rf ${initddir}/../rc*.d ${initddir}
++    mkdir -p ${initddir}
++}
++
+ relpath ()
+ {
+     local OLDIFS IFS
+@@ -201,6 +207,13 @@ addscript ()
+     chmod u+w,a+rx $script
+ }
+ 
++remscript ()
++{
++    local scriptname=$1
++    local script=${initddir}/$scriptname
++    rm -f $script
++}
++
+ insertscript ()
+ {
+     local scriptname=$1

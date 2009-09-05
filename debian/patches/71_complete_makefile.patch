@@ -3,10 +3,11 @@ Purpose: Make sure the .depend.* files have complete dependencies when
 Fixes:   #534526
 Status:  From upstream.
 ---
-Index: insserv-1.12.0/insserv.c
---- insserv-1.12.0.orig/insserv.c
-+++ insserv-1.12.0/insserv.c
-@@ -2058,33 +2058,26 @@ static void expand_faci(list_t *restrict
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-08-24 00:11:22.000000000 +0200
++++ insserv/insserv.c	2009-08-24 00:11:51.000000000 +0200
+@@ -2053,33 +2053,26 @@
  	    goto out;
  	}
  

@@ -3,9 +3,9 @@ Status:  Not yet submitted upstream.
 ---
 Index: insserv/insserv.c
 ===================================================================
---- insserv.orig/insserv.c	2009-07-01 00:14:51.000000000 +0200
-+++ insserv/insserv.c	2009-07-01 00:14:51.000000000 +0200
-@@ -1376,6 +1376,11 @@
+--- insserv.orig/insserv.c	2009-09-02 23:25:02.000000000 +0200
++++ insserv/insserv.c	2009-09-02 23:25:03.000000000 +0200
+@@ -1371,6 +1371,11 @@
      return ret;
  }
  

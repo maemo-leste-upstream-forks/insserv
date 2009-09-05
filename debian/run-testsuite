@@ -1,7 +1,7 @@
 #!/bin/bash
 
 basedir=$(dirname $0)
-. $basedir/testsuite-common
+. $basedir/../tests/suite
 
 if head -1 debian/changelog | grep -q UNRELEASED ; then
     severity=check
@@ -409,6 +409,51 @@ insserv_reg loop2 || true
 check_order S loop1 loop2
 rm -rf $overridedir
 }
+##########################################################################
+
+test_override_remove() {
+echo
+echo "info: Try to reproduce BTS #540866"
+echo
+
+initdir_purge
+
+addscript testscript <<'EOF'
+### BEGIN INIT INFO
+# Provides:          testscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+mkdir -p ${overridedir}/.
+cat >${overridedir}/testscript <<'EOF'
+### BEGIN INIT INFO
+# Provides:          testscript
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 4 5
+# Default-Stop:      0 1 6
+### END INIT INFO
+EOF
+
+insserv_reg testscript
+
+list_rclinks
+
+check_script_not_present 3 testscript
+
+echo info: Trying to remove the script
+
+insserv_del testscript
+
+list_rclinks
+
+check_script_not_present 3 testscript
+}
+
 ##########################################################################
 test_long_loop() {
 echo
@@ -1699,8 +1744,9 @@ check_script_present 5 all
 ##########################################################################
 test_early_all() {
 echo
-echo "info: Check that \$all only affect the start or stop sequence"
-echo "BTS #485307"
+echo "info: Check that start dependency on \$all only affect the start"
+echo "sequence. BTS #485307"
+
 echo
 
 initdir_purge
@@ -1737,9 +1783,9 @@ insertscript late <<'EOF' || true
 EOF
 
 # This script should start early and stop before all other scripts
-insertscript complex <<'EOF' || true
+insertscript zcomplex <<'EOF' || true
 ### BEGIN INIT INFO
-# Provides:          compex
+# Provides:          zcompex
 # Required-Start:    early
 # X-Start-Before:    center
 # Required-Stop:     $all
@@ -1751,10 +1797,11 @@ EOF
 list_rclinks
 
 check_script_present 2 early
-check_script_present 2 complex
-check_order 2 early complex
-check_order 2 complex center
-check_order 0 complex late
+check_script_present 2 zcomplex
+check_order 2 early zcomplex
+check_order 2 zcomplex center
+check_order 0 zcomplex late
+check_order 0 zcomplex early
 }
 ##########################################################################
 test_script_in_runlevel() {
@@ -1920,9 +1967,113 @@ update_conf
 
 #########################
 
+test_insserv_virt_loop() {
+echo
+echo "info: test insserv handle virtual facilities depending on itself."
+echo
+
+initdir_purge
+
+list_rclinks
+
+# If $local_fs depend on itself, the error is triggered.
+set +C
+cat <<'EOF' > $insconf
+$local_fs       +mountall $local_fs
+EOF
+set -C
+
+# This used to hang and use unlimited amount of memory.  Now return
+# error instead.
+insertscript testscript <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          testscript
+# Required-Start:    $local_fs
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+update_conf
+}
+
+##########################################################################
+test_local_virtual() {
+echo
+echo "info: Test if home made virtual facilities work as they should."
+echo
+
+initdir_purge
+
+mkdir $insconf.d
+
+insertscript test1 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          test1
+# Required-Start:    $mail-transport-agent
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript test2 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          test2
+# Required-Start:    $mail-transport-agent
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+set +C
+cat <<'EOF' > $insconf.d/test3
+$mail-transport-agent       test3
+EOF
+insertscript test3 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          test3
+# Required-Start:
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+EOF
+
+cat <<'EOF' > $insconf.d/test4
+$mail-transport-agent       +test4
+EOF
+set -C
+insertscript test4 <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          test4
+# Required-Start:    test3
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_order 1 test3 test1
+check_order 1 test3 test2
+check_order 1 test4 test1
+check_order 1 test4 test2
+
+}
+##########################################################################
+
 test_normal_sequence
 test_override_files
 test_override_loop
+test_override_remove
 test_long_loop
 test_combined_loop		# 1 non-fatal test failing
 test_fake_loop
@@ -1955,3 +2106,5 @@ test_early_all
 test_script_in_runlevel
 test_x_interactive
 test_insserv_conf_makefile
+test_insserv_virt_loop
+test_local_virtual

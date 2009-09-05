@@ -1,3 +1,53 @@
+insserv (1.12.0-11) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Migrate the responsibility for enabling or disabling dependency
+    based boot sequencing from the insserv package to the sysv-rc
+    package.  Rewrite package description to reflect this (Closes:
+    #475478, #511753, #538959).  Keep a dummy update-bootsystem-insserv
+    script to avoid having to conflict with sysv-rc version 2.87dsf-2.
+    Keep update-rc.d-insserv to make it impossible for the update-rc.d
+    diversion to be a dangling link during upgrades.  Make it a copy
+    of update-rc.d from the new sysv-rc version to make sure both
+    behave the same way.  update-rc.d-insserv should be removed in
+    Squeeze+1.  update-bootsystem-insserv could be removed when
+    sysv-rc 2.87dsf-2 has been gone from unstable for 3 months.
+  * Drop dependencies on sysv-rc, initscripts and sysvinit-utils, and
+    leave it for sysv-rc to pull in the packages needed for dependency
+    based boot sequencing to work properly.
+  * Update README to reflect that dependency based boot sequencing is
+    now the default in Debian.  Drop reference to obsolete CONCURRENCY
+    setting (Closes: #540447).
+  * Add new test case test_override_remove trying to reproduce bug #540866.
+    No luck so far.
+  * Add new test case test_insserv_virt_loop to reproduce a bug
+    reported by Raphael Geissert, where an incorrect insserv.conf will
+    make insserv hang forever.  Add new patch 94_v1_12_2.patch from
+    upstream to fix it (Closes: #541613).
+  * Correct test test_early_all to fail if $all do not work with stop
+    sequences.  Add new patch 95_stop_all.patch from upstream to fix
+    it (Closes: #542043).
+  * Change the definition of $syslog to include rsyslog, sysklogd,
+    dsyslog, inetutils-syslogd  and syslog-ng, to include all syslog
+    implmenetations in the archive.  Dropped the syslog provide from
+    the list, as it should not be used.
+  * Update to Standards-Version 3.8.3, no changes required.
+  * Add lintian override for the transitient update-bootsystem-insserv
+    binary missing a manual page.
+  * Add new test test_local_virtual to verify that local virtual
+    facilities work properly.
+
+  [ Kel Modderman ]
+  * Add new patch 20_install_perms_fixup.patch to install binary and
+    conffile with correct permissions.
+  * Add new patch 21_tests_suite_new_functions.patch to add a couple
+    of new test suite functions to upstream test suite.
+  * Make sure update-rc.d compares command line parameters for start/stop
+    runlevel configuration with the Default-Start and Default-Stop values in
+    LSB info comment of script and warns if there are differences.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sat, 05 Sep 2009 11:50:22 +0200
+
 insserv (1.12.0-10) unstable; urgency=low
 
   [ Petter Reinholdtsen ]
