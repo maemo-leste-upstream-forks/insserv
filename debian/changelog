@@ -1,3 +1,9 @@
+insserv (1.12.0-11+hurd.1) unreleased; urgency=low
+
+  * Drop inconditional use of readlinkat.
+
+ -- Samuel Thibault <sthibault@debian.org>  Tue, 08 Sep 2009 23:19:50 +0000
+
 insserv (1.12.0-11) unstable; urgency=low
 
   [ Petter Reinholdtsen ]
