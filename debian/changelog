@@ -1,8 +1,17 @@
-insserv (1.12.0-11+hurd.1) unreleased; urgency=low
+insserv (1.12.0-12) unstable; urgency=low
 
-  * Drop inconditional use of readlinkat.
+  * Use dh_lintian during build.  Depend on debhelper (>= 6.0.7) for this.
+  * Correct wiki URL in README.Debian (Closes: #545171).  Thanks to
+    Josh Triplett for noticing the old URL.
+  * Make sure check-initd-order generated valid dotty files when
+    scripts provide strings with " in them (Closes: #545521).  Thanks
+    to Laurent Bonnaud for discovering the problem.
+  * Drop the Loading... messages from the default verbosity level, and
+    only show them when -v is used several times.
+  * Add script check-archive-initd-scripts to check all init.d scripts
+    in the Debian archive for consistency.
 
- -- Samuel Thibault <sthibault@debian.org>  Tue, 08 Sep 2009 23:19:50 +0000
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 13 Sep 2009 11:27:49 +0200
 
 insserv (1.12.0-11) unstable; urgency=low
 

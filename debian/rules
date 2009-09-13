@@ -64,6 +64,8 @@ install: build
 	done
 
 	$(INSTALL) debian/check-initd-order $(DESTDIR)$(pkgdatadir)/.
+	$(INSTALL) debian/check-archive-initd-scripts \
+		$(DESTDIR)$(pkgdatadir)/.
 	$(INSTALL) debian/seq-changes $(DESTDIR)$(pkgdatadir)/.
 	$(INSTALL) debian/make-testsuite $(DESTDIR)$(pkgdatadir)/.
 	$(INSTALL) debian/update-bootsystem-insserv $(DESTDIR)$(sbindir)/.
@@ -72,9 +74,7 @@ install: build
 	# Install bash(1) completion
 	$(INSTALL_DATA) debian/bash-completion $(DESTDIR)/etc/bash_completion.d/insserv
 
-	$(INSTALL) -d -o root -g root -m 755 $(DESTDIR)/usr/share/lintian/overrides
-	$(INSTALL) -o root -g root -m 644 debian/lintian-overrides \
-		$(DESTDIR)/usr/share/lintian/overrides/insserv
+	dh_lintian
 
 # Build architecture-independent files here.
 binary-indep: build install

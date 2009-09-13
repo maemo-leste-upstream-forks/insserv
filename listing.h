@@ -337,7 +337,7 @@ static inline char * xstrdup(const char *restrict s)
 # define xstat(d,x,s)	(__extension__ ({ stat(x,s); }))
 # define xlstat(d,x,s)	(__extension__ ({ lstat(x,s); }))
 #endif
-#if defined(HAS_readlinkat) && !defined(__GNU__) && defined(_ATFILE_SOURCE)
+#if defined(HAS_readlinkat) && defined(_ATFILE_SOURCE)
 # define xreadlink(d,x,b,l)	(__extension__ ({ readlinkat(d,x,b,l); }))
 #else
 # define xreadlink(d,x,b,l)	(__extension__ ({ readlink(x,b,l); }))

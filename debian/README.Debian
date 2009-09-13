@@ -34,7 +34,7 @@ from
 
 Information on the LSB initscript comment convention is available from
 <URL:http://refspecs.freestandards.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html>,
-<URL:http://wiki.debian.net/?LSBInitScripts> and
+<URL:http://wiki.debian.org/LSBInitScripts> and
 <URL:http://wiki.debian.org/LSBInitScripts/DependencyBasedBoot>.
 
 Information on an alternative approach to parallelism during boot is

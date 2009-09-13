@@ -10,6 +10,7 @@
 70_req_start_all_depends.patch 
 71_complete_makefile.patch
 80_manual_warnings.patch
+81_lessverbose.patch
 90_no_runlevel_spec_for_debian.patch
 91_kfreebsd_nofadvice.patch
 92_m68k_alignment.patch

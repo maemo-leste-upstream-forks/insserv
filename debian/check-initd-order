@@ -145,6 +145,7 @@ sub graph_addnode {
     }
 
     for my $provide (@provides) {
+        my $provideesc = $provide; $provideesc =~ s/"/\\"/g;
         my %deps =
             (
              "required-$key" => 'blue',
@@ -162,19 +163,20 @@ sub graph_addnode {
                 }
 
                 for my $pkg (@depends) {
+                    my $pkgesc = $pkg; $pkgesc =~ s/"/\\"/g;
                     my $color = $deps{$key};
                     if ($revkey eq $key) {
-                        print "\"$provide\" -> \"$pkg\"[color=$color] ;\n";
+                        print "\"$provideesc\" -> \"$pkgesc\"[color=$color] ;\n";
                         $gotrevdeps{$pkg} = 1 unless $dependonall;
                     } else {
-                        print "\"$pkg\" -> \"$provide\"[color=$color] ;\n";
+                        print "\"$pkgesc\" -> \"$provideesc\"[color=$color] ;\n";
                         $gotrevdeps{$provide} = 1 unless $dependonall;
                     }
                 }
             }
         }
 
-        print "\"$provide\" [shape=box];\n" unless $allprovides{$provide};
+        print "\"$provideesc\" [shape=box];\n" unless $allprovides{$provide};
         $allprovides{$provide} = 1;
     }
 }
