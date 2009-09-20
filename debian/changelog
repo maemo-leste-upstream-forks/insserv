@@ -1,3 +1,11 @@
+insserv (1.12.0-13) unstable; urgency=low
+
+  * New argument -b to check-initd-order, to be able to replace /etc/
+    with another directory.  This allow for easier testing of the script.
+  * Update update-rc.d-insserv to the one in sysv-rc svn.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Sun, 20 Sep 2009 21:58:11 +0200
+
 insserv (1.12.0-12) unstable; urgency=low
 
   * Use dh_lintian during build.  Depend on debhelper (>= 6.0.7) for this.

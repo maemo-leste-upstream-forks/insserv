@@ -21,13 +21,14 @@ my @virts = qw($local_fs $remote_fs $syslog $time $named
                $portmap $network $all
                $mail-transport-agent $x-font-server
                );
-my @depheaders = qw(required-start required-stop should-start
+my @harddepheaders = qw(required-start required-stop);
+my @softdepheaders = qw(should-start
                     should-stop x-start-before x-stop-after);
 my $lsbheaders = "Provides|Required-Start|Required-Stop|Default-Start|Default-Stop";
 my $optheaders = "x-start-before|x-stop-after|should-start|should-stop";
 
 for my $virt (@virts) {
-    $provides{$virt} = ['/etc/insserv.conf'];
+    $provides{$virt} = ['insserv/etc/insserv.conf'];
 }
 
 # Ignore obsolete scripts, as these are unlikely to cause problems.
@@ -58,8 +59,9 @@ for my $provide (sort keys %provides) {
         my %script;
         map { $script{basename($_)} = 1; } @{$provides{$provide}};
         if (1 < scalar keys %script) {
-            error("duplicate provide '$provide' in scripts "
-                  . join(" ", short_name(@{$provides{$provide}})));
+            error(sprintf("scripts %s provide duplicate '%s'",
+                          join(",", short_name(@{$provides{$provide}})),
+                          $provide));
         }
     }
 }
@@ -69,20 +71,37 @@ for my $initdscript (@scripts) {
     next unless ($scriptinfo{$initdscript}->{'found'});
     my $short = short_name($initdscript);
     my %checked;
-    my @missing = ();
-    for my $header (@depheaders) {
+    my @hardmissing = ();
+    for my $header (@harddepheaders) {
         my $list = $scriptinfo{$initdscript}->{$header};
         next unless defined $list;
         for my $facility (split(/[ ,\t]+/, $list)) {
             next if exists $checked{$facility};
             $checked{$facility} = 1;
-            push(@missing, $facility)
+            push(@hardmissing, $facility)
                 unless exists $provides{$facility};
         }
     }
-    error("script $short relate to non-existing provides: "
-          . join(" ", @missing)) if (@missing);
+    error("script $short depend on non-existing provides: "
+          . join(" ", @hardmissing)) if (@hardmissing);
+    my @softmissing = ();
+    for my $header (@softdepheaders) {
+        my $list = $scriptinfo{$initdscript}->{$header};
+        next unless defined $list;
+        for my $facility (split(/[ ,\t]+/, $list)) {
+            next if exists $checked{$facility};
+            $checked{$facility} = 1;
+            push(@softmissing, $facility)
+                unless exists $provides{$facility};
+        }
+    }
+    warning("script $short relate to non-existing provides: "
+            . join(" ", @softmissing)) if (@softmissing);
 
+    if (exists $checked{'$syslog'}
+        && $scriptinfo{$initdscript}->{'default-start'} =~ m/s/i) {
+        error("script $short depend on \$syslog and start from rcS.d/");
+    }
     if (!exists $checked{'$remote_fs'}
         && !exists $checked{'$syslog'}
         && $scriptinfo{$initdscript}->{'need_remove_fs'}
@@ -100,6 +119,9 @@ for my $initdscript (@scripts) {
     for my $provide (split(/[ ,\t]+/,
                            $scriptinfo{$initdscript}->{provides})) {
         $provided{$provide} = 1;
+        if ($provide =~ m/\$/) {
+            error("script $short provide virtual facility $provide");
+        }
     }
 
     my $basename = basename($initdscript, ".sh");
@@ -137,7 +159,7 @@ sub parse_lsb_header {
     my $short = short_name($initdscript);
     my %lsbinfo;
     unless (open(INIT, "<", $initdscript)) {
-        error("unable to read $short");
+        error("script $short is unreadable");
         return ();
     }
     my $inheader = 0;

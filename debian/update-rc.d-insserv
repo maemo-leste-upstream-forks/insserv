@@ -10,6 +10,9 @@ my $initd = "/etc/init.d";
 my $etcd  = "/etc/rc";
 my $notreally = 0;
 
+# Save last action to this directory
+my $archive = "/var/lib/update-rc.d";
+
 # Print usage message and die.
 
 sub usage {
@@ -52,14 +55,18 @@ while($#ARGV >= 0 && ($_ = $ARGV[0]) =~ /^-/) {
 
 sub save_last_action {
     my ($script, @arguments) = @_;
-    my $archive = "/var/lib/update-rc.d";
 
     return if $notreally;
 
-    open(FILE, ">", "$archive/${script}.new") || die;
+    open(FILE, ">", "$archive/${script}.new") || die "unable to write to $archive/${script}.new";
     print FILE join(" ","update-rc.d",@arguments), "\n";
     close(FILE);
     rename "$archive/${script}.new", "$archive/${script}";
+}
+
+sub remove_last_action {
+    my ($script) = @_;
+    unlink "$archive/$script";
 }
 
 # Action.
@@ -90,7 +97,7 @@ my @startlinks;
 my @stoplinks;
 
 $_ = $ARGV[0];
-if    (/^remove$/)       { &checklinks ("remove"); save_last_action($bn, @orig_argv); }
+if    (/^remove$/)       { &checklinks ("remove"); remove_last_action($bn); }
 elsif (/^defaults$/)     { &defaults (@ARGV); &makelinks; save_last_action($bn, @orig_argv); }
 elsif (/^(start|stop)$/) { &startstop (@ARGV); &makelinks; save_last_action($bn, @orig_argv); }
 elsif (/^(dis|en)able$/) { &toggle (@ARGV); &makelinks; save_last_action($bn, @orig_argv); }
@@ -109,6 +116,12 @@ sub warning {
 sub error {
     print STDERR "update-rc.d: error: @_\n";
     exit (1);
+}
+
+sub error_code {
+    my $rc = shift;
+    print STDERR "update-rc.d: error: @_\n";
+    exit ($rc);
 }
 
 # Check if there are links in /etc/rc[0-9S].d/ 
@@ -379,18 +392,20 @@ sub insserv_updatercd {
     $action = shift @args;
     if ("remove" eq $action) {
         if ( -f "/etc/init.d/$scriptname" ) {
-            my $rc = system "insserv", @opts, "-r", $scriptname;
+            my $rc = system("insserv", @opts, "-r", $scriptname) >> 8;
             if (0 == $rc && !$notreally) {
-                save_last_action($scriptname, @orig_argv);
+                remove_last_action($scriptname);
             }
+            error_code($rc, "insserv rejected the script header") if $rc;
             exit $rc;
         } else {
             # insserv removes all dangling symlinks, no need to tell it
             # what to look for.
-            my $rc = system "insserv", @opts;
+            my $rc = system("insserv", @opts) >> 8;
             if (0 == $rc && !$notreally) {
-                save_last_action($scriptname, @orig_argv);
+                remove_last_action($scriptname);
             }
+            error_code($rc, "insserv rejected the script header") if $rc;
             exit $rc;
         }
     } elsif ("defaults" eq $action || "start" eq $action ||
@@ -401,10 +416,11 @@ sub insserv_updatercd {
         cmp_args_with_defaults($scriptname, $action, @args);
 
         if ( -f "/etc/init.d/$scriptname" ) {
-            my $rc = system "insserv", @opts, $scriptname;
+            my $rc = system("insserv", @opts, $scriptname) >> 8;
             if (0 == $rc && !$notreally) {
                 save_last_action($scriptname, @orig_argv);
             }
+            error_code($rc, "insserv rejected the script header") if $rc;
             exit $rc;
         } else {
             error("initscript does not exist: /etc/init.d/$scriptname");
@@ -412,10 +428,11 @@ sub insserv_updatercd {
     } elsif ("disable" eq $action || "enable" eq $action) {
         insserv_toggle($notreally, $action, $scriptname, @args);
         # Call insserv to resequence modified links
-        my $rc = system "insserv", @opts, $scriptname;
+        my $rc = system("insserv", @opts, $scriptname) >> 8;
         if (0 == $rc && !$notreally) {
             save_last_action($scriptname, @orig_argv);
         }
+        error_code($rc, "insserv rejected the script header") if $rc;
         exit $rc;
     } else {
         usage();

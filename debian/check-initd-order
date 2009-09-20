@@ -14,7 +14,6 @@ use strict;
 use warnings;
 
 my $rcbase = "/etc";
-#$rcbase = "/opt/ltsp/i386/etc";
 
 my $overridepath = "/usr/share/insserv/overrides";
 my $hostoverridepath =  "/etc/insserv/overrides";
@@ -44,14 +43,15 @@ my %opts;
 my %gotrevdeps;
 my %allprovides;
 
-load_sysmap("/etc/insserv.conf");
-
 while($#ARGV >= 0 && ($_ = $ARGV[0]) =~ /^-/) {
         shift @ARGV;
         if (/^-([cdgko])$/) { $opts{$1}++; next }
+        if (/^-b$/) { $rcbase = shift; next }
         if (/^-h|--help$/) { &usage; }
         &usage("unknown option");
 }
+
+load_sysmap("$rcbase/insserv.conf");
 
 $debug = $opts{'d'};
 my $useoverrides = $opts{'o'} ? 0 : 1;
@@ -67,7 +67,8 @@ exit $errors > 0 ? 1 : 0;
 sub usage {
     print STDERR "check-initd-order: error: @_\n" if ($#_ >= 0);
     print STDERR <<EOF;
-usage: check-initd-order [-cdgko]
+usage: check-initd-order [-cdgko] [-b basedir]
+  -b basedir (default /etc)
   -d enable debug output
   -o do not load override files
   -k use shutdown (reboot) sequence instead of boot sequence
@@ -94,7 +95,10 @@ sub error {
 # probably be more complex
 sub load_sysmap {
     my $filename = shift;
-    open(CONF, "<", "$filename") || die "Unable to load $filename";
+    unless (open(CONF, "<", "$filename")) {
+        print STDERR "error: unable to load $filename";
+        return;
+    }
     while (<CONF>) {
         chomp;
         s/\#.*$//;
@@ -262,7 +266,6 @@ sub check_bootorder {
     my @dirs = $opts{'k'} ? $rcmap{6} : ($rcmap{S}, $rcmap{2});
     my @scripts;
     for my $rcdir (@dirs) {
-#        chdir "$rcbase/$rcdir/.";
         push(@scripts, $opts{'k'} ? <$rcbase/$rcdir/K*> : <$rcbase/$rcdir/S*>);
     }
 
