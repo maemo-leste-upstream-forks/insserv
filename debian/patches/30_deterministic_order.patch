@@ -4,8 +4,10 @@ Purpose: Defend against undeterministic directory stream sequence
 Fixes:   #494514
 Status:  Applied upstream.
 ---
---- a/insserv.c
-+++ b/insserv.c
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-09-26 22:35:25.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:44.000000000 +0200
 @@ -2238,6 +2238,7 @@
      boolean del = false;
      boolean defaults = false;

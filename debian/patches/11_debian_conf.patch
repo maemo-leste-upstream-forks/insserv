@@ -2,8 +2,10 @@ Purpose: Adjust the insserv configuration for Debian init.d script names.
 Fixes:   None, made as part of Debian porting.
 Status:  Debian specific, showed to upstream.
 ---
---- a/insserv.conf
-+++ b/insserv.conf
+Index: insserv/insserv.conf
+===================================================================
+--- insserv.orig/insserv.conf	2009-09-26 22:35:26.000000000 +0200
++++ insserv/insserv.conf	2009-09-26 22:35:39.000000000 +0200
 @@ -1,29 +1,29 @@
  #
  # All local filesystems are mounted (done during boot phase)

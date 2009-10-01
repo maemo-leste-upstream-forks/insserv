@@ -5,9 +5,9 @@ Status:  Applied upstream.
 ---
 Index: insserv/insserv.c
 ===================================================================
---- insserv.orig/insserv.c	2009-08-24 00:11:22.000000000 +0200
-+++ insserv/insserv.c	2009-08-24 00:11:59.000000000 +0200
-@@ -774,9 +774,6 @@
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:42.000000000 +0200
+@@ -776,9 +776,6 @@
  	    continue;
  #endif /* not MINIMAL_RULES */
  
@@ -17,7 +17,7 @@ Index: insserv/insserv.c
  	if (serv->start->lvl & LVL_BOOT)
  	    out = boot;
  	else
-@@ -818,6 +815,10 @@
+@@ -820,6 +817,10 @@
  		fprintf(out, " %s", name);
  	    }
  	} else {

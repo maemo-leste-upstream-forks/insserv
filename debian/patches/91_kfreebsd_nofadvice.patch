@@ -2,8 +2,10 @@ Purpose: Get insserv building on kfreebsd, missing the argument values for posix
 Fixes:   #?
 Status:  Not yet submitted upstream.
 ---
---- a/insserv.c
-+++ b/insserv.c
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:40.000000000 +0200
 @@ -40,6 +40,13 @@
  #endif /* USE_RPMLIB */
  #include "listing.h"

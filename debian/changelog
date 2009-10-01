@@ -1,3 +1,22 @@
+insserv (1.12.0-14) unstable; urgency=low
+
+  * Remove obsolete rules targets missing-overrides, bin-by-inst.txt,
+    missingpkgs, missing-by-popcon and clean-extra.
+  * New patch 82_loop_exit_msg.patch to make exit message when a loop
+    is detected loop more like the exit messages when other problems
+    are detected.
+  * Make check-initd-order report missing provides header as errors
+    instead of printing perl warnings.
+  * New patch 62_upstart_job.patch implementing support for upstart
+    jobs (Closes: #547235).  Add testsuite test to ensure that it is
+    working.
+  * Refreshed all patches.
+  * New patch 96_hurd_no_at_funcs.patch to try harder to get the
+    source building on hurd, where for example the readlinkat() symbol
+    exist in libc but always fail.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Thu, 01 Oct 2009 19:58:44 +0200
+
 insserv (1.12.0-13) unstable; urgency=low
 
   * New argument -b to check-initd-order, to be able to replace /etc/

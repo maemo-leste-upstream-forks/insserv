@@ -2069,6 +2069,73 @@ check_order 1 test4 test2
 
 }
 ##########################################################################
+test_insserv_upstart() {
+echo
+echo "info: test if insserv handle upstart jobs properly."
+echo
+
+initdir_purge
+
+list_rclinks
+
+# This used to hang and use unlimited amount of memory.  Now return
+# error instead.
+upstartdir=${tmpdir}/etc/init
+
+upstartjob="${tmpdir}/lib/init/upstart-job"
+
+# Add upstart config
+oldconf="$insconf"
+insconf="$insconf -u $upstartjob"
+
+# Dummy entry
+mkdir -p $(dirname $upstartjob)
+cat > $upstartjob <<EOF
+#!/bin/sh
+cat <<END
+### BEGIN INIT INFO
+# Provides:          upstart-test
+# Required-Start:    
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+END
+EOF
+chmod a+x $upstartjob
+
+insert_upstart_job() {
+    name=$1
+    mkdir -p $upstartdir
+    cat > $upstartdir/$name
+    ln -s $upstartjob $initddir/$name
+    insserv_reg $name
+}
+
+# XXX Someone that understand upstart need to fill in sensible stuff
+# here
+insert_upstart_job upstart-test <<EOF || true
+exec /bin/foo --opt -xyz foo bar
+EOF
+
+insertscript test <<'EOF' || true
+### BEGIN INIT INFO
+# Provides:          test
+# Required-Start:    upstart-test
+# Required-Stop:
+# Default-Start:     1
+# Default-Stop:
+### END INIT INFO
+EOF
+
+
+list_rclinks
+
+# Undo upstart config
+insconf="$oldconf"
+}
+
+##########################################################################
 
 test_normal_sequence
 test_override_files
@@ -2108,3 +2175,4 @@ test_x_interactive
 test_insserv_conf_makefile
 test_insserv_virt_loop
 test_local_virtual
+test_insserv_upstart

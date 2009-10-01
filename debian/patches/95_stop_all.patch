@@ -6,9 +6,9 @@ Fixes #542043
 
 Index: insserv/insserv.c
 ===================================================================
---- insserv.orig/insserv.c	2009-08-24 00:07:51.000000000 +0200
-+++ insserv/insserv.c	2009-08-24 00:07:51.000000000 +0200
-@@ -306,7 +306,10 @@
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:39.000000000 +0200
+@@ -308,7 +308,10 @@
  	    break;
  	case '$':
  	    if (strcasecmp(token, "$all") == 0) {
@@ -20,7 +20,7 @@ Index: insserv/insserv.c
  		break;
  	    }
  	    /* Expand the `$' token recursively down */
-@@ -628,8 +631,7 @@
+@@ -630,8 +633,7 @@
  }
  
  /*
@@ -30,7 +30,7 @@ Index: insserv/insserv.c
   */
  static inline void all_script(void) attribute((always_inline));
  static inline void all_script(void)
-@@ -686,6 +688,50 @@
+@@ -688,6 +690,50 @@
  }
  
  /*
@@ -81,7 +81,7 @@ Index: insserv/insserv.c
   * Make the dependency files
   */
  static inline void makedep(void) attribute((always_inline));
-@@ -3212,6 +3258,11 @@
+@@ -3274,6 +3320,11 @@
      nonlsb_script();
  
      /*
@@ -95,8 +95,8 @@ Index: insserv/insserv.c
      follow_all();
 Index: insserv/listing.c
 ===================================================================
---- insserv.orig/listing.c	2009-08-24 00:07:51.000000000 +0200
-+++ insserv/listing.c	2009-08-24 00:07:51.000000000 +0200
+--- insserv.orig/listing.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/listing.c	2009-09-26 22:35:39.000000000 +0200
 @@ -317,6 +317,7 @@
      }
  
@@ -147,8 +147,8 @@ Index: insserv/listing.c
  }
 Index: insserv/listing.h
 ===================================================================
---- insserv.orig/listing.h	2009-08-20 13:39:12.000000000 +0200
-+++ insserv/listing.h	2009-08-24 00:07:51.000000000 +0200
+--- insserv.orig/listing.h	2009-09-26 22:35:39.000000000 +0200
++++ insserv/listing.h	2009-09-26 22:35:39.000000000 +0200
 @@ -368,6 +368,7 @@
  #define SERV_SCRIPT	0x0080
  #define SERV_NOSTOP	0x0100

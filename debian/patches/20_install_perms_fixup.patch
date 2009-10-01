@@ -4,9 +4,11 @@ Authour: Kel Modderman
 Fixes:   -
 Status:  Not yet submitted upstream.
 
---- a/Makefile
-+++ b/Makefile
-@@ -41,14 +41,14 @@ endif
+Index: insserv/Makefile
+===================================================================
+--- insserv.orig/Makefile	2009-09-26 22:35:39.000000000 +0200
++++ insserv/Makefile	2009-09-26 22:35:39.000000000 +0200
+@@ -41,14 +41,14 @@
  	     RM = rm -f
  	  MKDIR = mkdir -p
  	  RMDIR = rm -rf

@@ -4,8 +4,8 @@ Status:  Not yet submitted upstream.
 ---
 Index: insserv/insserv.8.in
 ===================================================================
---- insserv.orig/insserv.8.in	2009-06-26 12:33:36.000000000 +0200
-+++ insserv/insserv.8.in	2009-06-26 12:33:36.000000000 +0200
+--- insserv.orig/insserv.8.in	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.8.in	2009-09-26 22:35:39.000000000 +0200
 @@ -143,6 +143,7 @@
  @@ELSE_SUSE@@
  directories.

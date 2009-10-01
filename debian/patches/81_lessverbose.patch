@@ -5,8 +5,8 @@ Status:  Not yet submitted upstream.
 
 Index: insserv/listing.h
 ===================================================================
---- insserv.orig/listing.h	2009-09-09 17:31:57.000000000 +0200
-+++ insserv/listing.h	2009-09-09 17:33:30.000000000 +0200
+--- insserv.orig/listing.h	2009-09-26 22:35:25.000000000 +0200
++++ insserv/listing.h	2009-09-26 22:35:39.000000000 +0200
 @@ -283,7 +283,7 @@
  extern const char *const delimeter;
  extern void error(const char *restrict fmt, ...) attribute((noreturn,format(printf,1,2)));
@@ -46,9 +46,9 @@ Index: insserv/listing.h
  # define xstat(d,x,s)	(__extension__ ({ fstatat(d,x,s, 0); }))
 Index: insserv/insserv.c
 ===================================================================
---- insserv.orig/insserv.c	2009-09-09 17:33:18.000000000 +0200
-+++ insserv/insserv.c	2009-09-09 17:33:34.000000000 +0200
-@@ -112,8 +112,8 @@
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:41.000000000 +0200
+@@ -114,8 +114,8 @@
  /* The main line buffer if unique */
  static char buf[LINE_MAX];
  
@@ -59,7 +59,7 @@ Index: insserv/insserv.c
  
  /* When to be verbose */
  static boolean dryrun = false;
-@@ -688,9 +688,9 @@
+@@ -690,9 +690,9 @@
  
      if (dryrun) {
  #ifdef USE_KILL_IN_BOOT
@@ -71,7 +71,7 @@ Index: insserv/insserv.c
  #endif /* not USE_KILL_IN_BOOT */
  	return;
      }
-@@ -705,8 +705,8 @@
+@@ -707,8 +707,8 @@
  	return;
      }
  
@@ -82,7 +82,7 @@ Index: insserv/insserv.c
  
      lsort('S');					/* Sort into start order, set new sorder */
  
-@@ -872,9 +872,9 @@
+@@ -874,9 +874,9 @@
  	return;
      }
  
@@ -94,7 +94,7 @@ Index: insserv/insserv.c
  
      lsort('K');					/* Sort into stop order, set new korder */
  
-@@ -1012,9 +1012,9 @@
+@@ -1014,9 +1014,9 @@
  /*
   * Print message when verbose is enabled
   */
@@ -106,7 +106,7 @@ Index: insserv/insserv.c
  	goto out;
      va_start(ap, fmt);
      _logger(fmt, ap);
-@@ -1060,7 +1060,7 @@
+@@ -1062,7 +1062,7 @@
  
      if (stat(rcpath, &st) < 0) {
  	if (errno == ENOENT) {
@@ -115,16 +115,25 @@ Index: insserv/insserv.c
  	    if (!dryrun)
  		mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
  	} else
-@@ -1185,7 +1185,7 @@
+@@ -1190,7 +1190,7 @@
+     char *basenamestr = basename(path); /* GNU basename */
+     char *retval = is_upstart_job_recursive(path, basenamestr);
+     if (retval)
+-        info("script '%s' is upstart job\n", basenamestr);
++        info(2, "script '%s' is upstart job\n", basenamestr);
+     return retval;
+ }
+ 
+@@ -1225,7 +1225,7 @@
  #define description	script_inf.description
  #define interactive	script_inf.interactive
  
 -    info("Loading %s\n", path);
 +    info(2, "Loading %s\n", path);
  
-     if ((fd = xopen(dfd, path, o_flags)) < 0 || (script = fdopen(fd, "r")) == (FILE*)0)
- 	error("fopen(%s): %s\n", path, strerror(errno));
-@@ -1826,7 +1826,7 @@
+     if (NULL != (upstart_job = is_upstart_job(path))) {
+         char cmd[2048];
+@@ -1882,7 +1882,7 @@
      regmatch_t subloc[SUBCONFNUM], *val = (regmatch_t*)0;
      FILE *conf;
  
@@ -133,7 +142,7 @@ Index: insserv/insserv.c
  
      do {
  	const char * fptr = file;
-@@ -2290,10 +2290,10 @@
+@@ -2347,10 +2347,10 @@
  		ignore = true;
  		break;
  	    case 'v':

@@ -292,7 +292,8 @@ sub check_bootorder {
             my $lsbinforef = load_lsb_tags($scriptpath,
                                            $useoverrides);
 
-            if (exists $lsbinforef->{'provides'}) {
+            if (exists $lsbinforef->{'provides'}
+                && $lsbinforef->{'provides'}) {
                 for my $provide (split(/\s+/, $lsbinforef->{'provides'})) {
                     $provideslist{$provide} = $order;
                 }
@@ -323,10 +324,14 @@ sub check_bootorder {
         }
         my %lsbinfo = %{$lsbinforef};
 
-        for my $provide (split(/\s+/, $lsbinfo{'provides'})) {
-            $scriptorder{$tag}{$provide} = $bootorder;
-            $scriptorder{$tag}{$sysmap{$provide}} = $bootorder
-                if (exists $sysmap{$provide});
+        if (exists $lsbinfo{'provides'} && $lsbinfo{'provides'}) {
+            for my $provide (split(/\s+/, $lsbinfo{'provides'})) {
+                $scriptorder{$tag}{$provide} = $bootorder;
+                $scriptorder{$tag}{$sysmap{$provide}} = $bootorder
+                    if (exists $sysmap{$provide});
+            }
+        } else {
+            error "no LSB header provides value in script $scriptpath\n";
         }
 
         if ('S' eq $tag) {

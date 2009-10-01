@@ -4,8 +4,8 @@ Status:  Not yet submitted upstream.
 ---
 Index: insserv/insserv.8.in
 ===================================================================
---- insserv.orig/insserv.8.in	2009-06-26 12:34:19.000000000 +0200
-+++ insserv/insserv.8.in	2009-06-26 12:34:19.000000000 +0200
+--- insserv.orig/insserv.8.in	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.8.in	2009-09-26 22:35:41.000000000 +0200
 @@ -12,11 +12,9 @@
  @@BEGIN_SUSE@@
  .TH INSSERV 8 "Jul 29, 2008" "Version 1.11" "The SuSE boot concept"
@@ -68,7 +68,7 @@ Index: insserv/insserv.8.in
  This may restore an edited runlevel link scheme.
  .TP
  .BR \-f ,\  \-\-force
-@@ -303,17 +301,16 @@
+@@ -307,17 +305,16 @@
  For the runlevels the information found in
  the script is used.
  .TP
@@ -89,7 +89,7 @@ Index: insserv/insserv.8.in
  @@BEGIN_SUSE@@
  is possible but ignored on SuSE Linux.
  @@ELSE_SUSE@@
-@@ -330,9 +327,9 @@
+@@ -334,9 +331,9 @@
  .\"
  .SH OVERRIDES
  Beside using the extensions
@@ -101,7 +101,7 @@ Index: insserv/insserv.8.in
  it is possible to use override files replace a LSB comment header
  or simple provide a missing LSB comment header.  This can be done
  by placing a file with the new LSB comment header using the same
-@@ -385,7 +382,9 @@
+@@ -395,7 +392,9 @@
  .sp 1
  will be ignored.
  .SH BUGS

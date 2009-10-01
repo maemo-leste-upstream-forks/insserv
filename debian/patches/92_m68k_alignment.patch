@@ -5,9 +5,9 @@ Status:  Not yet submitted upstream.
 ---
 Index: insserv/insserv.c
 ===================================================================
---- insserv.orig/insserv.c	2009-07-01 15:43:47.000000000 +0200
-+++ insserv/insserv.c	2009-07-01 15:43:47.000000000 +0200
-@@ -129,6 +129,10 @@
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:40.000000000 +0200
+@@ -131,6 +131,10 @@
  static boolean set_override = false;
  static boolean set_insconf = false;
  

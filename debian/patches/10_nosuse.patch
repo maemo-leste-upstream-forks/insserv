@@ -2,9 +2,11 @@ Purpose: Disable the SUSE flag.
 Fixes:   None, made as part of Debian porting.
 Status:  Debian specific, showed to upstream.
 ---
---- a/Makefile
-+++ b/Makefile
-@@ -9,7 +9,7 @@ INSCONF  =	/etc/insserv.conf
+Index: insserv/Makefile
+===================================================================
+--- insserv.orig/Makefile	2009-09-26 22:35:26.000000000 +0200
++++ insserv/Makefile	2009-09-26 22:35:45.000000000 +0200
+@@ -9,7 +9,7 @@
  #DESTDIR =	/tmp/root
  #DEBUG	 =	-DDEBUG=1 -Wpacked
  DEBUG	 =

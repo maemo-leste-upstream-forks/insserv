@@ -1,0 +1,20 @@
+Purpose: Make message printed when loops are detected look more like
+         the messages printed when other errors are detected ("exiting
+         now!"), to make it easier for piuparts to discover these errors too.
+Fixes:   -
+Status:  Not yet submitted upstream.
+---
+
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:41.000000000 +0200
+@@ -3250,7 +3250,7 @@
+      */
+     follow_all();
+     if (is_loop_detected() && !ignore)
+-	error("exiting without changing boot order!\n");
++	error("exiting now without changing boot order!\n");
+ 
+     /*
+      * Be sure that interactive scripts are the only member of

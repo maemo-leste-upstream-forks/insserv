@@ -141,13 +141,22 @@ for my $initdscript (@scripts) {
     } else {
         # Most scripts either start in rcS.d, or in runlevels 2-5
         if (!array_equal(['2', '3', '4', '5'], \@startrl) &&
-            !array_equal(['s'], \@startrl)) {
-            warning("script $short does not start in the usual runlevels");
+            !array_equal(['s'], \@startrl) &&
+            (!array_equal([], \@startrl) && @stoprl)) {
+            warning("script $short does not start in the usual runlevels: ",
+                    join(" ", @startrl));
         }
-        # And most scripts stop in runlevel 1 or runlevels 0, 1 and 6
+
+        # And most scripts stop in runlevel (1) runlevels (0, 1, 6),
+        # only starts or only stops in (0) or (6).
         if (!array_equal(['0', '1', '6'], \@stoprl) &&
-            !array_equal(['1'], \@stoprl)) {
-            warning("script $short does not stop in the usual runlevels");
+            !array_equal(['1'], \@stoprl) &&
+            !array_equal(['0', '6'], \@stoprl) &&
+            !(array_equal(['0'], \@stoprl) && !@startrl) &&
+            !(array_equal(['6'], \@stoprl) && !@startrl) &&
+            !(array_equal([], \@stoprl) && @startrl)) {
+            warning("script $short does not stop in the usual runlevels: ",
+                    join(" ", @stoprl));
         }
     }
 }
@@ -176,8 +185,13 @@ sub parse_lsb_header {
 #            print "$1\n";
             $lsbinfo{lc($1)} = $2;
         }
+        s/\#.*$//; # Remove comments
         $lsbinfo{'need_remove_fs'} = 1 if m%/usr/s?bin/%;
         $lsbinfo{'need_local_fs'} = 1 if m%/var/%;
+
+        # Detect the use of tools resting in /usr/
+        $lsbinfo{'need_remove_fs'} = 1 if m%awk%;
+        $lsbinfo{'need_remove_fs'} = 1 if m%which%;
     }
     close(INIT);
 

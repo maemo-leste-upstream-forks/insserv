@@ -5,8 +5,8 @@ Status:  Work in progress.
 
 Index: insserv/insserv.8.in
 ===================================================================
---- insserv.orig/insserv.8.in	2009-08-24 00:10:54.000000000 +0200
-+++ insserv/insserv.8.in	2009-08-24 00:11:53.000000000 +0200
+--- insserv.orig/insserv.8.in	2009-09-26 22:35:25.000000000 +0200
++++ insserv/insserv.8.in	2009-09-26 22:35:43.000000000 +0200
 @@ -76,6 +76,7 @@
   # X-Stop-After:      boot_facility_1 [ boot_facility_2 ...]
   # Default-Start:     run_level_1 [ run_level_2 ...]
@@ -29,8 +29,8 @@ Index: insserv/insserv.8.in
  keyword implies that the script using this keyword
 Index: insserv/insserv.c
 ===================================================================
---- insserv.orig/insserv.c	2009-08-24 00:11:22.000000000 +0200
-+++ insserv/insserv.c	2009-08-24 00:12:02.000000000 +0200
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:43.000000000 +0200
 @@ -97,6 +97,7 @@
  #define DEFAULT_START	DEFAULT  START VALUE
  #define DEFAULT_STOP	DEFAULT  STOP  VALUE

@@ -7,13 +7,16 @@
 50_symlink_in_initddir.patch
 #60_all_keyword_start_only.patch
 61_interactive_keyword.patch
+62_upstart_job.patch
 70_req_start_all_depends.patch 
 71_complete_makefile.patch
 80_manual_warnings.patch
 81_lessverbose.patch
+82_loop_exit_msg.patch
 90_no_runlevel_spec_for_debian.patch
 91_kfreebsd_nofadvice.patch
 92_m68k_alignment.patch
 93_hurd_no_path_max.patch
 94_v1_12_2.patch
 95_stop_all.patch
+96_hurd_no_at_funcs.patch

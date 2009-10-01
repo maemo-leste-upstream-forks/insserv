@@ -2,8 +2,10 @@ Purpose: Defend against symlinks in init.d/ to other scripts in init.d/
 Fixes:   #485045
 Status:  Work in progress.
 ---
---- a/insserv.c
-+++ b/insserv.c
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:44.000000000 +0200
 @@ -2542,11 +2542,12 @@
  	errno = 0;
  

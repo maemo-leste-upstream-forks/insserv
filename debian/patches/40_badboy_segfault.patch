@@ -3,8 +3,10 @@ Purpose: Defend against corrupt or invalid scripts living in
 Fixes:   #493202
 Status:  Acked by upstream.
 ---
---- a/insserv.c
-+++ b/insserv.c
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c	2009-09-26 22:35:39.000000000 +0200
++++ insserv/insserv.c	2009-09-26 22:35:44.000000000 +0200
 @@ -1696,6 +1696,11 @@
  	    }
  
