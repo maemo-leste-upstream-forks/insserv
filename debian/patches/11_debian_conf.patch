@@ -2,21 +2,19 @@ Purpose: Adjust the insserv configuration for Debian init.d script names.
 Fixes:   None, made as part of Debian porting.
 Status:  Debian specific, showed to upstream.
 ---
-Index: insserv/insserv.conf
-===================================================================
---- insserv.orig/insserv.conf	2009-09-26 22:35:26.000000000 +0200
-+++ insserv/insserv.conf	2009-09-26 22:35:39.000000000 +0200
+--- a/insserv.conf
++++ b/insserv.conf
 @@ -1,29 +1,29 @@
  #
  # All local filesystems are mounted (done during boot phase)
  #
--$local_fs	boot.localfs
+-$local_fs	boot.localfs +boot.crypto
 +$local_fs	+mountall +mountoverflowtmp +umountfs
  
  #
  # Low level networking (ethernet card)
  #
--$network	network +pcmcia +hotplug
+-$network	network
 +$network	+networking +ifupdown
  
  #
@@ -30,18 +28,18 @@ Index: insserv/insserv.conf
  # be remote. Most applications that care will probably require
  # both $local_fs and $remote_fs)
  #
--$remote_fs	$local_fs +nfs
+-$remote_fs	$local_fs +nfs +smbfs
 +$remote_fs	$local_fs +mountnfs +mountnfs-bootclean +umountnfs +sendsigs
  
  #
  # System logger is operational
  #
 -$syslog		syslog
-+$syslog		+rsyslog +sysklogd +syslog-ng +dsyslog +inetutils-syslogd 
++$syslog		+rsyslog +sysklogd +syslog-ng +dsyslog +inetutils-syslogd
  
  #
  # SunRPC portmapper available
-@@ -33,9 +33,9 @@
+@@ -33,9 +33,9 @@ $portmap	portmap
  #
  # The system time has been set correctly
  #
@@ -51,5 +49,5 @@ Index: insserv/insserv.conf
  #
  # Services which need to be interactive
  #
--<interactive>   boot.crypto boot.localfs boot.rootfsck apache apache2 kdump
-+<interactive>   glibc udev console-screen keymap keyboard-setup console-setup cryptdisks cryptdisks-early checkfs-loop
+-<interactive>   apache apache2 boot.clock boot.crypto boot.crypto-early boot.localfs boot.rootfsck kbd kdump ntp
++<interactive>	glibc udev console-screen keymap keyboard-setup console-setup cryptdisks cryptdisks-early checkfs-loop

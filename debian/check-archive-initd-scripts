@@ -20,6 +20,7 @@ my %provides;
 my @virts = qw($local_fs $remote_fs $syslog $time $named
                $portmap $network $all
                $mail-transport-agent $x-font-server
+               $null $x-display-manager
                );
 my @harddepheaders = qw(required-start required-stop);
 my @softdepheaders = qw(should-start
@@ -104,7 +105,7 @@ for my $initdscript (@scripts) {
     }
     if (!exists $checked{'$remote_fs'}
         && !exists $checked{'$syslog'}
-        && $scriptinfo{$initdscript}->{'need_remove_fs'}
+        && $scriptinfo{$initdscript}->{'need_remote_fs'}
         && $scriptinfo{$initdscript}->{'default-start'} =~ m/s/i) {
         warning("script $short possibly missing dependency on \$remote_fs");
     } elsif (!exists $checked{'$local_fs'}
@@ -113,6 +114,11 @@ for my $initdscript (@scripts) {
              && $scriptinfo{$initdscript}->{'need_local_fs'}
              && $scriptinfo{$initdscript}->{'default-start'} =~ m/s/i) {
         warning("script $short possibly missing dependency on \$local_fs");
+    }
+
+    if (!exists $checked{'$local_fs'}
+        && $scriptinfo{$initdscript}->{'need_syslog'}) {
+        warning("script $short possibly missing dependency on \$syslog");
     }
 
     my %provided;
@@ -125,16 +131,19 @@ for my $initdscript (@scripts) {
     }
 
     my $basename = basename($initdscript, ".sh");
-    warning("script $short does not provide its own name")
+    info("script $short does not provide its own name")
         unless exists $provided{$basename};
 
     # Detect common problems with runlevel settings.
     my @startrl = sort split(/\s+/, lc($scriptinfo{$initdscript}->{'default-start'}));
     my @stoprl = sort split(/\s+/, lc($scriptinfo{$initdscript}->{'default-stop'}));
 
+    unless ( @startrl || @stoprl) {
+        error("script $short do not start or stop in any runlevels");
+    }
     # Scripts starting in rcS.d/ normally do not stop or only stop
     # during hald and shutdown.
-    if ((array_equal(['s'], \@startrl) && array_equal([], \@stoprl))
+    elsif ((array_equal(['s'], \@startrl) && array_equal([], \@stoprl))
         || ( array_equal(['s'], \@startrl)
              && array_equal(['0','6'], \@stoprl))) {
         # OK
@@ -143,8 +152,15 @@ for my $initdscript (@scripts) {
         if (!array_equal(['2', '3', '4', '5'], \@startrl) &&
             !array_equal(['s'], \@startrl) &&
             (!array_equal([], \@startrl) && @stoprl)) {
-            warning("script $short does not start in the usual runlevels: ",
-                    join(" ", @startrl));
+            # Some obvious errors (runlevels 2-5 are equivalent in Debian)
+            if (array_equal(['3', '5'], \@startrl)
+                || array_equal(['3', '4', '5'], \@startrl)) {
+                error("script $short have inconsistent start runlevels: ",
+                      join(" ", @startrl));
+            } else {
+                warning("script $short does not start in the usual runlevels: ",
+                        join(" ", @startrl));
+            }
         }
 
         # And most scripts stop in runlevel (1) runlevels (0, 1, 6),
@@ -186,14 +202,26 @@ sub parse_lsb_header {
             $lsbinfo{lc($1)} = $2;
         }
         s/\#.*$//; # Remove comments
-        $lsbinfo{'need_remove_fs'} = 1 if m%/usr/s?bin/%;
+        $lsbinfo{'need_remote_fs'} = 1 if m%/usr/s?bin/%;
         $lsbinfo{'need_local_fs'} = 1 if m%/var/%;
 
         # Detect the use of tools resting in /usr/
-        $lsbinfo{'need_remove_fs'} = 1 if m%awk%;
-        $lsbinfo{'need_remove_fs'} = 1 if m%which%;
+        $lsbinfo{'need_remote_fs'} = 1 if m%awk%;
+        $lsbinfo{'need_remote_fs'} = 1 if m%which%;
     }
     close(INIT);
+
+    # When running on bellini.debian.org, check if $syslog is needed
+    my $objdumpinfo = dirname($initdscript) . "/../objdump-info";
+    if ( -f $objdumpinfo) {
+        print "Checking for syslog symbol\n";
+        if (open(OBJDUMP, "<", $objdumpinfo)) {
+            while (<OBJDUMP>) {
+                $lsbinfo{'need_syslog'} = 1 if /GLIBC.* syslog/;
+            }
+            close OBJDUMP;
+        }
+    }
 
     # Check that all the required headers are present
     if (!$lsbinfo{'found'}) {

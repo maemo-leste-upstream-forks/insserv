@@ -2134,6 +2134,73 @@ list_rclinks
 # Undo upstart config
 insconf="$oldconf"
 }
+##########################################################################
+
+test_undetected_loop() {
+echo
+echo "info: test if insserv detect loop involving virtual facility,"
+echo "info: x-start-before and should-start.  Issue detected in BTS"
+echo "info: report #554905."
+echo
+
+initdir_purge
+
+set +C
+cat <<'EOF' > $insconf
+$local_fs       mountall
+EOF
+set -C
+
+insertscript hibernate <<EOF
+### BEGIN INIT INFO
+# Provides:          hibernate-cleanup
+# Default-Start:     S
+# Default-Stop:
+# Required-Start:
+# Required-Stop:
+# Should-Start:      udev devfsd raid2 mdadm lvm evms cryptdisks
+# X-Start-Before:    mountall
+### END INIT INFO
+EOF
+
+insertscript mountall.sh <<EOF
+### BEGIN INIT INFO
+# Provides:          mountall
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Mount all filesystems.
+### END INIT INFO
+EOF
+
+# Inserting this script should fail, as it introduces a loop
+insertscript mdadm <<EOF || true
+### BEGIN INIT INFO
+# Provides:          mdadm
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+# Inserting this script should definitely fail, as it depend on a loop
+insertscript test <<EOF || true
+### BEGIN INIT INFO
+# Provides:          test
+# Required-Start:    $local_fs mdadm
+# Required-Stop:     $local_fs mdadm
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+${severity}_script_not_present S mdadm
+${severity}_script_not_present S test
+}
 
 ##########################################################################
 
@@ -2176,3 +2243,4 @@ test_insserv_conf_makefile
 test_insserv_virt_loop
 test_local_virtual
 test_insserv_upstart
+test_undetected_loop		# 2 non-fatal tests failing

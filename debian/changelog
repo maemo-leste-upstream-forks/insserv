@@ -1,9 +1,50 @@
+insserv (1.14.0-1) unstable; urgency=low
+
+  [ Petter Reinholdtsen ]
+  * Fix typo (loop->look) in previous changelog (Closes: #549286).
+    Thanks to Josh Triplett.
+  * New testsuite code test_undetected_loop to report error when the
+    loop detection fail to trigger with a loop involving a virtual
+    facility, as was detected in #554905.
+  * Change homepage link to the Savannah project.
+
+  [ Kel Modderman ]
+  * New upstream release.
+  * Drop patches applied upstream:
+    - 20_install_perms_fixup.patch
+    - 21_tests_suite_new_functions.patch
+    - 30_deterministic_order.patch
+    - 40_badboy_segfault.patch
+    - 50_symlink_in_initddir.patch
+    - 60_all_keyword_start_only.patch
+    - 61_interactive_keyword.patch
+    - 62_upstart_job.patch
+    - 70_req_start_all_depends.patch
+    - 71_complete_makefile.patch
+    - 80_manual_warnings.patch
+    - 81_lessverbose.patch
+    - 82_loop_exit_msg.patch
+    - 90_no_runlevel_spec_for_debian.patch
+    - 91_kfreebsd_nofadvice.patch
+    - 93_hurd_no_path_max.patch
+    - 94_v1_12_2.patch
+    - 95_stop_all.patch
+    - 96_hurd_no_at_funcs.patch
+  * Refresh remaining patch series.
+  * Set debian/source/format to 1.0.
+  * Adjust Standards-Version to 3.8.4, no other chages required.
+  * Add 20_manpage_spelling.patch to fix spelling errors in insserv(8).
+  * Add note next to test_undetected_loop() that it's 2 tests currently
+    fail but are not terminal.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Mon, 03 May 2010 08:13:56 +0200
+
 insserv (1.12.0-14) unstable; urgency=low
 
   * Remove obsolete rules targets missing-overrides, bin-by-inst.txt,
     missingpkgs, missing-by-popcon and clean-extra.
   * New patch 82_loop_exit_msg.patch to make exit message when a loop
-    is detected loop more like the exit messages when other problems
+    is detected look more like the exit messages when other problems
     are detected.
   * Make check-initd-order report missing provides header as errors
     instead of printing perl warnings.

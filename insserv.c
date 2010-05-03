@@ -1,16 +1,26 @@
 /*
  * insserv(.c)
  *
- * Copyright 2000-2008 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany,
+ * Copyright 2000-2009 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany,
  *				    2003 SuSE Linux AG, Germany.
  *				    2004 SuSE LINUX AG, Germany.
- *			       2005-2008 SUSE LINUX Products GmbH, Germany.
- * Copyright 2005,2008 Petter Reinholdtsen
+ *			       2005-2009 SUSE LINUX Products GmbH, Germany.
+ * Copyright 2005,2008,2009 Petter Reinholdtsen
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ *
  */
 
 #define MINIMAL_MAKE	1	/* Remove disabled scripts from .depend.boot,
@@ -38,7 +48,24 @@
 # include <rpm/rpmlib.h>
 # include <rpm/rpmmacro.h>
 #endif /* USE_RPMLIB */
+#ifdef SUSE
+# include <sys/mount.h>
+#endif /* SUSE */
 #include "listing.h"
+
+#if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
+# ifndef POSIX_FADV_SEQUENTIAL
+#  define posix_fadvise(fd, off, len, adv)  (-1)
+# endif
+#endif
+
+#ifndef PATH_MAX
+# ifdef MAXPATHLEN
+#  define PATH_MAX  MAXPATHLEN
+# else
+#  define PATH_MAX  2048
+# endif
+#endif
 
 #ifdef SUSE
 # define DEFAULT_START_LVL	"3 5"
@@ -70,6 +97,8 @@ static inline void oneway(char *restrict stop)
 # define INSCONF	"/etc/insserv.conf"
 #endif
 
+const char *upstartjob_path = "/lib/init/upstart-job";
+
 /*
  * For a description of regular expressions see regex(7).
  */
@@ -97,6 +126,7 @@ static inline void oneway(char *restrict stop)
 #define DEFAULT_START	DEFAULT  START VALUE
 #define DEFAULT_STOP	DEFAULT  STOP  VALUE
 #define DESCRIPTION	COMM "description" VALUE
+#define INTERACTIVE	COMM "(x[-_]+[a-z0-9_-]*)?interactive" VALUE
 
 /* System facility search within /etc/insserv.conf */
 #define EQSIGN		"([[:blank:]]*[=:][[:blank:]]*|[[:blank:]]+)"
@@ -111,8 +141,8 @@ static char *root;
 /* The main line buffer if unique */
 static char buf[LINE_MAX];
 
-/* When to be verbose */
-static boolean verbose = false;
+/* When to be verbose, and what level of verbosity */
+static int verbose = 0;
 
 /* When to be verbose */
 static boolean dryrun = false;
@@ -133,6 +163,7 @@ typedef struct lsb_struct {
     char *default_start;
     char *default_stop;
     char *description;
+    char *interactive;
 } attribute((aligned(sizeof(char*)))) lsb_t;
 
 /* Search results points here */
@@ -147,6 +178,7 @@ typedef struct reg_struct {
     regex_t def_start;
     regex_t def_stop;
     regex_t desc;
+    regex_t interact;
 } attribute((aligned(sizeof(regex_t)))) reg_t;
 
 typedef struct creg_struct {
@@ -217,6 +249,7 @@ typedef struct string {
 typedef struct repl {
     list_t     r_list;
     string_t	 r[1];
+    ushort	flags;
 } __align repl_t;
 #define getrepl(arg)	list_entry((arg), struct repl, r_list)
 
@@ -290,8 +323,13 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
 	    requires(here, need, type);
 	    break;
 	case '$':
+	    if (strcasecmp(token, "$null") == 0)
+		break;
 	    if (strcasecmp(token, "$all") == 0) {
-		serv->attr.flags |= SERV_ALL;
+		if (bit & REQ_KILL)
+		    serv->attr.flags |= SERV_FIRST;
+		else
+		    serv->attr.flags |= SERV_ALL;
 		break;
 	    }
 	    /* Expand the `$' token recursively down */
@@ -614,7 +652,8 @@ static inline void active_script(void)
 
 /*
  * Last but not least the `$all' scripts will be set to the
- * end of the current start order.
+ * beginning of the future stop order respectivly to the
+ * end of the future start order.
  */
 static inline void all_script(void) attribute((always_inline));
 static inline void all_script(void)
@@ -624,7 +663,40 @@ static inline void all_script(void)
     list_for_each(pos, s_start) {
 	service_t * serv = getservice(pos);
 	list_t * tmp;
-	int neworder;
+
+	if (serv->attr.flags & SERV_DUPLET)
+	    continue;			/* Duplet */
+
+	if (!(serv->attr.flags & SERV_FIRST))
+	    continue;
+
+	if (serv->attr.script == (char*)0)
+	    continue;
+
+	list_for_each(tmp, s_start) {
+	    service_t * cur = getservice(tmp);
+
+	    if (cur->attr.flags & SERV_DUPLET)
+		continue;		/* Duplet */
+
+	    if ((serv->stopp->lvl & cur->stopp->lvl) == 0)
+		continue;
+
+	    if (cur == serv)
+		continue;
+
+	    if (cur->attr.flags & SERV_FIRST)
+		continue;
+
+	    rememberreq(serv, REQ_SHLD|REQ_KILL, cur->name);
+	}
+
+	setorder(serv->attr.script, 'K', 1, false);
+    }
+
+    list_for_each(pos, s_start) {
+	service_t * serv = getservice(pos);
+	list_t * tmp;
 
 	if (serv->attr.flags & SERV_DUPLET)
 	    continue;			/* Duplet */
@@ -635,7 +707,6 @@ static inline void all_script(void)
 	if (serv->attr.script == (char*)0)
 	    continue;
 
-	neworder = 0;
 	list_for_each(tmp, s_start) {
 	    service_t * cur = getservice(tmp);
 
@@ -645,28 +716,14 @@ static inline void all_script(void)
 	    if ((serv->start->lvl & cur->start->lvl) == 0)
 		continue;
 
-	    if (cur->attr.script == (char*)0)
-		continue;
-
 	    if (cur == serv)
 		continue;
 
 	    if (cur->attr.flags & SERV_ALL)
 		continue;
 
-	    cur->attr.sorder = getorder(cur->attr.script, 'S');
-
-	    if (cur->attr.sorder > neworder)
-		neworder = cur->attr.sorder;
+	    rememberreq(serv, REQ_SHLD, cur->name);
 	}
-	neworder++;
-
-	if      (neworder > MAX_DEEP)
-	    neworder = maxstart;
-	else if (neworder > maxstart)
-	    maxstart = neworder;
-
-	setorder(serv->attr.script, 'S', neworder, false);
     }
 }
 
@@ -685,9 +742,9 @@ static inline void makedep(void)
 
     if (dryrun) {
 #ifdef USE_KILL_IN_BOOT
-	info("dryrun, not creating .depend.boot, .depend.start, .depend.halt, and .depend.stop\n");
+	info(1, "dryrun, not creating .depend.boot, .depend.start, .depend.halt, and .depend.stop\n");
 #else  /* not USE_KILL_IN_BOOT */
-	info("dryrun, not creating .depend.boot, .depend.start, and .depend.stop\n");
+	info(1, "dryrun, not creating .depend.boot, .depend.start, and .depend.stop\n");
 #endif /* not USE_KILL_IN_BOOT */
 	return;
     }
@@ -702,8 +759,8 @@ static inline void makedep(void)
 	return;
     }
 
-    info("creating .depend.boot\n");
-    info("creating .depend.start\n");
+    info(1, "creating .depend.boot\n");
+    info(1, "creating .depend.start\n");
 
     lsort('S');					/* Sort into start order, set new sorder */
 
@@ -771,85 +828,51 @@ static inline void makedep(void)
 	    continue;
 #endif /* not MINIMAL_RULES */
 
-	if (list_empty(&serv->sort.req))
-	    continue;
-
 	if (serv->start->lvl & LVL_BOOT)
 	    out = boot;
 	else
 	    out = start;
 
+	if (list_empty(&serv->sort.req))
+	    continue;
+
 	mark = false;
-	if (serv->attr.flags & SERV_ALL) {
-	    list_for_each(pos, s_start) {
-		service_t * dep = getservice(pos);
-		const char * name;
 
-		if (!dep)
-		    continue;
+	np_list_for_each(pos, &serv->sort.req) {
+	    req_t * req = getreq(pos);
+	    service_t * dep = req->serv;
+	    const char * name;
 
-		if (dep->attr.flags & SERV_DUPLET)
-		    continue;			/* Duplet */
+	    if (!dep)
+		continue;
 
-#if defined(MINIMAL_RULES) && (MINIMAL_RULES != 0)
-		if (dep->attr.ref <= 0)
-		    continue;
-#endif /* not MINIMAL_RULES */
-
-		/*
-		 * No self dependcies or from the last
-		 */
-		if (dep == serv || (dep->attr.flags & SERV_ALL))
-		    continue;
-
-		if ((serv->start->lvl & dep->start->lvl) == 0)
-		    continue;
-
-		if ((name = dep->attr.script) == (char*)0)
-		    continue;
-
-		if (!mark) {
-		    fprintf(out, "%s:", target);
-		    mark = true;
-		}
-		fprintf(out, " %s", name);
-	    }
-	} else {
-	    np_list_for_each(pos, &serv->sort.req) {
-		req_t * req = getreq(pos);
-		service_t * dep = req->serv;
-		const char * name;
-
-		if (!dep)
-		    continue;
-
-		if (dep->attr.flags & SERV_DUPLET)
-		    continue;
+	    if (dep->attr.flags & SERV_DUPLET)
+		continue;
 
 #if defined(MINIMAL_RULES) && (MINIMAL_RULES != 0)
-		if (dep->attr.ref <= 0)
-		    continue;
+	    if (dep->attr.ref <= 0)
+		continue;
 #endif /* not MINIMAL_RULES */
 
-		/*
-		 * No self dependcies or from the last
-		 */
-		if (dep == serv || (dep->attr.flags & SERV_ALL))
-		    continue;
+	    /*
+	     * No self dependcies or from the last
+	     */
+	    if (dep == serv || (dep->attr.flags & SERV_ALL))
+		continue;
 
-		if ((serv->start->lvl & dep->start->lvl) == 0)
-		    continue;
+	    if ((serv->start->lvl & dep->start->lvl) == 0)
+		continue;
 
-		if ((name = dep->attr.script) == (char*)0)
-		    continue;
+	    if ((name = dep->attr.script) == (char*)0)
+		continue;
 
-		if (!mark) {
-		    fprintf(out, "%s:", target);
-		    mark = true;
-		}
-		fprintf(out, " %s", name);
+	    if (!mark) {
+		fprintf(out, "%s:", target);
+		mark = true;
 	    }
+	    fprintf(out, " %s", name);
 	}
+
 	if (mark) fputc('\n', out);
     }
 
@@ -868,9 +891,9 @@ static inline void makedep(void)
 	return;
     }
 
-    info("creating .depend.halt\n");
+    info(1, "creating .depend.halt\n");
 #endif /* USE_KILL_IN_BOOT */
-    info("creating .depend.stop\n");
+    info(1, "creating .depend.stop\n");
 
     lsort('K');					/* Sort into stop order, set new korder */
 
@@ -1008,9 +1031,9 @@ void warn (const char *restrict const fmt, ...)
 /*
  * Print message when verbose is enabled
  */
-void info(const char *fmt, ...) {
+void info(int level, const char *fmt, ...) {
     va_list ap;
-    if (!verbose)
+    if (level > verbose)
 	goto out;
     va_start(ap, fmt);
     _logger(fmt, ap);
@@ -1056,7 +1079,7 @@ static DIR * openrcdir(const char *restrict const rcpath)
 
     if (stat(rcpath, &st) < 0) {
 	if (errno == ENOENT) {
-	    info("creating directory '%s'\n", rcpath);
+	    info(1, "creating directory '%s'\n", rcpath);
 	    if (!dryrun)
 		mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
 	} else
@@ -1132,6 +1155,7 @@ static inline void scan_script_regalloc(void)
     regcompiler(&reg.def_start, DEFAULT_START,  REG_EXTENDED|REG_ICASE|REG_NEWLINE);
     regcompiler(&reg.def_stop,  DEFAULT_STOP,   REG_EXTENDED|REG_ICASE|REG_NEWLINE);
     regcompiler(&reg.desc,      DESCRIPTION,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
+    regcompiler(&reg.interact,  INTERACTIVE,    REG_EXTENDED|REG_ICASE|REG_NEWLINE);
 }
 
 static inline void scan_script_reset(void) attribute((always_inline));
@@ -1147,11 +1171,79 @@ static inline void scan_script_reset(void)
     xreset(script_inf.default_start);
     xreset(script_inf.default_stop);
     xreset(script_inf.description);
+    xreset(script_inf.interactive);
+}
+
+/*
+ * return name of upstart job if the script is a symlink to
+ * /lib/init/upstart-job, or NULL if path do not point to an
+ * upstart job.
+ */
+static char *is_upstart_job(const char *path)
+{
+    uint deep = 0;
+    char buf[PATH_MAX+1];
+    char *script = xstrdup(path);
+    char *retval = basename(path);	/* GNU basename */
+
+    buf[PATH_MAX] = '\0';
+
+    do {
+	struct stat statbuf;
+	int len;
+
+	if (deep++ > MAXSYMLINKS) {
+	    errno = ELOOP;
+	    warn("Can not determine upstart job name for %s: %s\n", path, strerror(errno));
+	    break;
+	}
+
+	if (lstat(script, &statbuf) < 0) {
+	    warn("Can not stat %s: %s\n", path, strerror(errno));
+	    break;
+	}
+
+	if (!S_ISLNK(statbuf.st_mode))
+	    break;
+
+	if ((len = readlink(script, buf, sizeof(buf)-1)) < 0)
+	    break;
+	buf[len] = '\0';
+
+	if (buf[0] != '/') {		/* restore relative links */
+	    const char *lastslash;
+
+	    if ((lastslash = strrchr(script, '/'))) {
+		size_t dirlen = lastslash - script + 1;
+
+		if (dirlen + len > PATH_MAX)
+		    len = PATH_MAX - dirlen;
+
+		memmove(&buf[dirlen], &buf[0], len + 1);
+		memcpy(&buf[0], script, dirlen);
+	    }
+	}
+
+	free(script);
+
+	if (strcmp(buf, upstartjob_path) == 0) {
+	    info(2, "script '%s' is upstart job\n", retval);
+	    return strdup(retval);
+	}
+
+	script = xstrdup(buf);
+
+    } while (1);
+
+    free(script);
+
+    return (char*)0;
 }
 
 #define FOUND_LSB_HEADER   0x01
 #define FOUND_LSB_DEFAULT  0x02
 #define FOUND_LSB_OVERRIDE 0x04
+#define FOUND_LSB_UPSTART  0x08
 
 static int o_flags = O_RDONLY;
 
@@ -1161,11 +1253,12 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 			      const boolean cache, const boolean ignore)
 {
     regmatch_t subloc[SUBNUM_SHD+1], *val = &subloc[SUBNUM-1], *shl = &subloc[SUBNUM_SHD-1];
+    char *upstart_job = (char*)0;
     char *begin = (char*)0, *end = (char*)0;
     char *pbuf = buf;
     FILE *script;
     uchar ret = 0;
-    int fd;
+    int fd = -1;
 
 #define provides	script_inf.provides
 #define required_start	script_inf.required_start
@@ -1177,15 +1270,27 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 #define default_start	script_inf.default_start
 #define default_stop	script_inf.default_stop
 #define description	script_inf.description
+#define interactive	script_inf.interactive
 
-    info("Loading %s\n", path);
+    info(2, "Loading %s\n", path);
 
-    if ((fd = xopen(dfd, path, o_flags)) < 0 || (script = fdopen(fd, "r")) == (FILE*)0)
-	error("fopen(%s): %s\n", path, strerror(errno));
+    if (NULL != (upstart_job = is_upstart_job(path))) {
+	char cmd[PATH_MAX];
+	int len;
+	len = snprintf(cmd, sizeof(cmd), "%s %s lsb-header", upstartjob_path, upstart_job);
+	if (len < 0 || sizeof(cmd) == len)
+	    error("snprintf: insufficient buffer for %s\n", path);
+	if ((script = popen(cmd, "r")) == (FILE*)0)
+	    error("popen(%s): %s\n", path, strerror(errno));
+	ret |= FOUND_LSB_UPSTART;
+    } else {
+	if ((fd = xopen(dfd, path, o_flags)) < 0 || (script = fdopen(fd, "r")) == (FILE*)0)
+	    error("fopen(%s): %s\n", path, strerror(errno));
 
 #if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
-    (void)posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
+	(void)posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 #endif
+    }
 
 #define COMMON_ARGS	buf, SUBNUM, subloc, 0
 #define COMMON_SHD_ARGS	buf, SUBNUM_SHD, subloc, 0
@@ -1273,6 +1378,14 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 		description = empty;
 	}
 
+	if (!interactive    && regexecutor(&reg.interact,      COMMON_ARGS) == true) {
+	    if (val->rm_so < val->rm_eo) {
+		*(pbuf+val->rm_eo) = '\0';
+		interactive = xstrdup(pbuf+val->rm_so);
+	    } else
+		interactive = empty;
+	}
+
 	/* Skip scanning below from LSB magic end */
 	if ((end = strstr(buf, "### END INIT INFO")))
 	    break;
@@ -1280,16 +1393,21 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 #undef COMMON_ARGS
 #undef COMMON_SHD_ARGS
 
+    if (upstart_job) {
+	pclose(script);
+	free(upstart_job);
+	upstart_job = 0;
+    } else {
 #if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
-    if (cache) {
-	off_t deep = ftello(script);
-	(void)posix_fadvise(fd, 0, deep, POSIX_FADV_WILLNEED);
-	(void)posix_fadvise(fd, deep, 0, POSIX_FADV_DONTNEED);
-    } else
-	(void)posix_fadvise(fd, 0, 0, POSIX_FADV_NOREUSE);
+	if (cache) {
+	    off_t deep = ftello(script);
+	    (void)posix_fadvise(fd, 0, deep, POSIX_FADV_WILLNEED);
+	    (void)posix_fadvise(fd, deep, 0, POSIX_FADV_DONTNEED);
+	} else
+	    (void)posix_fadvise(fd, 0, 0, POSIX_FADV_NOREUSE);
 #endif
-
-    fclose(script);
+	fclose(script);
+    }
 
     if (begin && end)
 	ret |= FOUND_LSB_HEADER;
@@ -1341,6 +1459,7 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 #undef default_start
 #undef default_stop
 #undef description
+#undef interactive
     return ret;
 }
 
@@ -1472,6 +1591,12 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
     /* Replace with headers from the script itself */
     ret |= scan_lsb_headers(dfd, path, cache, ignore);
 
+    /* Do not override the upstarts defaults, if we allow this
+     * we have to change name to the link name otherwise the
+     * name is always "upstart-job" */
+    if (ret & FOUND_LSB_UPSTART)
+	goto out;
+
     /* Load values if the override file exist */
     if ((ret & FOUND_LSB_HEADER) == 0)
 	ret |= load_overrides("/usr/share/insserv/overrides", name, cache, ignore);
@@ -1483,9 +1608,7 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
      * init.d scripts
      */
     ret |= load_overrides(override_path, name, cache, ignore);
-#ifdef SUSE
 out:
-#endif /* SUSE */
     free(name);
     return ret;
 }
@@ -1503,6 +1626,7 @@ static inline void scan_script_regfree()
     regfree(&reg.def_start);
     regfree(&reg.def_stop);
     regfree(&reg.desc);
+    regfree(&reg.interact);
 }
 
 static struct {
@@ -1696,6 +1820,11 @@ static void scan_script_locations(const char *const path, const char *const over
 	    }
 
 	    lsb = scan_script_defaults(dfd, d->d_name, override_path, &name, true, ignore);
+	    if (!name) {
+		warn("warning: script is corrupt or invalid: %s/%s%s\n", path, rcd, d->d_name);
+		continue;
+	    }
+
 	    if (!script_inf.provides || script_inf.provides == empty)
 		script_inf.provides = xstrdup(ptr);
 
@@ -1776,6 +1905,9 @@ static void scan_script_locations(const char *const path, const char *const over
 		if (script_inf.stop_after && script_inf.stop_after != empty) {
 		    reversereq(service, REQ_SHLD|REQ_KILL, script_inf.stop_after);
 		}
+		if (script_inf.interactive && 0 == strcmp(script_inf.interactive, "true")) {
+		    service->attr.flags |= SERV_INTRACT;
+		}
 	    }
 
 	    if (name) 
@@ -1801,7 +1933,7 @@ static void scan_conf_file(const char *restrict file)
     regmatch_t subloc[SUBCONFNUM], *val = (regmatch_t*)0;
     FILE *conf;
 
-    info("Loading %s\n", file);
+    info(2, "Loading %s\n", file);
 
     do {
 	const char * fptr = file;
@@ -1849,6 +1981,7 @@ static void scan_conf_file(const char *restrict file)
 				if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
 				    error("%s", strerror(errno));
 				insert(&subst->r_list, r_list->prev);
+				subst->flags = 0;
 				r = &subst->r[0];
 				if (posix_memalign((void*)&r->ref, sizeof(void*), alignof(typeof(r->ref))+strsize(token)) != 0)
 				    error("%s", strerror(errno));
@@ -1877,6 +2010,7 @@ static void scan_conf_file(const char *restrict file)
 			    if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
 				error("%s", strerror(errno));
 			    insert(&subst->r_list, r_list->prev);
+			    subst->flags = 0;
 			    r = &subst->r[0];
 			    if (posix_memalign((void*)&r->ref, sizeof(void*), alignof(typeof(r->ref))+strsize(token)) != 0)
 				error("%s", strerror(errno));
@@ -2028,33 +2162,32 @@ static void expand_faci(list_t *restrict rlist, list_t *restrict head, int *rest
 	    goto out;
 	}
 
-	if ((*deep)++ > 10) {
-	    warn("The nested level of the system facilities in the insserv.conf file(s) is to large\n");
-	    goto out;
-	}
-
 	list_for_each_safe(tmp, safe, ptr) {
 	    repl_t * rnxt = getrepl(tmp);
+	    if (rnxt->flags & 0x0001) {
+		error("Loop detected during expanding system facilities in the insserv.conf file(s): %s\n",
+		      rnxt->r[0].name);
+	    }
 	    if (*rnxt->r[0].name == '$') {
-		expand_faci(tmp, head, deep);
-	    } else {
-		if (*deep == 1) {
-		    if (--(*rent->r[0].ref) <= 0)
-			free(rent->r[0].ref);
-		    rent->r[0] = rnxt->r[0];
-		    ++(*rent->r[0].ref);
-		} else {
-		    repl_t *restrict subst;
-		    if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
-			error("%s", strerror(errno));
-		    insert(&subst->r_list, head);
-		    subst->r[0] = rnxt->r[0];
-		    ++(*subst->r[0].ref);
+		if (*deep > 10) {
+		    warn("The nested level of the system facilities in the insserv.conf file(s) is to large\n");
+		    goto out;
 		}
+		(*deep)++;
+		rnxt->flags |= 0x0001;
+		expand_faci(tmp, head, deep);
+		rnxt->flags &= ~0x0001;
+		(*deep)--;
+	    } else if (*deep > 0) {
+		repl_t *restrict subst;
+		if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
+		    error("%s", strerror(errno));
+		insert(&subst->r_list, head->prev);
+		subst->r[0] = rnxt->r[0];
+		(*subst->r[0].ref) = 1;
 	    }
 	}
 out:
-	(*deep)--;
 	return;
 }
 
@@ -2064,9 +2197,12 @@ static inline void expand_conf(void)
     list_for_each(ptr, sysfaci_start) {
 	list_t * rlist, * safe, * head = &getfaci(ptr)->replace;
 	list_for_each_safe(rlist, safe, head) {
-	    if (*getrepl(rlist)->r[0].name == '$') {
+	    repl_t * tmp = getrepl(rlist);
+	    if (*tmp->r[0].name == '$') {
 		int deep = 0;
+		tmp->flags |= 0x0001;
 		expand_faci(rlist, rlist, &deep);
+		tmp->flags &= ~0x0001;
 	    }
 	}
     }
@@ -2114,6 +2250,7 @@ static inline char * scan_for(DIR *const rcdir,
 static inline boolean underrpm(void)
 {
     boolean ret = false;
+    boolean mnt = true;
     const pid_t pp = getppid();
     char buf[PATH_MAX], *argv[3], *ptr;
 # if defined(USE_RPMLIB) && (USE_RPMLIB > 0)
@@ -2123,8 +2260,15 @@ static inline boolean underrpm(void)
     ssize_t len;
 
     snprintf(buf, sizeof(buf)-1, "/proc/%lu/cmdline", (unsigned long)pp);
-    if ((fd = open(buf, O_NOCTTY|O_RDONLY)) < 0)
-	goto out;
+    do {
+	if ((fd = open(buf, O_NOCTTY|O_RDONLY)) >= 0)
+	    break;
+	if (!mnt || (errno != ENOENT))
+	    goto out;
+	if (mount("proc", "/proc", "proc", 0, NULL) < 0)
+	    error ("underrpm() can not mount /proc: %s\n", strerror(errno));
+	mnt = false;
+    } while (1);
 
     memset(buf, '\0', sizeof(buf));
     if ((len = read(fd , buf, sizeof(buf)-1)) < 0)
@@ -2185,6 +2329,8 @@ static inline boolean underrpm(void)
 out:
     if (fd >= 0)
 	close(fd);
+    if (!mnt)
+	umount("/proc");
 
     return ret;
 }
@@ -2200,6 +2346,7 @@ static struct option long_options[] =
     {"force",	0, (int*)0, 'f'},
     {"path",	1, (int*)0, 'p'},
     {"override",1, (int*)0, 'o'},
+    {"upstart-job",1, (int*)0, 'u'},
     {"help",	0, (int*)0, 'h'},
     { 0,	0, (int*)0,  0 },
 };
@@ -2238,6 +2385,7 @@ int main (int argc, char *argv[])
     boolean del = false;
     boolean defaults = false;
     boolean ignore = false;
+    boolean loadarg = false;
 
     myname = basename(*argv);
 
@@ -2252,7 +2400,7 @@ int main (int argc, char *argv[])
     for (c = 0; c < argc; c++)
 	argr[c] = (char*)0;
 
-    while ((c = getopt_long(argc, argv, "c:dfrhvno:p:", long_options, (int *)0)) != -1) {
+    while ((c = getopt_long(argc, argv, "c:dfrhvno:p:u:", long_options, (int *)0)) != -1) {
 	size_t l;
 	switch (c) {
 	    case 'c':
@@ -2271,10 +2419,10 @@ int main (int argc, char *argv[])
 		ignore = true;
 		break;
 	    case 'v':
-		verbose = true;
+		verbose ++;
 		break;
 	    case 'n':
-		verbose = true;
+		verbose ++;
 		dryrun = true;
 		break;
 	    case 'p':
@@ -2292,6 +2440,11 @@ int main (int argc, char *argv[])
 		override_path = optarg;
 		set_override = true;
 		break;
+	    case 'u':
+		if (optarg == (char*)0 || *optarg == '\0')
+		    goto err;
+		upstartjob_path = optarg;
+		break;
 	    case '?':
 	    err:
 		error("For help use: %s -h\n", myname);
@@ -2305,7 +2458,9 @@ int main (int argc, char *argv[])
     argv += optind;
     argc -= optind;
 
-    if (!argc && del)
+    if (argc)
+	loadarg = true;
+    else if (del)
 	error("usage: %s [[-r] init_script|init_directory]\n", myname);
 
     if (*argv) {
@@ -2357,7 +2512,19 @@ int main (int argc, char *argv[])
 
     if (strcmp(path, INITDIR) != 0) {
 	char * tmp;
-	root = xstrdup(path);
+	if (*path != '/') {
+	    char * pwd = getcwd((char*)0, 0);
+	    size_t len = strlen(pwd)+1+strlen(path);
+	    root = (char*)malloc(len);
+	    if (!root)
+		error("%s", strerror(errno));
+	    strcpy(root, pwd);
+	    if (pwd[1])
+		strcat(root, "/");
+	    strcat(root, path);
+	    free(pwd);
+	} else
+	    root = xstrdup(path);
 	if ((tmp = strstr(root, INITDIR))) {
 	    *tmp = '\0';
 	} else {
@@ -2405,7 +2572,7 @@ int main (int argc, char *argv[])
     scan_conf(insconf);
 
     /*
-     * Expand system facilities to real serivces
+     * Expand system facilities to real services
      */
     expand_conf();
 
@@ -2490,33 +2657,99 @@ int main (int argc, char *argv[])
     /*
      * Scan now all scripts found in the init.d/ directory
      */
-    while ((d = readdir(initdir)) != (struct dirent*)0) {
-	const boolean isarg = chkfor(d->d_name, argv, argc);
+    for (;;) {
 	service_t * service = (service_t*)0;
 	char * token;
 	char * begin = (char*)0;	/* hold start pointer of strings handled by strsep() */
 	boolean hard = false;
+	boolean isarg = false;
 	uchar lsb = 0;
 #if defined(DEBUG) && (DEBUG > 0)
 	int nobug = 0;
 #endif
+
+	if ((d = readdir(initdir)) == (struct dirent*)0) {
+	    /*
+	     * If first script in argument list was loaded in advance, then
+	     * rewind the init.d/ directory stream and attempt to load all
+	     * other scripts.
+	     */
+	    if (loadarg) {
+		loadarg = false;
+		rewinddir(initdir);
+		continue;
+	    }
+	    break;
+	}
+
+	isarg = chkfor(d->d_name, argv, argc);
+
+	/*
+	 * Load first script in argument list before all other scripts. This
+	 * avoids problems with loading scripts in underterministic sequence
+	 * returned by readdir(3).
+	 */
+	if (loadarg && !isarg)
+	    continue;
+	if (loadarg  && isarg && (curr_argc != 0))
+	    continue;
+	if (!loadarg && isarg && (curr_argc == 0))
+	    continue;
 
 	if (*d->d_name == '.')
 	    continue;
 	errno = 0;
 
 	/* d_type seems not to work, therefore use (l)stat(2) */
-	if (xstat(dfd, d->d_name, &st_script) < 0) {
+	if (xlstat(dfd, d->d_name, &st_script) < 0) {
 	    warn("can not stat(%s)\n", d->d_name);
 	    continue;
 	}
-	if (!S_ISREG(st_script.st_mode) || !(S_IXUSR & st_script.st_mode))
+	if ((!S_ISREG(st_script.st_mode) && !S_ISLNK(st_script.st_mode)) ||
+	    !(S_IXUSR & st_script.st_mode))
 	{
 	    if (S_ISDIR(st_script.st_mode))
 		continue;
 	    if (isarg)
 		warn("script %s is not an executable regular file, skipped!\n", d->d_name);
 	    continue;
+	}
+
+	/*
+	 * Do extra sanity checking of symlinks in init.d/ dir, except if it
+	 * is named reboot, as that is a special case on SUSE
+	 */
+	if (S_ISLNK(st_script.st_mode) && ((strcmp(d->d_name, "reboot") != 0)))
+	{
+	    char * base;
+	    char linkbuf[PATH_MAX+1];
+	    int  linklen;
+
+	    linklen = xreadlink(dfd, d->d_name, linkbuf, sizeof(linkbuf)-1);
+	    if (linklen < 0)
+		continue;
+	    linkbuf[linklen] = '\0';
+
+	    /* skip symbolic links to other scripts in this relative path */
+	    if (!(base = strrchr(linkbuf, '/'))) {
+		if (isarg)
+		    warn("script %s is a symlink to another script, skipped!\n",
+			 d->d_name);
+		continue;
+	    }
+
+	    /* stat the symlink target and make sure it is a valid script */
+	    if (xstat(dfd, d->d_name, &st_script) < 0)
+		continue;
+
+	    if (!S_ISREG(st_script.st_mode) || !(S_IXUSR & st_script.st_mode)) {
+		if (S_ISDIR(st_script.st_mode))
+		    continue;
+		if (isarg)
+		    warn("script %s is not an executable regular file, skipped!\n",
+			 d->d_name);
+		continue;
+	    }
 	}
 
 	if (!strncmp(d->d_name, "README", strlen("README"))) {
@@ -2807,6 +3040,9 @@ int main (int argc, char *argv[])
 			if (script_inf.should_stop && script_inf.should_stop != empty) {
 			    rememberreq(service, REQ_SHLD|REQ_KILL, script_inf.should_stop);
 			}
+			if (script_inf.interactive && 0 == strcmp(script_inf.interactive, "true")) {
+			    service->attr.flags |= SERV_INTRACT;
+			}
 		    }
 
 		    if (script_inf.start_before && script_inf.start_before != empty) {
@@ -2985,16 +3221,17 @@ int main (int argc, char *argv[])
 		char * ptr = argr[curr_argc];
 		struct _mark {
 		    const char * wrd;
+		    const boolean sk;
 		    char * order;
 		    char ** str;
 		} mark[] = {
-		    {"start=",	  (char*)0, &script_inf.default_start},
-		    {"stop=",	  (char*)0, &script_inf.default_stop },
+		    {"start=",	  true,  (char*)0, &script_inf.default_start},
+		    {"stop=",	  false, (char*)0, &script_inf.default_stop },
 #if 0
-		    {"reqstart=", (char*)0, &script_inf.required_start},
-		    {"reqstop=",  (char*)0, &script_inf.required_stop },
+		    {"reqstart=", false, (char*)0, &script_inf.required_start},
+		    {"reqstop=",  false, (char*)0, &script_inf.required_stop },
 #endif
-		    {(char*)0,	  (char*)0, (char**)0}
+		    {(char*)0,	  false, (char*)0, (char**)0}
 		};
 
 		for (c = 0; mark[c].wrd; c++) {
@@ -3015,6 +3252,14 @@ int main (int argc, char *argv[])
 			if (len > 0) {
 			    char * ptr = mark[c].order + len - 1;
 			    if (*ptr == ',') *ptr = '\0';
+			}
+			if (ignore) {
+			    service_t *arg = findservice(getprovides(d->d_name));
+			    arg = getorig(arg);
+			    if (mark[c].sk)
+				arg->start->lvl = 0;
+			    else
+				arg->stopp->lvl = 0;
 			}
 			xreset(*(mark[c].str));
 			*(mark[c].str) = xstrdup(mark[c].order);
@@ -3094,22 +3339,22 @@ int main (int argc, char *argv[])
     nonlsb_script();
 
     /*
+     * Handle the `$all' scripts
+     */
+    all_script();
+
+    /*
      * Now generate for all scripts the dependencies
      */
     follow_all();
     if (is_loop_detected() && !ignore)
-	error("exiting without changing boot order!\n");
+	error("exiting now without changing boot order!\n");
 
     /*
      * Be sure that interactive scripts are the only member of
      * a start group (for parallel start only).
      */
     active_script();
-
-    /*
-     * Move the `$all' scripts to the end of all
-     */
-    all_script();
 
     /*
      * Sorry but we support only [KS][0-9][0-9]<name>

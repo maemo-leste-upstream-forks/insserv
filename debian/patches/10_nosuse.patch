@@ -2,16 +2,14 @@ Purpose: Disable the SUSE flag.
 Fixes:   None, made as part of Debian porting.
 Status:  Debian specific, showed to upstream.
 ---
-Index: insserv/Makefile
-===================================================================
---- insserv.orig/Makefile	2009-09-26 22:35:26.000000000 +0200
-+++ insserv/Makefile	2009-09-26 22:35:45.000000000 +0200
-@@ -9,7 +9,7 @@
+--- a/Makefile
++++ b/Makefile
+@@ -10,7 +10,7 @@ INSCONF  =	/etc/insserv.conf
  #DESTDIR =	/tmp/root
  #DEBUG	 =	-DDEBUG=1 -Wpacked
  DEBUG	 =
 -ISSUSE	 =	-DSUSE
 +ISSUSE	 =	-DNOTSUSE
  DESTDIR	 =
- VERSION	 =	1.12.0
+ VERSION	 =	1.14.0
  DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')

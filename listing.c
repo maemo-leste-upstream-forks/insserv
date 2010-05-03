@@ -1,14 +1,24 @@
 /*
  * listing.c
  *
- * Copyright 2000-2008 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany,
+ * Copyright 2000-2009 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany,
  *				    2003 SuSE Linux AG, Germany.
- *			       2007-2008 SuSE Linux Products GmbH Nuernberg, Germany
+ *			       2007-2009 SuSE Linux Products GmbH Nuernberg, Germany
  *
  * This source is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ *
  */
 
 #include <string.h>
@@ -317,6 +327,7 @@ static void __follow (dir_t *restrict dir, dir_t *restrict skip, const int level
     }
 
     for (tmp = dir; tmp; tmp = getnextlink(l_list)) {
+	const typeof(attof(tmp)->flags) sflags = attof(tmp)->flags;
 	register boolean recursion = true;
 	handle_t * ptmp = (mode == 'K') ? &tmp->stopp : &tmp->start;
 	uchar  * order = &ptmp->deep;
@@ -364,6 +375,7 @@ static void __follow (dir_t *restrict dir, dir_t *restrict skip, const int level
 	 * Do not count the dependcy deep of the system facilities
 	 * but follow them to count the replacing provides.
 	 */
+
 	if (*ptmp->name == '$')
 	    warn("System facilities not fully expanded, see %s!\n", dir->name);
 	else if (++deep > MAX_DEEP) {
@@ -381,6 +393,7 @@ static void __follow (dir_t *restrict dir, dir_t *restrict skip, const int level
 	np_list_for_each(dent, l_list) {
 	    dir_t * target = getlink(dent)->target;
 	    handle_t * ptrg = (mode == 'K') ? &target->stopp : &target->start;
+	    const typeof(attof(target)->flags) kflags = attof(target)->flags;
 
 	    if ((peg->run.lvl & ptrg->run.lvl) == 0)
 		continue;			/* Not same boot level */
@@ -396,6 +409,20 @@ static void __follow (dir_t *restrict dir, dir_t *restrict skip, const int level
 		    loop_warn_two(pskp, ptmp, act);
 		recursion = false;
 		break;				/* Loop detected, stop recursion */
+	    }
+
+	    if (mode == 'K') {
+		if (kflags & SERV_FIRST) {
+		    warn("Stopping %s depends on %s and therefore on system facility `$all' which can not be true!\n",
+			 tmp->script ? tmp->script : tmp->name, target->script ? target->script : target->name);
+		    continue;
+		}
+	    } else {
+		if (sflags & SERV_ALL) {
+		    warn("Starting %s depends on %s and therefore on system facility `$all' which can not be true!\n",
+			 target->script ? target->script : target->name, tmp->script ? tmp->script : tmp->name);
+		    continue;
+		}
 	    }
 
 	    if (ptrg->deep >= deep)		/* Nothing new */
@@ -841,7 +868,7 @@ void follow_all(void)
     list_for_each(tmp, d_start) {
 	maxorder = &maxstart;
 	guess_order(getdir(tmp), 'S');
-	maxorder = &maxstart;
+	maxorder = &maxstop;
 	guess_order(getdir(tmp), 'K');
     }
 }
