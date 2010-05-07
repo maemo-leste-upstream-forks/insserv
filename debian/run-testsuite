@@ -1835,7 +1835,7 @@ rm $initddir/../rcS.d/S06badboy
 test_x_interactive() {
 echo
 echo "info: Check if X-Interactive header work"
-echo "BTS #458224"
+echo "BTS #458224, #580564"
 echo
   
 initdir_purge
@@ -1896,8 +1896,16 @@ check_script_present 2 alone2
 check_order 2 first after
 check_order 2 first alone1
 check_order 2 first alone2
-${severity}_order 2 alone1 after # This ordering is not guaranteed
-${severity}_order 2 alone2 after # This ordering is not guaranteed
+# This ordering is not guaranteed, but currently interactive scripts
+# are put after the others on the same level.
+check_order 2 alone1 after
+check_order 2 alone2 after
+if grep INTERACTIVE ${initddir}/.depend.start | grep -q alone1 &&
+    grep INTERACTIVE ${initddir}/.depend.start | grep -q alone1 ; then
+    counttest
+else
+    error "scripts alone1 and alone2 are not flagged as interactive" 
+fi
 }
 ##########################################################################
 

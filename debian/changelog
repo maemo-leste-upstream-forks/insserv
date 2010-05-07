@@ -1,3 +1,26 @@
+insserv (1.14.0-2) unstable; urgency=low
+
+  [ Kel Modderman ]
+  * Add 21_tweak_warnings.patch to make insserv warn about differing on
+    disk state/LSB runlevel info for the script(s) in its argument list.
+    (Closes: #578308)
+  * Add 100_show.patch which allows insserv --showall to dump start/stop
+    bit, sequence number, runlevels and script name in the format:
+    SK:NUM:RUNLEVELS:SCRIPT. It is commented out in quilt series file
+    until confirmation from #573004 that it is actually useful.
+  * Add 30_interactive_regexp_match_fix.patch which fixes failure to
+    properly match the correct group in the regular expression used on
+    the X-Interactive keyword. (Closes: #580564)
+  * Modify 92_m68k_alignment.patch so that the define is grouped in an
+    area of code which other similar defines live.
+
+  [ Petter Reinholdtsen ]
+  * Improve the output from make-testsuite. 
+  * Adjust the test_x_interactive behaviour to make sure it fails with
+    a fatal error if X-Interactive: true do not work.
+
+ -- Petter Reinholdtsen <pere@debian.org>  Fri, 07 May 2010 09:45:19 +0200
+
 insserv (1.14.0-1) unstable; urgency=low
 
   [ Petter Reinholdtsen ]

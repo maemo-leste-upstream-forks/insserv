@@ -3,9 +3,12 @@
 # Extract key information from the current to try to generate a test
 # suite script to demonstrate detected bugs.
 
-echo "cat <<'EOF' > \$tmpdir\$insconf"
+echo 'set +C'
+echo "cat <<'EOF' > \$insconf"
 grep -v '#' /etc/insserv.conf |grep -v '^$'
 echo "EOF"
+echo 'set -C'
+echo
 
 for f in /etc/init.d/*; do
 	name=$(basename $f)
@@ -13,7 +16,7 @@ for f in /etc/init.d/*; do
 	    README|rc|rcS|skeleton)
 	        ;;
 	    *)
-		echo "addscript $name <<EOF"
+		echo "addscript $name <<'EOF'"
 		sed -n -r '/^### BEGIN INIT INFO/, /END INIT INFO/p' < $f
 		echo "EOF"
 		echo
@@ -21,6 +24,8 @@ for f in /etc/init.d/*; do
 	esac
 done
 
+echo 'cd $tmpdir/etc'
+echo 'mkdir rc0.d rc1.d rc2.d rc3.d rc4.d rc5.d rc6.d rcS.d'
 cd /etc
 for f in rc?.d/*; do
 	case $f in
@@ -31,3 +36,6 @@ for f in rc?.d/*; do
 		;;
 	esac
 done
+
+echo
+echo list_rclinks

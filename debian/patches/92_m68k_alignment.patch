@@ -5,14 +5,14 @@ Status:  Not yet submitted upstream.
 ---
 --- a/insserv.c
 +++ b/insserv.c
-@@ -151,6 +151,10 @@ static boolean dryrun = false;
- static boolean set_override = false;
- static boolean set_insconf = false;
+@@ -53,6 +53,10 @@
+ #endif /* SUSE */
+ #include "listing.h"
  
 +#ifdef __m68k__ /* Fix #493637 */
 +#  define aligned(a)
 +#endif
 +
- /* Search results points here */
- typedef struct lsb_struct {
-     char *provides;
+ #if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
+ # ifndef POSIX_FADV_SEQUENTIAL
+ #  define posix_fadvise(fd, off, len, adv)  (-1)
