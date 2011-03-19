@@ -2,8 +2,10 @@ Purpose: Adjust the insserv configuration for Debian init.d script names.
 Fixes:   None, made as part of Debian porting.
 Status:  Debian specific, showed to upstream.
 ---
---- a/insserv.conf
-+++ b/insserv.conf
+Index: insserv-1.14.0/insserv.conf
+===================================================================
+--- insserv-1.14.0.orig/insserv.conf	2010-02-19 14:08:04.000000000 +0100
++++ insserv-1.14.0/insserv.conf	2011-03-19 12:48:16.000000000 +0100
 @@ -1,29 +1,29 @@
  #
  # All local filesystems are mounted (done during boot phase)
@@ -21,7 +23,7 @@ Status:  Debian specific, showed to upstream.
  # Named is operational
  #
 -$named		+named +dnsmasq +lwresd $network
-+$named		+named +dnsmasq +lwresd +bind9 $network
++$named		+named +dnsmasq +lwresd +bind9 +unbound $network
  
  #
  # All remote filesystems are mounted (note in some cases /usr may
@@ -39,7 +41,7 @@ Status:  Debian specific, showed to upstream.
  
  #
  # SunRPC portmapper available
-@@ -33,9 +33,9 @@ $portmap	portmap
+@@ -33,9 +33,9 @@
  #
  # The system time has been set correctly
  #
