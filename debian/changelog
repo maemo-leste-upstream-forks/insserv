@@ -1,3 +1,19 @@
+insserv (1.14.0-2.2~bpo60+1) squeeze-backports; urgency=low
+
+  * Rebuild for squeeze-backports.
+
+ -- Daniel Kahn Gillmor <dkg@fifthhorseman.net>  Wed, 22 Feb 2012 14:54:00 -0500
+
+insserv (1.14.0-2.2) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Fix pending l10n issues. Debconf translations:
+    - Danish (Joe Hansen).  Closes: #619657
+    - Slovak (Slavko).  Closes: #641960
+    - Bokmål, (Bjørn Steensrud).  Closes: #654871
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 15 Jan 2012 08:11:26 +0100
+
 insserv (1.14.0-2.1) unstable; urgency=low
 
   * Non-maintainer upload.
