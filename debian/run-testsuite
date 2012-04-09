@@ -4,8 +4,10 @@ basedir=$(dirname $0)
 . $basedir/../tests/suite
 
 if head -1 debian/changelog | grep -q UNRELEASED ; then
+    # fatal
     severity=check
 else
+    # non-fatal
     severity=test
 fi
 
@@ -2159,7 +2161,7 @@ $local_fs       mountall
 EOF
 set -C
 
-insertscript hibernate <<EOF
+insertscript hibernate <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          hibernate-cleanup
 # Default-Start:     S
@@ -2171,7 +2173,7 @@ insertscript hibernate <<EOF
 ### END INIT INFO
 EOF
 
-insertscript mountall.sh <<EOF
+insertscript mountall.sh <<'EOF'
 ### BEGIN INIT INFO
 # Provides:          mountall
 # Required-Start:
@@ -2183,7 +2185,7 @@ insertscript mountall.sh <<EOF
 EOF
 
 # Inserting this script should fail, as it introduces a loop
-insertscript mdadm <<EOF || true
+insertscript mdadm <<'EOF' || true
 ### BEGIN INIT INFO
 # Provides:          mdadm
 # Required-Start:    $local_fs
@@ -2194,7 +2196,7 @@ insertscript mdadm <<EOF || true
 EOF
 
 # Inserting this script should definitely fail, as it depend on a loop
-insertscript test <<EOF || true
+insertscript test <<'EOF' || true
 ### BEGIN INIT INFO
 # Provides:          test
 # Required-Start:    $local_fs mdadm
@@ -2206,8 +2208,65 @@ EOF
 
 list_rclinks
 
-${severity}_script_not_present S mdadm
-${severity}_script_not_present S test
+check_script_not_present S mdadm
+check_script_not_present S test
+}
+
+##########################################################################
+
+test_invalid_core_string() {
+echo
+echo "info: test if insserv accepts 'corekeeper' but rejects core dumps"
+echo "info: named '*.core' or 'core'"
+echo "info: See bug report #554905."
+echo
+
+initdir_purge
+
+set +C
+cat <<'EOF' > $insconf
+$local_fs       mountall
+EOF
+set -C
+
+# should be accepted - valid name
+insertscript corekeeper <<'EOF'
+### BEGIN INIT INFO
+# Provides:          corekeeper
+# Default-Start:     S
+# Default-Stop:
+# Required-Start:
+# Required-Stop:
+### END INIT INFO
+EOF
+
+# should be rejected - invalid name
+insertscript somescript.core <<'EOF'
+### BEGIN INIT INFO
+# Provides:          somescript
+# Default-Start:     S
+# Default-Stop:
+# Required-Start:
+# Required-Stop:
+### END INIT INFO
+EOF
+
+# should be rejected - invalid name
+insertscript core <<'EOF'
+### BEGIN INIT INFO
+# Provides:          someotherscript
+# Default-Start:     S
+# Default-Stop:
+# Required-Start:
+# Required-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_script_not_present S core
+check_script_not_present S somescript
+check_script_present S corekeeper
 }
 
 ##########################################################################
@@ -2252,3 +2311,4 @@ test_insserv_virt_loop
 test_local_virtual
 test_insserv_upstart
 test_undetected_loop		# 2 non-fatal tests failing
+test_invalid_core_string

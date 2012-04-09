@@ -1,3 +1,52 @@
+insserv (1.14.0-3) unstable; urgency=low
+
+  * Acknowledge NMUs, thanks Christian & Luk.
+  * Use source format 3.0 (quilt), drop build dependency on quilt.
+    Remove debian/README.source.
+  * Use dh at compat level 8, significantly reduce debian/rules and
+    build depend on debhelper >= 8.
+  * Use dh_bash-completion dh sequence utility to install completion
+    snippet, rename snippet to debian/insserv.bash-completion and build
+    depend on bash-completion.
+  * Use dpkg-buildflags to set default CFLAGS & LDFLAGS and get noopt
+    handling for free. 130_crossbuild_fixes.patch allows upstream
+    Makefile defaults for COPTS, LDFLAGS & CC to be overridden by the
+    environment variables exported by debian/rules. Also decouple `make
+    check' from `make install' to ease cross building. Set & export CC
+    environment variable in debian/rules to (hopefully) allow cross
+    building. (Closes: #629540, #629539, #666212)
+  * Patch upstream Makefile to execute Debian testsuite instead of
+    common suite.
+  * Update to Standards-Version 3.9.3, no changes in policy warranted
+    changes in packaging.
+  * Refresh patch series.
+  * Suggest the actively maintained bootchart2 instead of the doormant
+    bootchart package. (Closes: #599012)
+  * Update insserv package description. (Closes: #549327)
+  * Undocument the CONCURRENCY feature and add a reference to a modern
+    discussion about the status of init systems in Debian. (Closes: #605368)
+  * Add test_invalid_core_string to test conditions described in
+    #611292.
+  * Correctly quote here statements in test_undetected_loop with non-
+    interpolating quotation marks. Make test unconditionally fatal now
+    that test is not incorrectly interpolating $local_fs in script headers.
+  * Add 150_core_string_test.patch from Ben Harris <bjh21@cam.ac.uk> to
+    fix inconsistent filtering of core dumps. (Closes: #611292)
+  * Fix manual page reference to init(8). (Closes: #634150)
+  * Purge update-rc.d-insserv & update-bootsystem-insserv as per
+    Petter's advice in changelog entry for version 1.12.0-11. sysv-rc >>
+    2.87dsf-2 takes care of all that stuff now.
+  * No longer provide LSB dependency overrides for obsolete (etch or
+    before) packages such as hotplug, modutils, initrd-tools and devfsd.
+    (Closes: #545164, #545165, #545166, #545169)
+  * Mention when insserv should (not) be used and how update-rc.d is
+    almost always the interface you want to use. (Closes: #566352)
+  * Use the package short summary in the manual page too, it mentions
+    the keyword "dependency". (Closes: #609655)
+  * Update debian/watch file for savannah.gnu.org sysvinit project site.
+
+ -- Kel Modderman <kel@otaku42.de>  Mon, 09 Apr 2012 23:08:25 +1000
+
 insserv (1.14.0-2.2) unstable; urgency=low
 
   * Non-maintainer upload.

@@ -1,36 +1,16 @@
-Dependency based boot sequencing is the default in Debian.  The
+Dependency based boot sequencing is the default in Debian. The
 insserv program is used by sysv-rc to order init.d scripts based on
-their declared dependencies.
+dependencies declared in the LSB information within the scripts
+themselves.
 
-An experimental feature to run init.d scripts in parallel is also
-available.  Use the CONCURRENCY setting in /etc/default/rcS to
-enable it.
-
-In short:
-
-  # Enable parallel booting
-  echo CONCURRENCY=makefile >> /etc/default/rcS
-
-  # Ready to reboot
-  shutdown -r now
-
-The next boot should then start services in parallel, as early as
-possible during the boot process based on the dependency information
-provided.
-
-The 'makefile' style concurrency depend on complete and correct
-dependencies in all init.d scripts.  There is a simpler and less
-strict style 'startpar', which only require all scripts with the same
-sequence number to be able to run in parallel, and thus accept
-incomplete dependencies as long as the boot sequence number is OK.
-
-To monitor the boot sequence, the bootchart project is a good choice.
-Debian packages are available in etch and sid.  The project itself is
-available from <URL:http://www.bootchart.org/>.
+To monitor the boot sequence, the bootchart2 project is a good choice and
+Debian packages are available.
 
 Background info on alternative boot systems in Debian is available
-from
-<URL:http://alioth.debian.org/docman/view.php/30730/38/debconf2-initscripts-bkg.pdf>.
+from:
+<URL:http://alioth.debian.org/docman/view.php/30730/38/debconf2-initscripts-bkg.pdf>
+and more recently:
+<URL:https://lists.debian.org/debian-devel/2012/03/msg00452.html>
 
 Information on the LSB initscript comment convention is available from
 <URL:http://refspecs.freestandards.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html>,

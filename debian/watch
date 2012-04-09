@@ -3,4 +3,4 @@
 
 version=2
 
-ftp://ftp.suse.com/pub/projects/init/insserv-(.*).tar.gz debian uupdate
+http://download.savannah.gnu.org/releases/sysvinit/insserv-([0-9\.]+).tar.bz2 debian uupdate

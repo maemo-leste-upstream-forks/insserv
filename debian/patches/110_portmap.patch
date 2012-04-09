@@ -1,9 +1,7 @@
 Drop central definition of $portmap, it's better served by the individual packages providing $portmap.
-Index: insserv-1.14.0/insserv.conf
-===================================================================
---- insserv-1.14.0.orig/insserv.conf	2011-03-19 12:42:01.000000000 +0100
-+++ insserv-1.14.0/insserv.conf	2011-03-19 12:42:11.000000000 +0100
-@@ -26,11 +26,6 @@
+--- a/insserv.conf
++++ b/insserv.conf
+@@ -26,11 +26,6 @@ $remote_fs	$local_fs +mountnfs +mountnfs
  $syslog		+rsyslog +sysklogd +syslog-ng +dsyslog +inetutils-syslogd
  
  #
