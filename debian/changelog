@@ -1,3 +1,14 @@
+insserv (1.14.0-4) unstable; urgency=low
+
+  * Provide machine parseable output which may be used by file-rc to calculate
+    dynamic sequence number for each script. (Closes: #573004)
+  * Use "overrides" instead of "overwrites" and define defaults as "LSB
+    defaults" when emitting warnings. (Closes: #668559)
+  * Remove upstart jobs created by test_insserv_upstart at end of test.
+  * Remove config snippets made by test_local_virtual at end of test.
+
+ -- Kel Modderman <kel@otaku42.de>  Thu, 05 Jul 2012 21:13:26 +1000
+
 insserv (1.14.0-3) unstable; urgency=low
 
   * Acknowledge NMUs, thanks Christian & Luk.
