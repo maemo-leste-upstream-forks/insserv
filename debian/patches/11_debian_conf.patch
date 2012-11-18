@@ -9,7 +9,7 @@ Status:  Debian specific, showed to upstream.
  # All local filesystems are mounted (done during boot phase)
  #
 -$local_fs	boot.localfs +boot.crypto
-+$local_fs	+mountall +mountoverflowtmp +umountfs
++$local_fs	+mountall +mountall-bootclean +mountoverflowtmp +umountfs
  
  #
  # Low level networking (ethernet card)

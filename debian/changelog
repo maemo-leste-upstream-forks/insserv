@@ -1,3 +1,12 @@
+insserv (1.14.0-5) unstable; urgency=low
+
+  * Add +mountall-bootclean to $local_fs virtual facility definition in
+    insserv.conf. (Closes: #693371)
+  * Add test_bootmisc_order test to suite to verify the mountall-bootclean
+    dependency works as expected.
+
+ -- Kel Modderman <kel@otaku42.de>  Sun, 18 Nov 2012 11:55:44 +1000
+
 insserv (1.14.0-4) unstable; urgency=low
 
   * Provide machine parseable output which may be used by file-rc to calculate

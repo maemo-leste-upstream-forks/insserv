@@ -2358,6 +2358,59 @@ fi
 rm -f ${tmpdir}/rc.conf
 }
 ##########################################################################
+test_bootmisc_order() {
+# http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=677097
+echo
+echo "info: mountall-bootclean.sh must start before bootmisc.sh"
+echo
+
+initdir_purge
+
+set +C
+cat <<'EOF' > $insconf
+$local_fs       +mountall +mountall-bootclean
+$remote_fs      $local_fs
+EOF
+set -C
+
+insertscript mountall.sh <<'EOF'
+### BEGIN INIT INFO
+# Provides:          mountall
+# Required-Start:
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript mountall-bootclean.sh <<'EOF'
+### BEGIN INIT INFO
+# Provides:          mountall-bootclean
+# Required-Start:    mountall
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+insertscript bootmisc.sh <<'EOF'
+### BEGIN INIT INFO
+# Provides:          bootmisc
+# Required-Start:    $remote_fs
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+### END INIT INFO
+EOF
+
+list_rclinks
+
+check_order S mountall.sh mountall-bootclean.sh
+check_order S mountall-bootclean.sh bootmisc.sh
+
+update_conf
+}
+##########################################################################
 
 test_normal_sequence
 test_override_files
@@ -2401,3 +2454,4 @@ test_insserv_upstart
 test_undetected_loop		# 2 non-fatal tests failing
 test_invalid_core_string
 test_show_all
+test_bootmisc_order
