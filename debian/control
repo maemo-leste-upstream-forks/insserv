@@ -5,7 +5,6 @@ Maintainer: Petter Reinholdtsen <pere@debian.org>
 Uploaders: Kel Modderman <kel@otaku42.de>
 Build-Depends: debhelper (>= 8), po-debconf, bash-completion
 Standards-Version: 3.9.3
-DM-Upload-Allowed: yes
 Homepage: http://savannah.nongnu.org/projects/sysvinit
 Vcs-Svn: svn://svn.debian.org/initscripts-ng/trunk/src/insserv
 Vcs-Browser: http://svn.debian.org/wsvn/initscripts-ng/trunk/src/insserv/
