@@ -1,3 +1,10 @@
+insserv (1.14.0-5.2) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Fix FTBFS on hurd. (Closes: #812898)
+
+ -- Adam Borowski <kilobyte@angband.pl>  Wed, 27 Jan 2016 18:43:02 +0100
+
 insserv (1.14.0-5.1) unstable; urgency=medium
 
   * Non-maintainer upload.

@@ -11,3 +11,4 @@
 150_core_string_test.patch
 160_manual_page_update.patch
 170_undeclared_extension.patch
+180_MAXSYMLINKS.patch
