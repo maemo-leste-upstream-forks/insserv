@@ -1,0 +1,16 @@
+Description: warn about dependencies in ignore mode
+Author: Felipe Sateler <fsateler@debian.org>
+Bug-Debian: https://bugs.debian.org/811441
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+--- a/insserv.c
++++ b/insserv.c
+@@ -3074,7 +3074,7 @@ int main (int argc, char *argv[])
+ 		     * Use information from symbolic link structure to
+ 		     * check if all services are around for this script.
+ 		     */
+-		    if (isarg && !ignore) {
++		    if (isarg) {
+ 			boolean ok = true;
+ 			if (del)
+ 			    ok = chkdependencies(service);

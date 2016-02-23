@@ -12,3 +12,4 @@
 160_manual_page_update.patch
 170_undeclared_extension.patch
 180_MAXSYMLINKS.patch
+warn_in_ignore_mode.patch
