@@ -1,3 +1,12 @@
+insserv (1.14.0-5.4) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Add debian/postinst: Run insserv after package installation, to fix up the
+    rc?.d priorities from the dumb update-rc.d fallback (which uses priority
+    01 for everything). (Closes: #830963)
+
+ -- Martin Pitt <mpitt@debian.org>  Wed, 13 Jul 2016 12:40:50 +0200
+
 insserv (1.14.0-5.3) unstable; urgency=medium
 
   * Non-maintainer upload.
