@@ -1,4 +1,95 @@
 -------------------------------------------------------------------
+Tue Jul 29 15:23:43 CEST 2008 - werner@suse.de
+
+- Resolve server minor problems on openSUSE and Debian
+  * Handle the runlevel bit for system boot in lvl2str()
+  * Handle dependencies on several script on command line
+  * Let link scheme overwrite empty default start/stop tags
+
+-------------------------------------------------------------------
+Wed Jul  2 19:38:15 CEST 2008 - werner@suse.de
+
+- Use prefetch from kernels code for lists
+- Make start/stop requirements link to the services its self
+- Make -pedantic work
+- Be sure that the code is optimized
+
+-------------------------------------------------------------------
+Wed Jun 25 19:37:35 CEST 2008 - werner@suse.de
+
+- Handle provides and service lists in parallel, this should
+  reduce the double efforts.
+- Calculate start oder and stop order separately
+- Sort targets in the makefile accordingly to their order
+
+-------------------------------------------------------------------
+Wed Jun 18 15:27:16 CEST 2008 - werner@suse.de
+
+- Clean out several provides of one specific script, add therefore
+  an alias list to the first provide. This makes less work load on
+  following the full dependcy trees.
+- Use aligned memory allocation to avoid memory fragmentation
+- Use reference counts to be able to free not needed memory
+- Be able to follow not only the start but also the stop dependcies
+
+-------------------------------------------------------------------
+Wed Jun 11 14:35:13 CEST 2008 - werner@suse.de
+
+- Make kbd interactive to avoid race during tty resize (bnc#259577)
+
+-------------------------------------------------------------------
+Wed Jun  4 12:17:44 CEST 2008 - werner@suse.de
+
+- Scan service links even for non LSB scripts (bnc#391014)
+
+-------------------------------------------------------------------
+Thu May 29 00:42:42 CEST 2008 - dmueller@suse.de
+
+- really remove last reference to boot.setclock (bnc#384254)
+
+-------------------------------------------------------------------
+Tue May 20 09:25:41 CEST 2008 - werner@suse.de
+
+- Remove last occurence of boot.setclock (bnc#384254)
+
+-------------------------------------------------------------------
+Thu May 15 13:42:57 CEST 2008 - werner@suse.de
+
+- Also ignore temporary (mostly?) errors if executed within an rpm
+  scriptlet (bnc#385498, bnc#384254)
+- Move stat() check for /etc/insserv.conf.d/ configure files
+  to scan_conf() otherwise we never scan those files.
+
+-------------------------------------------------------------------
+Mon May  5 18:47:26 CEST 2008 - werner@suse.de
+
+- Ignore temporary errors during update with YaST/zypper (bnc#385498)
+
+-------------------------------------------------------------------
+Mon Apr 28 15:25:54 CEST 2008 - werner@suse.de
+
+- boot.clock was into two scripts for boot and shutdown
+  Todo: make insserv knowing about Required-Stop to merge them
+  again to one boot.clock.
+
+-------------------------------------------------------------------
+Wed Apr  9 16:02:26 CEST 2008 - mkoenig@suse.de
+
+- add boot.crypto-early to insserv.conf
+
+-------------------------------------------------------------------
+Mon Feb  4 18:32:33 CET 2008 - werner@suse.de
+
+- Expand system facilities to make deep of the dependcy graph
+  less deeper.
+
+-------------------------------------------------------------------
+Fri Feb  1 14:34:52 CET 2008 - werner@suse.de
+
+- Avoid SIGSEGV in functions which can handle NULL pointers
+  thanks goes to Petter Reinholdtsen for his report
+
+-------------------------------------------------------------------
 Wed Jan 30 17:49:55 CET 2008 - werner@suse.de
 
 - New version 1.11.0 of insserv
