@@ -2,9 +2,9 @@ Begin3
 \
 Title:		insserv tool for boot scripts
 \
-Version:	1.10.0
+Version:	1.11.0
 \
-Entered-date:	10OCT07
+Entered-date:	30JAN08
 \
 Description:	Used for enabling of installed boot scripts
 \
@@ -18,7 +18,7 @@ Maintained-by:	Werner Fink <werner@suse.de>
 \
 Primary-site:	sunsite.unc.edu /pub/Linux/system/daemons/init
 \
-		@UNKNOWN insserv-1.10.0.tar.gz
+		@UNKNOWN insserv-1.11.0.tar.gz
 \
 Alternate-site:	ftp.suse.com /pub/projects/init
 \

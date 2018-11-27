@@ -5,36 +5,32 @@
 #
 
 INITDIR  =	/etc/init.d
-#INITDIR  =	/sbin/init.d
 INSCONF  =	/etc/insserv.conf
 #DESTDIR =	/tmp/root
-#DEBUG	 =	-DDEBUG=1
+#DEBUG	 =	-DDEBUG=1 -Wpacked
 #LOOPS	 =	-DIGNORE_LOOPS=1
 DEBUG	 =
 ISSUSE	 =	-DSUSE
 DESTDIR	 =
-VERSION	 =	1.10.0
+VERSION	 =	1.11.0
 DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
 
 #
 # Architecture
 #
-	   ARCH = $(shell uname -m | sed 's@\(i\)[34567]\(86\)@\13\2@')
-#
-# egcs used with -O2 includes -fno-force-mem which is/was buggy (1998/10/08)
-#
 ifdef RPM_OPT_FLAGS
 	  COPTS = -g $(RPM_OPT_FLAGS)
 else
+	   ARCH = $(shell uname -i)
 ifeq ($(ARCH),i386)
-	  COPTS = -O2 -mcpu=i486 -fomit-frame-pointer -fschedule-insns2
+	  COPTS = -O2 -mcpu=i586 -mtune=i686
 else
-	  COPTS = -O2 -fomit-frame-pointer -fschedule-insns2
+	  COPTS = -O2
 endif
 endif
 	 CFLAGS = -Wall $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
 		  $(ISSUSE) -DINITDIR=\"$(INITDIR)\" -DINSCONF=\"$(INSCONF)\" -pipe
-	  CLOOP = -funroll-loops
+	  CLOOP = -falign-loops=0
 	     CC = gcc
 	     RM = rm -f
 	  MKDIR = mkdir -p
@@ -48,7 +44,6 @@ endif
    INSTCONFLAGS = -c -m 0644
 	INSTCON = install $(INSTDOCFLAGS)
 	   LINK = ln -sf
-
 #
 	SDOCDIR = $(DESTDIR)/usr/share/man/man8
 	SBINDIR = $(DESTDIR)/sbin
@@ -58,32 +53,61 @@ endif
 #
 #
 #
-TODO	=	insserv
+TODO	=	insserv insserv.8
 
 all: $(TODO)
 
-listing.o:	listing.c listing.h
+listing.o:	listing.c listing.h .system
 	$(CC) $(CFLAGS) $(CLOOP) -c $<
 
-insserv:	insserv.c listing.o
-	$(CC) $(CFLAGS) $(CLOOP) -o $@ $^
+insserv.o:	insserv.c listing.h .system
+	$(CC) $(CFLAGS) $(CLOOP) -c $<
+
+insserv:	insserv.o listing.o
+	$(CC) $(CFLAGS) -Wl,-O,3,--relax -o $@ $^
+
+ifeq ($(ISSUSE),-DSUSE)
+insserv.8:	insserv.8.in .system
+	sed -r '\!@@(ELSE|NOT)_SUSE@@!,\!@@END_SUSE@@!d;\!@@(BEGIN|END)_SUSE@@!d' < $< > $@
+else
+insserv.8:	insserv.8.in .system
+	sed -r '\!@@BEGIN_SUSE@@!,\!@@(ELSE|END)_SUSE@@!d;\!@@(NOT|END)_SUSE@@!d' < $< > $@
+endif
+
+.system:	SYSTEM=$(shell cat .system 2> /dev/null)
+.system:	.force
+	@test "$(SYSTEM)" = "$(ISSUSE)$(DEBUG)" || echo "$(ISSUSE)$(DEBUG)" > .system
+
+.force:
 
 clean:
-	$(RM) *.o *~ insserv .depend.*
+	$(RM) *.o *~ $(TODO) .depend.*
+
+-include .depend.listing .depend.insserv
+
+.depend.listing:
+	@$(CC) $(CFLAGS) -M listing.c >$@ 2>/dev/null
+
+.depend.insserv:
+	@$(CC) $(CFLAGS) -M insserv.c >$@ 2>/dev/null
 
 install:	$(TODO)
 	$(MKDIR)   $(SBINDIR)
 	$(MKDIR)   $(SDOCDIR)
 	$(MKDIR)   $(CONFDIR)
+ifeq ($(ISSUSE),-DSUSE)
 	$(MKDIR)   $(LSBDIR)
 	$(MKDIR)   $(DESTDIR)/usr/lib
 	$(MKDIR)   $(USRLSBDIR)
+endif
 	$(INSTBIN) insserv        $(SBINDIR)/
 	$(INSTDOC) insserv.8      $(SDOCDIR)/
 	$(INSTCON) insserv.conf   $(CONFDIR)/
+ifeq ($(ISSUSE),-DSUSE)
 	$(INSTCON) init-functions $(LSBDIR)/
 	$(INSTSRP) install_initd  $(USRLSBDIR)/
 	$(INSTSRP) remove_initd   $(USRLSBDIR)/
+endif
 
 #
 # Make distribution
@@ -94,7 +118,7 @@ FILES	= README         \
 	  Makefile       \
 	  listing.c      \
 	  listing.h      \
-	  insserv.8      \
+	  insserv.8.in   \
 	  insserv.c      \
 	  insserv.conf   \
 	  init-functions \
@@ -119,8 +143,8 @@ Alternate-site:	ftp.suse.com /pub/projects/init\n\
 Platforms:	Linux with System VR2 or higher boot scheme\n\
 Copying-policy:	GPL\n\
 End' | sed 's@^ @@g;s@^x@@g' > insserv-$(VERSION).lsm
-	cp $(FILES) insserv-$(VERSION)
-	tar -c -zf  insserv-$(VERSION).tar.gz insserv-$(VERSION)/
+	cp -p $(FILES) insserv-$(VERSION)/
+	tar -cps -zf  insserv-$(VERSION).tar.gz insserv-$(VERSION)/
 	$(RMDIR)    insserv-$(VERSION)
 	set -- `gzip -l insserv-$(VERSION).tar.gz | tail -1` ; \
 	sed "s:@UNKNOWN:$$1:" < insserv-$(VERSION).lsm > \

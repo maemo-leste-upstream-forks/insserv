@@ -1,7 +1,8 @@
 /*
  * listing.h
  *
- * Copyright 2000 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany.
+ * Copyright 2000,2008 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany.
+ *				    2008 SuSE Linux Products GmbH Nuernberg, Germany
  *
  * This source is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -11,13 +12,20 @@
 
 #include <stddef.h>
 
+#if defined(DEBUG) && (DEBUG > 0)
+# define __align __attribute__((packed))
+#else
+# define __align __attribute__((aligned(sizeof(struct list_struct*))))
+#endif
+
 typedef struct list_struct {
     struct list_struct * next, * prev;
-} list_t;
+} __align list_t;
 
 /*
  * Insert new entry as next member.
  */
+static inline void insert (list_t *__restrict new, list_t *__restrict here) __attribute__((always_inline,nonnull(1,2)));
 static inline void insert (list_t * new, list_t * here)
 {
     list_t * prev = here;
@@ -32,6 +40,7 @@ static inline void insert (list_t * new, list_t * here)
 /*
  * Remove entries, note that the pointer its self remains.
  */
+static inline void delete (list_t *__restrict entry) __attribute__((always_inline,nonnull(1)));
 static inline void delete (list_t * entry)
 {
     list_t * prev = entry->prev;
@@ -41,9 +50,10 @@ static inline void delete (list_t * entry)
     prev->next = next;
 }
 
-static inline void join(list_t *list, list_t *head)
+static inline void join(list_t *__restrict list, list_t *__restrict head) __attribute__((always_inline,nonnull(1,2)));
+static inline void join(list_t * list, list_t * head)
 {
-    list_t *first = list->next;
+    list_t * first = list->next;
 
     if (first != list) {
 	list_t *last = list->prev;
@@ -57,7 +67,8 @@ static inline void join(list_t *list, list_t *head)
     }
 }
 
-static inline int list_empty(list_t *head)
+static inline int list_empty(list_t *__restrict head) __attribute__((always_inline,nonnull(1)));
+static inline int list_empty(list_t * head)
 {
         return head->next == head;
 }
@@ -71,33 +82,42 @@ static inline int list_empty(list_t *head)
 	for (pos = (head)->prev; pos != (head); pos = pos->prev)
 
 typedef enum _boolean {false, true} boolean;
-extern void follow_all();
-extern void show_all();
-extern void requiresl(const char * this, ...);
-extern void requiresv(const char * this, const char * requires);
-extern void runlevels(const char * this, const char * lvl);
-extern unsigned int str2lvl(const char * lvl);
-extern char * lvl2str(const unsigned int lvl);
-extern int makeprov(const char * name, const char * script);
-extern void setorder(const char * script, const int order, boolean recursive);
-extern int getorder(const char * script);
-extern boolean notincluded(const char * script, const int runlevel);
-extern boolean foreach(const char ** script, int * order, const int runlevel);
-extern void virtprov(const char * virt, const char * real);
-extern const char * getscript(const char * prov);
-extern const char * getprovides(const char * script);
-extern boolean listscripts(const char ** script, const int lvl);
+typedef unsigned char uchar;
+typedef unsigned short ushort;
+typedef unsigned int uint;
+
+extern void follow_all(void);
+extern void show_all(void);
+extern void requiresl(const char *__restrict this, ...) __attribute__((nonnull(1)));
+extern void requiresv(const char *__restrict this, const char *__restrict requires) __attribute__((nonnull(1,2)));
+extern void runlevels(const char *__restrict this, const char *__restrict lvl) __attribute__((nonnull(1,2)));
+extern uint str2lvl(const char *__restrict lvl) __attribute__((nonnull(1)));
+extern char * lvl2str(const uint lvl);
+extern int makeprov(const char *__restrict name, const char *__restrict script) __attribute__((nonnull(1,2)));
+extern void setorder(const char *__restrict script, const int order, boolean recursive) __attribute__((nonnull(1)));
+extern int getorder(const char *__restrict script) __attribute__((nonnull(1)));
+extern boolean notincluded(const char *__restrict script, const int runlevel) __attribute__((nonnull(1)));
+extern boolean foreach(const char **__restrict script, int *__restrict order, const int runlevel) __attribute__((nonnull(1,2)));
+extern void virtprov(const char *__restrict virt, const char *__restrict real) __attribute__((nonnull(1,2)));
+extern const char * getscript(const char *__restrict prov) __attribute__((nonnull(1)));
+extern const char * getprovides(const char *__restrict script) __attribute__((nonnull(1)));
+extern boolean listscripts(const char **__restrict script, const int lvl) __attribute__((nonnull(1)));
 extern int maxorder;
+extern boolean is_loop_detected(void);
 
 /*
  * Common short cuts
  */
 extern const char *const delimeter;
-extern void error (const char *fmt, ...);
-extern void warn (const char *fmt, ...);
-extern void info (const char *fmt, ...);
+extern void error (const char *__restrict fmt, ...) __attribute__((format(printf,1,2)));
+extern void warn (const char *__restrict fmt, ...) __attribute__((format(printf,1,2)));
+extern void info (const char *__restrict fmt, ...) __attribute__((format(printf,1,2)));
+extern int map_has_runlevels(void);
+extern int map_runlevel_to_lvl (const int runlevel);
+extern int map_key_to_lvl(const char key);
 
-static inline char * xstrdup(const char *s)
+static inline char * xstrdup(const char *__restrict s) __attribute__((always_inline,nonnull(1)));
+static inline char * xstrdup(const char * s)
 {
     char * r;
     if (!s)
@@ -121,15 +141,15 @@ static inline char * xstrdup(const char *s)
 /*
  * Bits of the runlevels
  */
-#define LVL_HALT	0x001
-#define LVL_ONE		0x002
-#define LVL_TWO		0x004
-#define LVL_THREE	0x008
-#define LVL_FOUR	0x010
-#define LVL_FIVE	0x020
-#define LVL_REBOOT	0x040
-#define LVL_SINGLE	0x080
-#define LVL_BOOT	0x100
+#define LVL_HALT	0x0001
+#define LVL_ONE		0x0002
+#define LVL_TWO		0x0004
+#define LVL_THREE	0x0008
+#define LVL_FOUR	0x0010
+#define LVL_FIVE	0x0020
+#define LVL_REBOOT	0x0040
+#define LVL_SINGLE	0x0080
+#define LVL_BOOT	0x0100
 
 /*
  * LVL_BOOT is already done if one of the LVL_ALL will be entered.
