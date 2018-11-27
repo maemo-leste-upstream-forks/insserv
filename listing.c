@@ -86,6 +86,7 @@ static list_t * d_start = &dirs;
 #define DIR_LOOP	0x0002
 #define DIR_LOOPREPORT	0x0004
 #define DIR_MAXDEEP	0x0008
+#define DIR_SYSTEMD	0x0010
 
 /*
  * The linked list off all services, note that the d_list
@@ -534,19 +535,16 @@ out:
  * Sort linked list of provides into start or stop order
  * during this set new start or stop order of the serives.
  */
-#undef SORT_REQUESTS
+#define getdep(req)    ((dir_t*)(req)->serv->dir)
 void lsort(const char type)
 {
     list_t sort = { &sort, &sort };
-#ifdef SORT_REQUESTS
-    list_t * this;
-#endif /* SORT_REQUESTS */
+    list_t * ptr, * safe, * this;
     int order;
 
     switch (type) {
     case 'K':
 	for (order = 0; order <= maxstop; order++) {
-	    list_t * ptr, * safe;
 	    list_for_each_safe(ptr, safe, d_start) {
 		dir_t * dir = getdir(ptr);
 		if (dir->stopp.deep == order)
@@ -554,28 +552,54 @@ void lsort(const char type)
 	    }
 	}
 	join(&sort, d_start);
-#ifdef SORT_REQUESTS
 	list_for_each(this, s_start) {
 	    service_t * serv = getservice(this);
 	    if (serv->attr.flags & SERV_DUPLET)
 		continue;
 	    initial(&sort);
-	    for (order = 0; order <= maxstop; order++) {
-		list_t * ptr, * safe;
+	    for (order = maxstop; order >= 0; order--) {
 		list_for_each_safe(ptr, safe, &serv->sort.rev) {
 		    req_t * rev = getreq(ptr);
-		    dir_t * dir = (dir_t*)rev->serv->dir;
-		    if (dir->stopp.deep == order)
-			move_tail(ptr, &sort);
+		    dir_t * dir = getdep(rev);
+		    if (dir->stopp.deep == order) {
+			service_t *const orig = getorig(rev->serv);
+			list_t * chk;
+			boolean found = false;
+
+			list_for_each_prev(chk, &sort) {    /* check if service was already resorted */
+			    req_t * this = getreq(chk);
+			    if (getdep(this)->stopp.deep != order)
+				break;			    /* added on tail always with same order */
+			    if (getdep(this) == orig->dir) {
+				found = true;
+			    }
+			}
+
+			if (!found) {
+			    if (rev->serv != orig) {	    /* replace alias with its original */
+				req_t *restrict this;
+				if (posix_memalign((void*)&this, sizeof(void*), alignof(req_t)) != 0)
+				    error("%s", strerror(errno));
+				memset(this, 0, alignof(req_t));
+				this->flags = rev->flags;
+				this->serv = orig;
+				replace(ptr, &this->list);
+				ptr = &this->list;
+				free(rev);
+			    }
+			    move_tail(ptr, &sort);
+			} else {			    /* already included */
+			    delete(ptr);
+			    free(rev);
+			}
+		    }
 		}
 	    }
 	    join(&sort, &serv->sort.rev);
 	}
-#endif /* SORT_REQUESTS */
 	break;
     default:
 	for (order = 0; order <= maxstart; order++) {
-	    list_t * ptr, * safe;
 	    list_for_each_safe(ptr, safe, d_start) {
 		dir_t * dir = getdir(ptr);
 		if (dir->start.deep == order)
@@ -583,28 +607,54 @@ void lsort(const char type)
 	    }
 	}
 	join(&sort, d_start);
-#ifdef SORT_REQUESTS
 	list_for_each(this, s_start) {
 	    service_t * serv = getservice(this);
 	    if (serv->attr.flags & SERV_DUPLET)
 		continue;
 	    initial(&sort);
-	    for (order = 0; order <= maxstart; order++) {
-		list_t * ptr, * safe;
+	    for (order = maxstart; order >= 0; order--) {
 		list_for_each_safe(ptr, safe, &serv->sort.req) {
 		    req_t * req = getreq(ptr);
-		    dir_t * dir = (dir_t*)req->serv->dir;
-		    if (dir->start.deep == order)
-			move_tail(ptr, &sort);
+		    dir_t * dir = getdep(req);
+		    if (dir->start.deep == order) {
+			service_t * orig = getorig(req->serv);
+			list_t * chk;
+			boolean found = false;
+
+			list_for_each_prev(chk, &sort) {    /* check if service was already resorted */
+			    req_t * this = getreq(chk);
+			    if (getdep(this)->start.deep != order)
+				break;			    /* added on tail always with same order */
+			    if (getdep(this) == orig->dir) {
+				found = true;
+				break;
+			    }
+			}
+
+			if (!found) {
+			    if (req->serv != orig) {	    /* replace alias with its original */
+				req_t *restrict this;
+				if (posix_memalign((void*)&this, sizeof(void*), alignof(req_t)) != 0)
+				    error("%s", strerror(errno));
+				memset(this, 0, alignof(req_t));
+				this->flags = req->flags;
+				this->serv = orig;
+				replace(ptr, &this->list);
+				ptr = &this->list;
+				free(req);
+			    }
+			    move_tail(ptr, &sort);
+			} else {			    /* already included */
+			    delete(ptr);
+			    free(req);
+			}
+		    }
 		}
 	    }
 	    join(&sort, &serv->sort.req);
 	}
-#endif /* SORT_REQUESTS */
 	break;
     }
-
-
 }
 
 /*
@@ -889,56 +939,80 @@ boolean is_loop_detected(void)
 /*
  * For debuging: show all services
  */
-#if defined(DEBUG) && (DEBUG > 0)
 void show_all()
 {
     list_t *tmp;
     if (maxstop > 0) list_for_each(tmp, d_start) {
-	char * script, *name, *lvlstr;
+	char * script, *lvlstr;
+#if defined(DEBUG) && (DEBUG > 0)
+	char *name;
+#endif
 	dir_t * dir = getdir(tmp);
 	handle_t * peg;
 	uchar deep;
 	ushort lvl;
 	if (!dir)
 	    continue;
+#if defined(DEBUG) && (DEBUG > 0)
 	name = dir->name;
+#endif
 	peg  = &dir->stopp;
 	lvl  = peg->run.lvl;
+	lvlstr = lvl2str(lvl);
 	deep = peg->deep;
 	if (attof(dir)->script)
 	    script = attof(dir)->script;
+#if defined(DEBUG) && (DEBUG > 0)
 	else if (*name == '$')
 	    script = "%system";
 	else
 	    script = "%guessed";
-	lvlstr = lvl2str(lvl);
-	info("K%.2d %s 0x%.2x '%s' (%s)\n", deep, name, lvl, lvlstr, script);
+	info(1, "K%.2d %s 0x%.2x '%s' (%s)\n", deep, name, lvl, lvlstr,
+	     script);
+#else
+	else
+	    script = NULL;
+	if (script && lvlstr)
+	    fprintf(stdout, "K:%.2d:%s:%s\n", deep, lvlstr, script);
+#endif
 	xreset(lvlstr);
     }
     if (maxstart > 0) list_for_each(tmp, d_start) {
-	char * script, *name, *lvlstr;
+	char * script, *lvlstr;
+#if defined(DEBUG) && (DEBUG > 0)
+	char *name;
+#endif
 	dir_t * dir = getdir(tmp);
 	handle_t * peg;
 	uchar deep;
 	ushort lvl;
 	if (!dir)
 	    continue;
+#if defined(DEBUG) && (DEBUG > 0)
 	name = dir->name;
+#endif
 	peg  = &dir->start;
 	lvl  = peg->run.lvl;
+	lvlstr = lvl2str(lvl);
 	deep = peg->deep;
 	if (attof(dir)->script)
 	    script = attof(dir)->script;
+#if defined(DEBUG) && (DEBUG > 0)
 	else if (*name == '$')
 	    script = "%system";
 	else
 	    script = "%guessed";
-	lvlstr = lvl2str(lvl);
-	info("S%.2d %s 0x%.2x '%s' (%s)\n", deep, name, lvl, lvlstr, script);
+	info(1, "S%.2d %s 0x%.2x '%s' (%s)\n", deep, name, lvl, lvlstr,
+	     script);
+#else
+	else
+	    script = NULL;
+	if (script && lvlstr)
+	    fprintf(stdout, "S:%.2d:%s:%s\n", deep, lvlstr, script);
+#endif
 	xreset(lvlstr);
     }
 }
-#endif
 
 /*
  * Used within loops to get scripts not included in this runlevel
@@ -989,8 +1063,8 @@ service_t * listscripts(const char **restrict script, const char mode, const ush
 	prefetch(tmp->next);
 	dir = getdir(tmp);
 
-        attof(dir)->korder = dir->stopp.deep;
-        attof(dir)->sorder = dir->start.deep;
+	attof(dir)->korder = dir->stopp.deep;
+	attof(dir)->sorder = dir->start.deep;
 
 	serv = dir->serv;
 	*script = serv->attr.script;
@@ -1020,6 +1094,20 @@ service_t * listscripts(const char **restrict script, const char mode, const ush
 void requires(service_t *restrict this, service_t *restrict dep, const char mode)
 {
     ln_sf((dir_t*)this->dir, (dir_t*)dep->dir, mode);
+    if (this->attr.flags & SERV_SYSTEMD) {
+	dir_t *dir = (dir_t*)this->dir;
+	handle_t *peg = &dir->stopp;
+	peg->flags |= DIR_SYSTEMD;
+	peg = &dir->start;
+	peg->flags |= DIR_SYSTEMD;
+    }
+    if (dep->attr.flags & SERV_SYSTEMD) {
+	dir_t *dir = (dir_t*)dep->dir;
+	handle_t *peg = &dir->stopp;
+	peg->flags |= DIR_SYSTEMD;
+	peg = &dir->start;
+	peg->flags |= DIR_SYSTEMD;
+    }
 }
 
 /*
@@ -1027,7 +1115,7 @@ void requires(service_t *restrict this, service_t *restrict dep, const char mode
  */
 void runlevels(service_t *restrict serv, const char mode, const char *restrict lvl)
 {
-    dir_t * dir   = (dir_t *)serv->dir;
+    dir_t *dir   = (dir_t *)serv->dir;
     handle_t * peg = (mode == 'K') ? &dir->stopp : &dir->start;
     peg->run.lvl |= str2lvl(lvl);
 }

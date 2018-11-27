@@ -1,4 +1,150 @@
 -------------------------------------------------------------------
+October 2018 - jsmith@resonatingmedia.com
+
+- Added ability to run --dry-run and --show-all in addition to
+  the existing --dryrun and --showall options.
+  Closes Debian bug #580773
+- Fixed compiler warnings when unused variables are defined in listing.h
+
+
+-------------------------------------------------------------------
+August 2018 - jsmith@resonatingmedia.com
+
+- Updated insserv.c and listing.h to fix compile errors.
+- Fixed Makefile so that all source dependencies are found.
+- Allow CC to be defined outside of Makefile so we are not tied to GCC.
+- Fixed function definitions, moved code (map_ functions) used in multiple 
+  places out of insserv.c and into its own module called map.c
+  Makes it easier to fix Makefile to build with modern systems/compilers.
+- Cleaned up the last of the compiler errors on Clang and almost all the
+  warnings from GCC.
+
+-------------------------------------------------------------------
+Sun Feb 16 19:16:10 CET 2014 - pere@hungry.com
+
+- Next release will be 1.17.0.
+- Correct manual page, refer to init(8), not nonexisting init(7).
+- Fix scope after if test to match the indentation and probably the
+  intended behaviour.  Patch from Debian fixing BTS #736479.
+- Remove useless test checking for NULL==serv which is impossible
+  after a while test check it (Coverity CID 1174105).
+- Check exit value from mkdir() and report an error if it fail
+  (Coverity CID 1174104).
+- Make sure to check the return value from ftello() before passing it
+  to posix_fadvise() (Coverity CID 1174109).
+- Make sure to check if name is NULL before dereferencing it (Coverity
+  CID 1174114).
+- Exit with an error if getcwd() fail (Coverity CID 1174110).
+- Runlevel numbers above 8 is an error, exit when it happen instead of
+  reading outside the runlevel info array (Coverity CIDs 1174111,
+  1174112 and 1174113).
+- Document correct fall through cases (Coverity CIDs 1174107 and
+  1174108).
+- Make sure a 'distclean' target is available in the makefile.
+
+-------------------------------------------------------------------
+Tue Apr 30 10:20:58 CET 2013 - werner@suse.de
+
+- Fix buffer overrun (based on patch from Petr Ovtchenkov)
+
+-------------------------------------------------------------------
+Thu Nov 15 10:24:12 CET 2012 - werner@suse.de
+
+- Avoid warning about not existing systemd socket
+- Bug fix: do not close dbus connection which was never established
+
+-------------------------------------------------------------------
+Wed Nov 14 12:12:15 CET 2012 - werner@suse.de
+
+- Add systemd support
+  * Talk with systemd over dbus connection to get all services and
+    targets known by systemd
+  * Implement missing garbage collector for system facilities as
+    the systemd targets are used as system facilities
+  + Side efect is that we detect loops in the systemd units
+
+-------------------------------------------------------------------
+Fri Oct 26 11:14:05 UTC 2012 - werner@suse.de
+
+- Add showall patch from Debian developer Kel Modderman
+
+-------------------------------------------------------------------
+Mon Sep 24 14:05:44 UTC 2012 - werner@suse.de
+
+- Avoid warnings if there exsists LSB tags for a script in the
+  override locations (fate #314069) 
+
+-------------------------------------------------------------------
+Fri Nov 18 14:40:21 UTC 2011 - werner@suse.de
+
+- Do not enforce service reload in case of an other root files
+  system no in case of not having systemd running (bnc#728947)  
+
+-------------------------------------------------------------------
+Fri Aug 19 13:57:29 UTC 2011 - werner@suse.de
+
+- We should forward to systemctl when running under rpm (this is
+  supposed to be handled outside insserv) (from Frederic Crozat)
+- When insserv is called with full path of initscript
+  ("insserv /etc/init.d/acpid") , systemctl was called with a "null"
+  alternative root (from Frederic Crozat).
+ 
+-------------------------------------------------------------------
+Tue Aug  2 12:18:51 UTC 2011 - werner@suse.de
+
+- Enable insserv to support systemd services if shadowed by systemd
+
+-------------------------------------------------------------------
+Fri Feb 25 17:39:37 CET 2011 - werner@suse.de
+
+- Skip `FATAL' key word from messages currently nonfatal
+
+-------------------------------------------------------------------
+Thu Feb 10 12:49:14 CET 2011 - werner@suse.de
+
+- Linked lists: support prefetch of next pointer address for all
+  architectures
+
+-------------------------------------------------------------------
+Tue Nov 30 11:03:21 CET 2010 - werner@suse.de
+
+- Make temporary the new dependency checks nonfatal
+
+-------------------------------------------------------------------
+Fri Nov 26 15:50:35 CET 2010 - werner@suse.de
+
+- Warn if dependencies are not done in all runlevel
+- Ignore real boot scripts for runlevel services as those
+  are already enabled.
+
+-------------------------------------------------------------------
+Fri Jun 18 18:08:54 CEST 2010 - werner@suse.de
+
+- Remove redundant dependencies in the .depend.* makefiles
+
+-------------------------------------------------------------------
+Tue Jun 15 14:05:31 CEST 2010 - werner@suse.de
+
+- Do not forget the aliases in the makefiles
+
+-------------------------------------------------------------------
+Thu Jun 10 17:19:26 CEST 2010 - werner@suse.de
+
+- Sort dependency lists of the services that is the highest
+  dependencies first
+
+-------------------------------------------------------------------
+Fri May  7 17:15:02 CEST 2010 - werner@suse.de
+
+- Get the value instead the ``X-'' from interactive tag
+  this fix debian bug #580564
+
+-------------------------------------------------------------------
+Fri Apr 30 18:27:29 CEST 2010 - werner@suse.de
+
+- Add the option of recursive enabling all required services
+
+-------------------------------------------------------------------
 Wed Apr 28 15:29:23 CEST 2010 - werner@suse.de
 
 - Use savannah as primary site

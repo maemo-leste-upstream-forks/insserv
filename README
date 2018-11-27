@@ -1,34 +1,20 @@
-   Install
-   =======
+README for insserv
 
-Edit the Makefile (set INITDIR to the path of the
-boot scripts used by the system during boot time),
-type `make' and `make install'.
-
-   Downloading latest version
-   ==========================
-
-The latest version of the insserv source is available from
-<URL: ftp://ftp.suse.com/pub/projects/init/ >.
-
-   Processes controlling
-   =====================
-
-This small package provides a tool for process controlling
-in System V boot scripts.
-
-The syntax is simple:
-
-   insserv
-
-   insserv etc/init.d
-
-   insserv etc/init.d/myscript
-
-See manual page for more information.
+insserv is a boot sequence organizer using LSB init.d script dependency 
+information. It is typically used alongside the SysV init software.
 
 
-Happy booting,
+Compiling
 
-       Werner Fink
+insserv can be built with most modern compilers, including GCC and Clang.
+One of the software's few dependencies is the D-bus devlopment libraries. The
+D-bus packages are called libdbus-dev under Debian/Ubuntu. For example,
+libdbus-1-dev on Debian.
+
+
+Installing
+
+To build insserv, run the command "make install" in the top level of the
+source directory. To install the innserv software, run "sudo make install".
+This will perform some checks and then copy the software into place.
 

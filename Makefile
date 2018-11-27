@@ -10,10 +10,12 @@ INSCONF  =	/etc/insserv.conf
 #DESTDIR =	/tmp/root
 #DEBUG	 =	-DDEBUG=1 -Wpacked
 DEBUG	 =
-ISSUSE	 =	-DSUSE
+#ISSUSE	 =	-DSUSE
 DESTDIR	 =
-VERSION	 =	1.14.0
+VERSION	 =	1.18.0
+TARBALL  =	$(PACKAGE)-$(VERSION).tar.xz
 DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
+CFLDBUS	 =	$(shell pkg-config --cflags dbus-1)
 
 #
 # Architecture
@@ -28,9 +30,9 @@ else
 	  COPTS = -g -O2
 endif
 endif
-	 CFLAGS = -W -Wall $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
-		  $(ISSUSE) -DINITDIR=\"$(INITDIR)\" -DINSCONF=\"$(INSCONF)\" -pipe
-	  CLOOP = -falign-loops=0
+	 CFLAGS = -W -Wall -Wunreachable-code $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
+		  $(ISSUSE) -DINITDIR=\"$(INITDIR)\" -DINSCONF=\"$(INSCONF)\" -pipe 
+	  CLOOP = # -falign-loops=0
 	LDFLAGS = -Wl,-O,3,--relax
 	   LIBS =
 ifdef USE_RPMLIB
@@ -38,7 +40,8 @@ ifdef USE_RPMLIB
 	LDFLAGS += -Wl,--as-needed
 	   LIBS += -lrpm
 endif
-	     CC = gcc
+	   LIBS += $(shell pkg-config --libs dbus-1)
+	     CC ?= gcc
 	     RM = rm -f
 	  MKDIR = mkdir -p
 	  RMDIR = rm -rf
@@ -74,14 +77,20 @@ TODO	=	insserv insserv.8
 
 all:		$(TODO)
 
-insserv:	insserv.o listing.o
+insserv:	insserv.o listing.o systemd.o map.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-listing.o:	listing.c listing.h config.h .system
-	$(CC) $(CFLAGS) $(CLOOP) -c $<
+listing.o:	listing.c insserv.c listing.h config.h .system
+	$(CC) $(CFLAGS) $(CLOOP) $(CFLDBUS) -c $<
 
-insserv.o:	insserv.c listing.h config.h .system
-	$(CC) $(CFLAGS) $(CLOOP) -c $<
+map.o:	map.c listing.h config.h .system
+	$(CC) $(CFLAGS) $(CLOOP) $(CFLDBUS) -c $<
+
+insserv.o:	insserv.c map.o listing.h systemd.h config.h .system
+	$(CC) $(CFLAGS) $(CLOOP) $(CFLDBUS) insserv.c -c 
+
+systemd.o:	systemd.c map.o listing.h systemd.h config.h .system
+	$(CC) $(CFLAGS) $(CLOOP) $(CFLDBUS) -c $<
 
 listing.h:	.system
 
@@ -110,7 +119,8 @@ endif
 
 .force:
 
-.PHONY:		clean
+.PHONY:		clean distclean
+distclean: clean
 clean:
 	$(RM) *.o *~ $(TODO) config.h .depend.* .system
 
@@ -161,19 +171,19 @@ FILES	= README         \
 	  Makefile       \
 	  listing.c      \
 	  listing.h      \
+	  systemd.c      \
+	  systemd.h      \
 	  insserv.8.in   \
 	  insserv.c      \
 	  insserv.conf   \
 	  init-functions \
+          map.c          \
 	  remove_initd   \
-	  install_initd  \
-	  tests/common   \
-	  tests/suite    \
-	  insserv-$(VERSION).lsm
+	  install_initd 
 
 SVLOGIN=$(shell svn info | sed -rn '/Repository Root:/{ s|.*//(.*)\@.*|\1|p }')
+ifeq ($(MAKECMDGOALS),upload)
 override TMP:=$(shell mktemp -d $(PACKAGE)-$(VERSION).XXXXXXXX)
-override TARBALL:=$(TMP)/$(PACKAGE)-$(VERSION).tar.bz2
 override SFTPBATCH:=$(TMP)/$(VERSION)-sftpbatch
 override LSM=$(TMP)/$(PACKAGE)-$(VERSION).lsm
 
@@ -188,40 +198,33 @@ Keywords:	boot service control, LSB\n\
 Author:		Werner Fink <werner@suse.de>\n\
 Maintained-by:	Werner Fink <werner@suse.de>\n\
 Primary-site:	http://download.savannah.gnu.org/releases/sysvinit/\n\
-x		@UNKNOWN $(PACKAGE)-$(VERSION).tar.bz2\n\
+x		@UNKNOWN $(PACKAGE)-$(VERSION).tar.xz\n\
 Alternate-site:	ftp.suse.com /pub/projects/init\n\
 Platforms:	Linux with System VR2 or higher boot scheme\n\
 Copying-policy:	GPL\n\
 End" | sed 's@^ @@g;s@^x@@g' > $(LSM)
 
 dest: $(LSM)
+endif
 
 upload: $(SFTPBATCH)
 	@sftp -b $< $(SVLOGIN)@dl.sv.nongnu.org:/releases/sysvinit
 	mv $(TARBALL) $(LSM) .
 	rm -rf $(TMP)
 
-$(SFTPBATCH): $(TARBALL).sig
-	@echo progress > $@
-	@echo put $(TARBALL) >> $@
-	@echo chmod 644 $(notdir $(TARBALL)) >> $@
-	@echo put $(TARBALL).sig >> $@
-	@echo chmod 644 $(notdir $(TARBALL)).sig >> $@
-	@echo rm  $(PACKAGE)-latest.tar.bz2 >> $@
-	@echo symlink $(notdir $(TARBALL)) $(PACKAGE)-latest.tar.bz2 >> $@
-	@echo quit >> $@
+dist: $(TARBALL).sig
+
 
 $(TARBALL).sig: $(TARBALL)
 	@gpg -q -ba --use-agent -o $@ $<
 
-$(TARBALL): $(TMP)/$(PACKAGE)-$(VERSION) $(LSM)
-	@tar --bzip2 --owner=nobody --group=nobody -cf $@ -C $(TMP) $(PACKAGE)-$(VERSION)
-	@set -- `find $@ -printf '%s'` ; \
-	 sed "s:@UNKNOWN:$$1:" < $(LSM) > $(LSM).tmp ; \
-	 mv $(LSM).tmp $(LSM)
+$(TARBALL): clean
+	mkdir -p insserv/tests
+	cp $(FILES) insserv/
+	cp tests/* insserv/tests/
+	@tar --xz --owner=nobody --group=nobody -cf $(TARBALL) insserv/
+	rm -rf insserv
 
-$(TMP)/$(PACKAGE)-$(VERSION): .svn
-	svn export . $@
-	@chmod -R a+r,u+w,og-w $@
-	@find $@ -type d | xargs -r chmod a+rx,u+w,og-w
+distclean: clean
+	rm -f $(TARBALL) $(TARBALL).sig
 

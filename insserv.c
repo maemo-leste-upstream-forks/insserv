@@ -23,9 +23,16 @@
  *
  */
 
+/*
+ * Systemd integration
+ */
+#define SYSTEMD_SERVICE_PATH	"/lib/systemd/system"
+#define SYSTEMD_BINARY_PATH	"/bin/systemd"
+
 #define MINIMAL_MAKE	1	/* Remove disabled scripts from .depend.boot,
 				 * .depend.start, .depend.halt, and .depend.stop */
 #define MINIMAL_RULES	1	/* ditto */
+#define MINIMAL_DEPEND	1	/* Remove redundant dependencies */
 
 #include <pwd.h>
 #include <string.h>
@@ -36,6 +43,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/syscall.h>
@@ -44,6 +52,12 @@
 #include <errno.h>
 #include <limits.h>
 #include <getopt.h>
+#if defined(__linux__)
+# include <linux/magic.h>
+#endif
+#if !defined(CGROUP_SUPER_MAGIC)
+# define CGROUP_SUPER_MAGIC	0x27e0eb
+#endif
 #if defined(USE_RPMLIB) && (USE_RPMLIB > 0)
 # include <rpm/rpmlib.h>
 # include <rpm/rpmmacro.h>
@@ -51,7 +65,11 @@
 #ifdef SUSE
 # include <sys/mount.h>
 #endif /* SUSE */
+#ifndef NEED_RUNLEVELS_DEF
+#define NEED_RUNLEVELS_DEF
+#endif
 #include "listing.h"
+#include "systemd.h"
 
 #if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
 # ifndef POSIX_FADV_SEQUENTIAL
@@ -97,7 +115,11 @@ static inline void oneway(char *restrict stop)
 # define INSCONF	"/etc/insserv.conf"
 #endif
 
-const char *upstartjob_path = "/lib/init/upstart-job";
+/* Upstart suport */
+static const char *upstartjob_path = "/lib/init/upstart-job";
+
+/* Systemd support */
+static DBusConnection *sbus;
 
 /*
  * For a description of regular expressions see regex(7).
@@ -151,6 +173,10 @@ static boolean dryrun = false;
 static boolean set_override = false;
 static boolean set_insconf = false;
 
+/* Wether systemd is active or not */
+static boolean systemd = false;
+static boolean is_overridden_by_systemd(const char *);
+
 /* Search results points here */
 typedef struct lsb_struct {
     char *provides;
@@ -189,7 +215,7 @@ typedef struct creg_struct {
 static lsb_t script_inf;
 static reg_t reg;
 static creg_t creg;
-static char empty[1] = "";
+char empty[1] = "";
 
 /* Delimeters used for spliting results with strsep(3) */
 const char *const delimeter = " ,;\t";
@@ -242,13 +268,18 @@ out:
  * Linked list of system facilities services and their replacment
  */
 typedef struct string {
-    int *restrict ref;
+    list_t     s_list;
+    int		  ref;
     char	*name;
 } __align string_t;
+#define getfstr(arg)	list_entry((arg), struct string, s_list)
 
 typedef struct repl {
     list_t     r_list;
-    string_t	 r[1];
+    struct {
+	string_t   *addr;
+	const char *name;
+    };
     ushort	flags;
 } __align repl_t;
 #define getrepl(arg)	list_entry((arg), struct repl, r_list)
@@ -260,6 +291,7 @@ typedef struct faci {
 } __align faci_t;
 #define getfaci(arg)	list_entry((arg), struct faci, list)
 
+static list_t facistr = { &facistr, &facistr }, *facistr_start = &facistr;
 static list_t sysfaci = { &sysfaci, &sysfaci }, *sysfaci_start = &sysfaci;
 
 /*
@@ -290,6 +322,7 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
 	    token++;
 	    bit &= ~REQ_MUST;
 	    bit |=  REQ_SHLD;
+	    /* fall through */
 	default:
 	    req = addservice(token);
 	    if (bit & REQ_KILL) {
@@ -337,7 +370,7 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
 		if (!strcmp(token, getfaci(ptr)->name)) {
 		    list_t * lst;
 		    np_list_for_each(lst, &getfaci(ptr)->replace)
-			rememberreq(serv, bit, getrepl(lst)->r[0].name);
+			rememberreq(serv, bit, getrepl(lst)->name);
 		    break;
 		}
 	    }
@@ -368,6 +401,7 @@ static void reversereq(service_t *restrict serv, uint bit, const char *restrict 
 	    token++;
 	    bit &= ~REQ_MUST;
 	    bit |=  REQ_SHLD;
+	    /* fall through */
 	default:
 	    rev = addservice(token);
 	    rememberreq(rev, bit, serv->name);
@@ -377,7 +411,7 @@ static void reversereq(service_t *restrict serv, uint bit, const char *restrict 
 		if (!strcmp(token, getfaci(ptr)->name)) {
 		    list_t * lst;
 		    np_list_for_each(lst, &getfaci(ptr)->replace)
-			reversereq(serv, bit, getrepl(lst)->r[0].name);
+			reversereq(serv, bit, getrepl(lst)->name);
 		    break;
 		}
 	    }
@@ -389,14 +423,19 @@ static void reversereq(service_t *restrict serv, uint bit, const char *restrict 
 /*
  * Check required services for name
  */
-static boolean chkrequired(service_t *restrict serv) attribute((nonnull(1)));
-static boolean chkrequired(service_t *restrict serv)
+static boolean chkrequired(service_t *restrict serv, const boolean recursive) attribute((nonnull(1)));
+static boolean chkrequired(service_t *restrict serv, const boolean recursive)
 {
     boolean ret = true;
     list_t * pos;
 
+    /* Technically, it is not possible for this function to be called if serv is
+       NULL, which makes the compiler complain about this check. Commenting it
+       out since neither of these conditions is likely to change given program's
+       mature/legacy nature. -- Jesse
     if (!serv)
-	goto out;
+	return ret;
+    */
     serv = getorig(serv);
 
     np_list_for_each(pos, &serv->sort.req) {
@@ -409,12 +448,23 @@ static boolean chkrequired(service_t *restrict serv)
 	must = getorig(must);
 
 	if ((must->attr.flags & (SERV_CMDLINE|SERV_ENABLED)) == 0) {
-	    warn("Service %s has to be enabled to start service %s\n",
-		 req->serv->name, serv->name);
+	    if (recursive) {
+		must->attr.flags |= SERV_ENFORCE;
+		continue;	/* Enabled this later even if not on command line */
+	    }
+	    if ((must->attr.flags & SERV_WARNED) == 0) {
+		warn("FATAL: service %s has to be enabled to use service %s\n",
+		     req->serv->name, serv->name);
+		must->attr.flags |= SERV_WARNED;
+	    }
 	    ret = false;
 	}
     }
 #if 0
+    /*
+     * Once we may use REQ_MUST for X-Start-Before and/or
+     * X-Stop-After we may enable this, see reversereq()
+     */
     if (serv->attr.flags & (SERV_CMDLINE|SERV_ENABLED))
 	goto out;
     np_list_for_each(pos, &serv->sort.rev) {
@@ -425,15 +475,13 @@ static boolean chkrequired(service_t *restrict serv)
 	    continue;
 	must = rev->serv;
 	must = getorig(must);
-
 	if (must->attr.flags & (SERV_CMDLINE|SERV_ENABLED)) {
-	    warn("Service %s has to be enabled to stop service %s\n",
+	    warn("FATAL: service %s has to be enabled to use service %s\n",
 		 serv->name, rev->serv->name);
 	    ret = false;
 	}
     }
 #endif
-out:
     return ret;
 }
 
@@ -476,7 +524,7 @@ static boolean chkdependencies(service_t *restrict serv)
 	    if ((cur->attr.flags & SERV_CMDLINE) && (flags & SERV_CMDLINE))
 		continue;
 
-	    warn("Service %s has to be enabled to start service %s\n",
+	    warn("FATAL: service %s has to be enabled to use service %s\n",
 		 name, cur->name);
 	    ret = false;
 	}
@@ -738,7 +786,7 @@ static inline void makedep(void)
     FILE *halt;
 #endif /* USE_KILL_IN_BOOT */
     const char *target;
-    service_t *serv;
+    const service_t *serv;
 
     if (dryrun) {
 #ifdef USE_KILL_IN_BOOT
@@ -767,8 +815,6 @@ static inline void makedep(void)
     target = (char*)0;
     fprintf(boot, "TARGETS =");
     while ((serv = listscripts(&target, 'S', LVL_BOOT))) {
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -780,8 +826,6 @@ static inline void makedep(void)
     target = (char*)0;
     fprintf(start, "TARGETS =");
     while ((serv = listscripts(&target, 'S', LVL_ALL))) {	/* LVL_ALL: nearly all but not BOOT */
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -795,8 +839,6 @@ static inline void makedep(void)
 
     target = (char*)0;
     while ((serv = listscripts(&target, 'S', LVL_BOOT|LVL_ALL))) {
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -818,11 +860,13 @@ static inline void makedep(void)
 
     target = (char*)0;
     while ((serv = listscripts(&target, 'S', LVL_BOOT|LVL_ALL))) {
+#if defined(MINIMAL_DEPEND) && (MINIMAL_DEPEND != 0)
+	const service_t * lserv[100] = {0};
+	unsigned long lcnt = 0;
+#endif /* not MINIMAL_DEPEND */
 	boolean mark;
 	list_t * pos;
 
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_RULES) && (MINIMAL_RULES != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -841,6 +885,10 @@ static inline void makedep(void)
 	np_list_for_each(pos, &serv->sort.req) {
 	    req_t * req = getreq(pos);
 	    service_t * dep = req->serv;
+#if defined(MINIMAL_DEPEND) && (MINIMAL_DEPEND != 0)
+	    boolean shadow = false;
+	    unsigned long n;
+#endif /* not MINIMAL_DEPEND */
 	    const char * name;
 
 	    if (!dep)
@@ -870,7 +918,36 @@ static inline void makedep(void)
 		fprintf(out, "%s:", target);
 		mark = true;
 	    }
+#if defined(MINIMAL_DEPEND) && (MINIMAL_DEPEND != 0)
+	    for (n = 0; n < lcnt && lserv[n] ; n++) {
+		list_t * red;
+		if (lserv[n]->attr.sorder <= dep->attr.sorder)
+		    break;
+		np_list_for_each(red, &(lserv[n])->sort.req) {
+		    req_t * other = getreq(red);
+		    if (other->serv->attr.flags & SERV_DUPLET)
+			continue;
+		    if (other->serv->attr.ref <= 0)
+			continue;
+		    if ((serv->start->lvl & other->serv->start->lvl) == 0)
+			continue;
+		    if (!other->serv->attr.script)
+			continue;
+		    if (other->serv != dep)
+			continue;
+		    shadow = true;
+		}
+	    }
+	    if (shadow)
+		continue;
+#endif /* not MINIMAL_DEPEND */
 	    fprintf(out, " %s", name);
+
+#if defined(MINIMAL_DEPEND) && (MINIMAL_DEPEND != 0)
+	    if (lcnt >= sizeof(lserv)/sizeof(lserv[0]))
+		continue;
+	    lserv[lcnt++] = dep;
+#endif /* not MINIMAL_DEPEND */
 	}
 
 	if (mark) fputc('\n', out);
@@ -900,8 +977,6 @@ static inline void makedep(void)
     target = (char*)0;
     fprintf(stop, "TARGETS =");
     while ((serv = listscripts(&target, 'K', LVL_NORM))) {	/* LVL_NORM: nearly all but not BOOT and not SINGLE */
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -914,8 +989,6 @@ static inline void makedep(void)
     target = (char*)0;
     fprintf(halt, "TARGETS =");
     while ((serv = listscripts(&target, 'K', LVL_BOOT))) {
-	if (!serv)
-	    continue;
 # if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -927,11 +1000,13 @@ static inline void makedep(void)
 
     target = (char*)0;
     while ((serv = listscripts(&target, 'K', (LVL_NORM|LVL_BOOT)))) {
+#if defined(MINIMAL_DEPEND) && (MINIMAL_DEPEND != 0)
+	const service_t * lserv[100] = {0};
+	unsigned long lcnt = 0;
+#endif /* not MINIMAL_DEPEND */
 	boolean mark;
 	list_t * pos;
 
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_RULES) && (MINIMAL_RULES != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -953,6 +1028,10 @@ static inline void makedep(void)
 	np_list_for_each(pos, &serv->sort.rev) {
 	    req_t * rev = getreq(pos);
 	    service_t * dep = rev->serv;
+#if defined(MINIMAL_DEPEND) && (MINIMAL_DEPEND != 0)
+	    boolean shadow = false;
+	    unsigned long n;
+#endif /* not MINIMAL_DEPEND */
 	    const char * name;
 
 	    if (!dep)
@@ -976,7 +1055,36 @@ static inline void makedep(void)
 		fprintf(out, "%s:", target);
 		mark = true;
 	    }
+#if defined(MINIMAL_DEPEND) && (MINIMAL_DEPEND != 0)
+	    for (n = 0; n < lcnt && lserv[n]; n++) {
+		list_t * red;
+		if (lserv[n]->attr.korder <= dep->attr.korder)
+		    break;
+		np_list_for_each(red, &(lserv[n])->sort.rev) {
+		    req_t * other = getreq(red);
+		    if (other->serv->attr.flags & SERV_DUPLET)
+			continue;
+		    if (other->serv->attr.ref <= 0)
+			continue;
+		    if ((serv->start->lvl & other->serv->start->lvl) == 0)
+			continue;
+		    if (!other->serv->attr.script)
+			continue;
+		    if (other->serv != dep)
+			continue;
+		    shadow = true;
+		}
+	    }
+	    if (shadow)
+		continue;
+#endif /* not MINIMAL_DEPEND */
 	    fprintf(out, " %s", name);
+
+#if defined(MINIMAL_DEPEND) && (MINIMAL_DEPEND != 0)
+	    if (lcnt >= sizeof(lserv)/sizeof(lserv[0]))
+		continue;
+	    lserv[lcnt++] = dep;
+#endif /* not MINIMAL_DEPEND */
 	}
 	if (mark) fputc('\n', out);
     }
@@ -994,7 +1102,8 @@ char *myname = (char*)0;
 static void _logger (const char *restrict const fmt, va_list ap);
 static void _logger (const char *restrict const fmt, va_list ap)
 {
-    extension char buf[strlen(myname)+2+strlen(fmt)+1];
+    /* extension char buf[strlen(myname)+2+strlen(fmt)+1]; */
+    char buf[strlen(myname)+2+strlen(fmt)+1];
     strcat(strcat(strcpy(buf, myname), ": "), fmt);
     vfprintf(stderr, buf, ap);
     return;
@@ -1081,7 +1190,8 @@ static DIR * openrcdir(const char *restrict const rcpath)
 	if (errno == ENOENT) {
 	    info(1, "creating directory '%s'\n", rcpath);
 	    if (!dryrun)
-		mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
+	        if (0 > mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)))
+		    error("mkdir(%s, ...) failed: %s", rcpath, strerror(errno));
 	} else
 	    error("can not stat(%s): %s\n", rcpath, strerror(errno));
     }
@@ -1244,6 +1354,7 @@ static char *is_upstart_job(const char *path)
 #define FOUND_LSB_DEFAULT  0x02
 #define FOUND_LSB_OVERRIDE 0x04
 #define FOUND_LSB_UPSTART  0x08
+#define FOUND_LSB_SYSTEMD  0x10
 
 static int o_flags = O_RDONLY;
 
@@ -1378,10 +1489,10 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 		description = empty;
 	}
 
-	if (!interactive    && regexecutor(&reg.interact,      COMMON_ARGS) == true) {
-	    if (val->rm_so < val->rm_eo) {
-		*(pbuf+val->rm_eo) = '\0';
-		interactive = xstrdup(pbuf+val->rm_so);
+	if (!interactive    && regexecutor(&reg.interact,  COMMON_SHD_ARGS) == true) {
+	    if (shl->rm_so < shl->rm_eo) {
+		*(pbuf+shl->rm_eo) = '\0';
+		interactive = xstrdup(pbuf+shl->rm_so);
 	    } else
 		interactive = empty;
 	}
@@ -1395,14 +1506,16 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 
     if (upstart_job) {
 	pclose(script);
-	free(upstart_job);
-	upstart_job = 0;
+	xreset(upstart_job);
     } else {
 #if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
 	if (cache) {
 	    off_t deep = ftello(script);
-	    (void)posix_fadvise(fd, 0, deep, POSIX_FADV_WILLNEED);
-	    (void)posix_fadvise(fd, deep, 0, POSIX_FADV_DONTNEED);
+	    if (-1 != deep) {
+	        (void)posix_fadvise(fd, 0, deep, POSIX_FADV_WILLNEED);
+		(void)posix_fadvise(fd, deep, 0, POSIX_FADV_DONTNEED);
+	    } else
+	        warn("ftello(%s) failed: %s\n", path, strerror(errno));
 	} else
 	    (void)posix_fadvise(fd, 0, 0, POSIX_FADV_NOREUSE);
 #endif
@@ -1416,7 +1529,7 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 	char *name = basename(path);
 	if (*name == 'S' || *name == 'K')
 	    name += 3;
-	warn("Script %s is broken: missing end of LSB comment.\n", name);
+	warn("%sscript %s is broken: missing end of LSB comment.\n", ignore ? "" : "FATAL: ", name);
 	if (!ignore)
 	    error("exiting now!\n");
     }
@@ -1432,7 +1545,7 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 	char *name = basename(path);
 	if (*name == 'S' || *name == 'K')
 	    name += 3;
-	warn("Script %s is broken: incomplete LSB comment.\n", name);
+	warn("script %s is broken: incomplete LSB comment.\n", name);
 	if (!provides)
 	    warn("missing `Provides:' entry: please add.\n");
 	if (provides == empty)
@@ -1478,7 +1591,7 @@ static char * scriptname(int dfd, const char *restrict const path, char **restri
     linkbuf[PATH_MAX] = '\0';
 
     do {
-        struct stat st;
+	struct stat st;
 	int linklen;
 
 	if (deep++ > MAXSYMLINKS) {
@@ -1544,7 +1657,7 @@ static uchar load_overrides(const char *restrict const dir,
 	error("snprintf(): %s\n", strerror(errno));
 
     if (stat(fullpath, &statbuf) == 0 && S_ISREG(statbuf.st_mode))
-        ret = scan_lsb_headers(-1, fullpath, cache, ignore);
+	ret = scan_lsb_headers(-1, fullpath, cache, ignore);
     if (ret & FOUND_LSB_HEADER)
 	ret |= FOUND_LSB_OVERRIDE;
     return ret;
@@ -1561,6 +1674,7 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
 {
     char * name = scriptname(dfd, path, first);
     uchar ret = 0;
+    char *upstart_job = (char*)0;
 
     if (!name)
 	return ret;
@@ -1588,27 +1702,49 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
     }
 #endif /* SUSE */
 
-    /* Replace with headers from the script itself */
-    ret |= scan_lsb_headers(dfd, path, cache, ignore);
+    if (systemd) {
+	const char *serv;
+	serv = path;
+	if (strncmp("boot.", serv, 5) == 0)
+	    serv += 5;
+	if (is_overridden_by_systemd(serv)) {
+	    ret |= FOUND_LSB_SYSTEMD;
+	}
+    }
 
-    /* Do not override the upstarts defaults, if we allow this
-     * we have to change name to the link name otherwise the
-     * name is always "upstart-job" */
-    if (ret & FOUND_LSB_UPSTART)
-	goto out;
-
-    /* Load values if the override file exist */
-    if ((ret & FOUND_LSB_HEADER) == 0)
-	ret |= load_overrides("/usr/share/insserv/overrides", name, cache, ignore);
-    else
-	ret |= FOUND_LSB_DEFAULT;
+    if (NULL != (upstart_job = is_upstart_job(path))) {
+	xreset(upstart_job);
+	/*
+	 * Do not override the upstarts defaults, if we allow this
+	 * we have to change name to the link name otherwise the
+	 * name is always "upstart-job"
+	 */
+	ret |= scan_lsb_headers(dfd, path, cache, ignore);
+	if (ret & FOUND_LSB_UPSTART)
+	    goto out;
+    }
 
     /*
      * Allow host-specific overrides to replace the content in the
      * init.d scripts
      */
     ret |= load_overrides(override_path, name, cache, ignore);
+    if (ret & FOUND_LSB_OVERRIDE)
+	goto out;
+
+    /*
+     * Load third-party-specific values if the override file exist
+     */
+    ret |= load_overrides("/usr/share/insserv/overrides", name, cache, ignore);
+    if (ret & FOUND_LSB_OVERRIDE)
+	goto out;
+
+    /*
+     * Replace with headers from the script itself
+     */
+    ret |= scan_lsb_headers(dfd, path, cache, ignore);
 out:
+    ret |= FOUND_LSB_DEFAULT;
     free(name);
     return ret;
 }
@@ -1629,83 +1765,6 @@ static inline void scan_script_regfree()
     regfree(&reg.interact);
 }
 
-static struct {
-    char *location;
-    const ushort lvl;
-    const ushort seek;
-    const char key;
-} attribute((aligned(sizeof(char*)))) runlevel_locations[] = {
-#ifdef SUSE	/* SuSE's SystemV link scheme */
-    {"rc0.d/",    LVL_HALT,   LVL_NORM, '0'},
-    {"rc1.d/",    LVL_ONE,    LVL_NORM, '1'}, /* runlevel 1 switch over to single user mode */
-    {"rc2.d/",    LVL_TWO,    LVL_NORM, '2'},
-    {"rc3.d/",    LVL_THREE,  LVL_NORM, '3'},
-    {"rc4.d/",    LVL_FOUR,   LVL_NORM, '4'},
-    {"rc5.d/",    LVL_FIVE,   LVL_NORM, '5'},
-    {"rc6.d/",    LVL_REBOOT, LVL_NORM, '6'},
-    {"rcS.d/",    LVL_SINGLE, LVL_NORM, 'S'}, /* runlevel S is for single user mode */
-    {"boot.d/",   LVL_BOOT,   LVL_BOOT, 'B'}, /* runlevel B is for system initialization */
-#else		/* not SUSE (actually, Debian) */
-    {"../rc0.d/", LVL_HALT,   LVL_NORM, '0'},
-    {"../rc1.d/", LVL_ONE,    LVL_NORM, '1'}, /* runlevel 1 switch over to single user mode */
-    {"../rc2.d/", LVL_TWO,    LVL_NORM, '2'},
-    {"../rc3.d/", LVL_THREE,  LVL_NORM, '3'},
-    {"../rc4.d/", LVL_FOUR,   LVL_NORM, '4'},
-    {"../rc5.d/", LVL_FIVE,   LVL_NORM, '5'},
-    {"../rc6.d/", LVL_REBOOT, LVL_NORM, '6'},
-    {"../rcS.d/", LVL_BOOT,   LVL_BOOT, 'S'}, /* runlevel S is for system initialization */
-		/* On e.g. Debian there exist no boot.d */
-#endif		/* not SUSE */
-};
-
-#define RUNLEVLES (int)(sizeof(runlevel_locations)/sizeof(runlevel_locations[0]))
-
-int map_has_runlevels(void)
-{
-    return RUNLEVLES;
-}
-
-char map_runlevel_to_key(const int runlevel)
-{
-    if (runlevel >= RUNLEVLES) {
-	warn("Wrong runlevel %d\n", runlevel);
-    }
-    return runlevel_locations[runlevel].key;
-}
-
-ushort map_key_to_lvl(const char key)
-{
-    int runlevel;
-    const char uckey = toupper(key);
-    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
-	if (uckey == runlevel_locations[runlevel].key)
-	    return runlevel_locations[runlevel].lvl;
-    }
-    warn("Wrong runlevel key '%c'\n", uckey);
-    return 0;
-}
-
-const char *map_runlevel_to_location(const int runlevel)
-{
-    if (runlevel >= RUNLEVLES) {
-	warn("Wrong runlevel %d\n", runlevel);
-    }
-    return runlevel_locations[runlevel].location;
-}
-
-ushort map_runlevel_to_lvl(const int runlevel)
-{
-    if (runlevel >= RUNLEVLES) {
-	warn("Wrong runlevel %d\n", runlevel);
-    }
-    return runlevel_locations[runlevel].lvl;
-}
-
-ushort map_runlevel_to_seek(const int runlevel)
-{
-    return runlevel_locations[runlevel].seek;
-}
-
 /*
  * Two helpers for runlevel bits and strings.
  */
@@ -1723,7 +1782,7 @@ ushort str2lvl(const char *restrict lvl)
 	if (!strpbrk(token, "0123456sSbB"))
 	    continue;
 
-        ret |= map_key_to_lvl(*token);
+	ret |= map_key_to_lvl(*token);
     }
 
     return ret;
@@ -1738,7 +1797,7 @@ char * lvl2str(const ushort lvl)
 
     last = ptr = &str[0];
     memset(ptr, '\0', sizeof(str));
-    for (num = 0; num < RUNLEVLES; num++) {
+    for (num = 0; num < RUNLEVELS; num++) {
 	if (bit & lvl) {
 	    if (ptr > last)
 		*ptr++ = ' ';
@@ -1776,7 +1835,7 @@ static void scan_script_locations(const char *const path, const char *const over
     int runlevel;
 
     pushd(path);
-    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
+    for (runlevel = 0; runlevel < RUNLEVELS; runlevel++) {
 	const char * rcd = (char*)0;
 	struct stat st_script;
 	struct dirent *d;
@@ -1967,57 +2026,51 @@ static void scan_conf_file(const char *restrict file)
 		real = pbuf+val->rm_so;
 	    }
 	    if (virt) {
-		list_t * ptr;
-		boolean found = false;
+		list_t *ptr;
+		list_t *r_list = (list_t*)0;
 		list_for_each(ptr, sysfaci_start) {
 		    if (!strcmp(getfaci(ptr)->name, virt)) {
-			found = true;
-			if(real) {
-			    list_t * r_list = &getfaci(ptr)->replace;
-			    char * token;
-			    while ((token = strsep(&real, delimeter))) {
-				repl_t *restrict subst;
-				string_t * r;
-				if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
-				    error("%s", strerror(errno));
-				insert(&subst->r_list, r_list->prev);
-				subst->flags = 0;
-				r = &subst->r[0];
-				if (posix_memalign((void*)&r->ref, sizeof(void*), alignof(typeof(r->ref))+strsize(token)) != 0)
-				    error("%s", strerror(errno));
-				*r->ref = 1;
-				r->name = ((char*)(r->ref))+alignof(typeof(r->ref));
-				strcpy(r->name, token);
-			    }
-			}
+			r_list = &getfaci(ptr)->replace;
 			break;
 		    }
 		}
-		if (!found) {
+		if (!r_list) {
 		    faci_t *restrict this;
 		    if (posix_memalign((void*)&this, sizeof(void*), alignof(faci_t)) != 0)
 			error("%s", strerror(errno));
 		    else {
-			list_t * r_list = &this->replace;
-			char * token;
-			r_list->next = r_list;
-			r_list->prev = r_list;
+			r_list = &this->replace;
+			initial(r_list);
 			insert(&this->list, sysfaci_start->prev);
 			this->name = xstrdup(virt);
-			while ((token = strsep(&real, delimeter))) {
-			    repl_t *restrict subst;
-			    string_t * r;
-			    if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
-				error("%s", strerror(errno));
-			    insert(&subst->r_list, r_list->prev);
-			    subst->flags = 0;
-			    r = &subst->r[0];
-			    if (posix_memalign((void*)&r->ref, sizeof(void*), alignof(typeof(r->ref))+strsize(token)) != 0)
-				error("%s", strerror(errno));
-			    *r->ref = 1;
-			    r->name = ((char*)(r->ref))+alignof(typeof(r->ref));
-			    strcpy(r->name, token);
+		    }
+		}
+		if(real) {
+		    char *token;
+		    while ((token = strsep(&real, delimeter))) {
+			repl_t *restrict subst;
+			string_t *r = (string_t*)0;
+			if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
+			    error("%s", strerror(errno));
+			insert(&subst->r_list, r_list->prev);
+			subst->flags = 0;
+			list_for_each(ptr, facistr_start) {
+			    if (strcmp(getfstr(ptr)->name, token) == 0) {
+				r = getfstr(ptr);
+				break;
+			    }
 			}
+			if (!r) {
+			    if (posix_memalign((void*)&r, sizeof(void*), alignof(string_t)+strsize(token)) != 0)
+				error("%s", strerror(errno));
+			    r->ref = 1;
+			    insert(&r->s_list, facistr_start);
+			    r->name = ((char*)r)+alignof(string_t);
+			    strcpy(r->name, token);
+			} else
+			    r->ref++;
+			subst->addr = r;
+			subst->name = r->name;
 		    }
 		}
 	    }
@@ -2060,9 +2113,9 @@ static int cfgfile_filter(const struct dirent *restrict d)
     const char * name = d->d_name;
     const char * end;
 
-    if (*name == '.')
-	goto out;
     if (!name || (*name == '\0'))
+	goto out;
+    if (*name == '.')
 	goto out;
     if ((end = strrchr(name, '.'))) {
 	end++;
@@ -2140,69 +2193,218 @@ static void scan_conf(const char *restrict file)
     regfree(&creg.isactive);
 }
 
-static void expand_faci(list_t *restrict rlist, list_t *restrict head,
-			int *restrict deep) attribute((noinline,nonnull(1,2,3)));
-static void expand_faci(list_t *restrict rlist, list_t *restrict head, int *restrict deep)
-{
-	repl_t * rent = getrepl(rlist);
-	list_t * tmp, * safe, * ptr = (list_t*)0;
+/*
+ * Maps between systemd and SystemV
+ */
+static const char* sdmap[] = {
+    "$local-fs",	"$local_fs",
+    "$remote-fs",	"$remote_fs",
+    "cryptsetup",	"boot.crypto-early",
+    "udev",		"boot.udev",
+    "multipathd",	"boot.multipath",
+    "loadmodules",	"boot.loadmodules",
+    "device-mapper",	"boot.device-mapper",
+    "sysctl",		"boot.sysctl",
+    "fsck-root",	"boot.rootfsck",
+    "localfs",		"boot.localfs"
+};
 
-	list_for_each(tmp, sysfaci_start) {
-	    if (!strcmp(getfaci(tmp)->name, rent->r[0].name)) {
-		ptr = &getfaci(tmp)->replace;
+/*
+ *  Here the systemd targets are imported as system facilities 
+ */
+static void import_systemd_facilities(void)
+{
+    list_t *ptr;
+    list_for_each(ptr, &sdservs) {
+	sdserv_t *sdserv = list_entry(ptr, sdserv_t, s_list);
+	const char *facilitiy;
+	list_t *r_list;
+	list_t *iptr;
+	int n;
+
+	if (*sdserv->name != '$')
+	    continue;
+
+	facilitiy = sdserv->name;
+	for (n = 0; n < (int)(sizeof(sdmap)/sizeof(sdmap[0])); n += 2) {
+	    if (strcmp(sdmap[n], facilitiy) == 0) {
+		facilitiy = sdmap[n+1];
 		break;
 	    }
 	}
 
-	if (!ptr || list_empty(ptr)) {
-	    delete(rlist);
-	    if (--(*rent->r[0].ref) <= 0)
-		free(rent->r[0].ref);
-	    free(rent);
-	    goto out;
+	r_list = (list_t*)0;
+	np_list_for_each(iptr, sysfaci_start) {
+	    if (strcmp(getfaci(iptr)->name, facilitiy) == 0) {
+		r_list = &getfaci(iptr)->replace;
+		break;
+	    }
+	}
+	if (!r_list) {
+	    faci_t *restrict this;
+	    if (posix_memalign((void*)&this, sizeof(void*), alignof(faci_t)) != 0)
+		error("%s", strerror(errno));
+	    else {
+		r_list = &this->replace;
+		initial(r_list);
+		insert(&this->list, sysfaci_start->prev);
+		this->name = xstrdup(facilitiy);
+	    }
 	}
 
-	list_for_each_safe(tmp, safe, ptr) {
-	    repl_t * rnxt = getrepl(tmp);
-	    if (rnxt->flags & 0x0001) {
-		error("Loop detected during expanding system facilities in the insserv.conf file(s): %s\n",
-		      rnxt->r[0].name);
-	    }
-	    if (*rnxt->r[0].name == '$') {
-		if (*deep > 10) {
-		    warn("The nested level of the system facilities in the insserv.conf file(s) is to large\n");
-		    goto out;
+	np_list_for_each(iptr, &sdserv->a_list) {
+	    ally_t *ally = list_entry(iptr, ally_t, a_list);
+	    repl_t *restrict subst;
+	    string_t *r = (string_t*)0;
+	    const char *token;
+	    list_t *fptr;
+
+	    if (ally->flags & SDREL_CONFLICTS)
+		continue;
+	    if (ally->flags & SDREL_BEFORE)
+		continue;
+
+	    token = ally->serv->name;
+	    for (n = 0; n < (int)(sizeof(sdmap)/sizeof(sdmap[0])); n += 2) {
+		if (strcmp(sdmap[n], token) == 0) {
+		    token = sdmap[n+1];
+		    break;
 		}
-		(*deep)++;
-		rnxt->flags |= 0x0001;
-		expand_faci(tmp, head, deep);
-		rnxt->flags &= ~0x0001;
-		(*deep)--;
-	    } else if (*deep > 0) {
-		repl_t *restrict subst;
-		if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
+	    }
+
+	    if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
+		error("%s", strerror(errno));
+	    insert(&subst->r_list, r_list->prev);
+	    subst->flags = 0;
+	    np_list_for_each(fptr, facistr_start) {
+		if (strcmp(getfstr(fptr)->name, token) == 0) {
+		    r = getfstr(fptr);
+		    break;
+		}
+	    }
+	    if (!r) {
+		if (posix_memalign((void*)&r, sizeof(void*), alignof(string_t)+strsize(token)) != 0)
 		    error("%s", strerror(errno));
-		insert(&subst->r_list, head->prev);
-		subst->r[0] = rnxt->r[0];
-		(*subst->r[0].ref) = 1;
+		r->ref = 1;
+		insert(&r->s_list, facistr_start);
+		r->name = ((char*)r)+alignof(string_t);
+		strcpy(r->name, token);
+	    } else
+		    r->ref++;
+	    subst->addr = r;
+	    subst->name = r->name;
+	}
+    }
+}
+
+/*
+ *  Here the systemd servies are imported as services
+ */
+static void import_systemd_services(void)
+{
+    list_t *ptr;
+    list_for_each(ptr, &sdservs) {
+	sdserv_t *sdserv = list_entry(ptr, sdserv_t, s_list);
+	const char *this;
+	list_t *aptr;
+	int n;
+
+	if (*sdserv->name == '$')
+	    continue;
+
+	this = sdserv->name;
+	for (n = 0; n < (int)(sizeof(sdmap)/sizeof(sdmap[0])); n += 2) {
+	    if (strcmp(sdmap[n], this) == 0) {
+		this = sdmap[n+1];
+		break;
 	    }
 	}
+
+	np_list_for_each(aptr, &sdserv->a_list) {
+	    ally_t *ally = list_entry(aptr, ally_t, a_list);
+	    service_t * service;
+	    const char *token;
+
+	    if (ally->flags & SDREL_CONFLICTS)
+		continue;
+	    if (ally->flags & SDREL_BEFORE)
+		continue;
+
+	    token = ally->serv->name;
+	    for (n = 0; n < (int)(sizeof(sdmap)/sizeof(sdmap[0])); n += 2) {
+		if (strcmp(sdmap[n], token) == 0) {
+		    token = sdmap[n+1];
+		    break;
+		}
+	    }
+	    service = addservice(this);
+	    rememberreq(service, (ally->flags & SDREL_WANTS) ? REQ_SHLD : REQ_MUST, token);
+	    service->attr.flags |= SERV_SYSTEMD;
+	}
+    }
+}
+
+static void expand_faci(list_t *restrict rlist, list_t *restrict head,
+			int *restrict deep) attribute((noinline,nonnull(1,2,3)));
+static void expand_faci(list_t *restrict rlist, list_t *restrict head, int *restrict deep)
+{
+    repl_t *rent = getrepl(rlist);
+    list_t *tmp, *safe, *ptr = (list_t*)0;
+
+    list_for_each(tmp, sysfaci_start) {
+	if (!strcmp(getfaci(tmp)->name, rent->name)) {
+	    ptr = &getfaci(tmp)->replace;
+	    break;
+	}
+    }
+
+    if (!ptr || list_empty(ptr))
+	goto out;
+
+    list_for_each_safe(tmp, safe, ptr) {
+	repl_t *rnxt = getrepl(tmp);
+	if (rnxt->flags & 0x0001) {
+	    error("Loop detected during expanding system facilities in the insserv.conf file(s): %s %s\n",
+		  rnxt->name, getrepl(head->prev)->name);
+	}
+	if (*rnxt->name == '$') {
+	    if (*deep > 10) {
+		warn("The nested level of the system facilities in the insserv.conf file(s) is to large\n");
+		goto out;
+	    }
+	    (*deep)++;
+	    rnxt->flags |= 0x0001;
+	    expand_faci(tmp, head, deep);
+	    rnxt->flags &= ~0x0001;
+	    (*deep)--;
+	} else if (*deep >= 0) {
+	    repl_t *restrict subst;
+	    if (posix_memalign((void*)&subst, sizeof(void*), alignof(repl_t)) != 0)
+		error("%s", strerror(errno));
+	    insert(&subst->r_list, head->prev);
+	    subst->addr = rnxt->addr;
+	    subst->name = rnxt->name;
+	    subst->addr->ref++;
+	}
+    }
 out:
-	return;
+    return;
 }
 
 static inline void expand_conf(void)
 {
     list_t *ptr;
     list_for_each(ptr, sysfaci_start) {
-	list_t * rlist, * safe, * head = &getfaci(ptr)->replace;
+	list_t *rlist, *safe, *head = &getfaci(ptr)->replace;
 	list_for_each_safe(rlist, safe, head) {
-	    repl_t * tmp = getrepl(rlist);
-	    if (*tmp->r[0].name == '$') {
+	    repl_t *tmp = getrepl(rlist);
+	    if (*tmp->name == '$') {
 		int deep = 0;
-		tmp->flags |= 0x0001;
-		expand_faci(rlist, rlist, &deep);
-		tmp->flags &= ~0x0001;
+		expand_faci(rlist, head, &deep);
+		delete(rlist);
+		if (--(tmp->addr->ref) <= 0)
+		    free(tmp->addr);
+		free(tmp);
 	    }
 	}
     }
@@ -2336,19 +2538,79 @@ out:
 }
 #endif /* SUSE */
 
+/*
+ * Systemd integration
+ */
+static boolean is_overridden_by_systemd(const char *service) {
+    char *p;
+    boolean ret = false;
+
+    if (asprintf(&p, SYSTEMD_SERVICE_PATH "/%s.service", service) < 0)
+	error("asprintf(): %s\n", strerror(errno));
+
+    if (access(p, F_OK) >= 0)
+	ret = true;
+    free(p);
+    return ret;
+}
+
+static void forward_to_systemd (const char *initscript, const char *verb, boolean alternative_root) {
+    const char *name;
+
+    if (initscript == NULL)
+	return;
+
+    if (strncmp("boot.",initscript,5) == 0)
+	name = initscript+5;
+    else
+	name = initscript;
+
+    if (is_overridden_by_systemd (name)) {
+	char *p;
+	int err = 0;
+
+	if (alternative_root && root)
+	    err = asprintf (&p, "/bin/systemctl --quiet --no-reload --root %s %s %s.service", root, verb, name);
+	else {
+	    struct statfs stfs;
+	    if (statfs("/sys/fs/cgroup/systemd", &stfs) < 0 && errno != ENOENT)
+		error("statfs(): %s\n", strerror(errno));
+	    if (errno == 0 && stfs.f_type == CGROUP_SUPER_MAGIC)
+		err = asprintf (&p, "/bin/systemctl --quiet %s %s.service", verb, name);
+	    else
+		err = asprintf (&p, "/bin/systemctl --quiet --no-reload %s %s.service", verb, name);
+	}
+	if (err < 0)
+	    error("asprintf(): %s\n", strerror(errno));
+
+	warn("Note: sysvinit service %s is shadowed by systemd %s.service,\nForwarding request to '%s'.\n", initscript, name, p);
+	if (!dryrun)
+	    err = system(p);
+	if (err < 0)
+	    warn("Failed to forward service request to systemctl: %m\n");
+	else if (err > 0)
+	    warn("Forward service request to systemctl returned error status : %d\n",err);
+	free (p);
+    }
+}
+
 static struct option long_options[] =
 {
-    {"verbose",	0, (int*)0, 'v'},
-    {"config",	1, (int*)0, 'c'},
-    {"dryrun",	0, (int*)0, 'n'},
-    {"default",	0, (int*)0, 'd'},
-    {"remove",	0, (int*)0, 'r'},
-    {"force",	0, (int*)0, 'f'},
-    {"path",	1, (int*)0, 'p'},
-    {"override",1, (int*)0, 'o'},
-    {"upstart-job",1, (int*)0, 'u'},
-    {"help",	0, (int*)0, 'h'},
-    { 0,	0, (int*)0,  0 },
+    {"verbose",	    0, (int*)0, 'v'},
+    {"config",	    1, (int*)0, 'c'},
+    {"dryrun",	    0, (int*)0, 'n'},
+    {"dry-run",	    0, (int*)0, 'n'},
+    {"default",	    0, (int*)0, 'd'},
+    {"remove",	    0, (int*)0, 'r'},
+    {"force",	    0, (int*)0, 'f'},
+    {"path",	    1, (int*)0, 'p'},
+    {"override",    1, (int*)0, 'o'},
+    {"upstart-job", 1, (int*)0, 'u'},
+    {"recursive",   0, (int*)0, 'e'},
+    {"showall",	    0, (int*)0, 's'},
+    {"show-all",    0, (int*)0, 's'},
+    {"help",	    0, (int*)0, 'h'},
+    { 0,	    0, (int*)0,  0 },
 };
 
 static void help(const char *restrict const name) attribute((nonnull(1)));
@@ -2363,7 +2625,10 @@ static void help(const char *restrict const  name)
     printf("  -p <path>, --path <path>  Path to replace " INITDIR ".\n");
     printf("  -o <path>, --override <path> Path to replace " OVERRIDEDIR ".\n");
     printf("  -c <config>, --config <config>  Path to config file.\n");
-    printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
+    printf("  -n, --dry-run     Do not change the system, only talk about it.\n");
+    printf("  -s, --show-all    Output runlevel and sequence information.\n");
+    printf("  -u <path>, --upstart-job <path> Path to replace existing upstart job path.\n");
+    printf("  -e, --recursive  Expand and enable all required services.\n");
     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
 }
 
@@ -2376,7 +2641,8 @@ int main (int argc, char *argv[])
     DIR * initdir;
     struct dirent *d;
     struct stat st_script;
-    extension char * argr[argc];
+    /* extension char * argr[argc]; */
+    char * argr[argc]; 
     char * path = INITDIR;
     char * override_path = OVERRIDEDIR;
     char * insconf = INSCONF;
@@ -2386,6 +2652,9 @@ int main (int argc, char *argv[])
     boolean defaults = false;
     boolean ignore = false;
     boolean loadarg = false;
+    boolean recursive = false;
+    boolean showall = false;
+    boolean waserr = false;
 
     myname = basename(*argv);
 
@@ -2400,7 +2669,7 @@ int main (int argc, char *argv[])
     for (c = 0; c < argc; c++)
 	argr[c] = (char*)0;
 
-    while ((c = getopt_long(argc, argv, "c:dfrhvno:p:u:", long_options, (int *)0)) != -1) {
+    while ((c = getopt_long(argc, argv, "c:dfrhvno:p:u:es", long_options, (int *)0)) != -1) {
 	size_t l;
 	switch (c) {
 	    case 'c':
@@ -2425,6 +2694,10 @@ int main (int argc, char *argv[])
 		verbose ++;
 		dryrun = true;
 		break;
+	    case 's':
+		showall = true;
+		dryrun = true;
+		break;
 	    case 'p':
 		if (optarg == (char*)0 || *optarg == '\0')
 		    goto err;
@@ -2444,6 +2717,9 @@ int main (int argc, char *argv[])
 		if (optarg == (char*)0 || *optarg == '\0')
 		    goto err;
 		upstartjob_path = optarg;
+		break;
+	    case 'e':
+		recursive = true;
 		break;
 	    case '?':
 	    err:
@@ -2514,7 +2790,11 @@ int main (int argc, char *argv[])
 	char * tmp;
 	if (*path != '/') {
 	    char * pwd = getcwd((char*)0, 0);
-	    size_t len = strlen(pwd)+1+strlen(path);
+	    size_t len;
+	    if (NULL == pwd)
+	      error("unable to find current working directory: %s",
+		    strerror(errno));
+	    len = strlen(pwd)+2+strlen(path);
 	    root = (char*)malloc(len);
 	    if (!root)
 		error("%s", strerror(errno));
@@ -2566,15 +2846,45 @@ int main (int argc, char *argv[])
 	    printf("Overwrite argument for %s is %s\n", argv[c], argr[c]);
 #endif /* DEBUG */
 
+#ifdef SUSE
+    if (!underrpm())
+#endif
+    /*
+     * Systemd support
+     */
+    if (access(SYSTEMD_BINARY_PATH, F_OK) == 0 && (sbus = systemd_open_conn())) {
+
+	for (c = 0; c < argc; c++)
+	    forward_to_systemd (argv[c], del ? "disable": "enable", path != ipath);
+
+	(void)systemd_get_tree(sbus);
+	systemd_close_conn(sbus);
+	systemd = true;
+    }
+
     /*
      * Scan and set our configuration for virtual services.
      */
     scan_conf(insconf);
 
     /*
+     * Handle Systemd target as system facilities (<name>.target -> $<name>)
+     */
+    if (systemd)
+	import_systemd_facilities();
+
+    /*
      * Expand system facilities to real services
      */
     expand_conf();
+
+    /*
+     * Handle Systemd services (<name>.service -> <name>)
+     */
+    if (systemd) {
+	import_systemd_services();
+	systemd_free();		/* Not used anymore */
+    }
 
     /*
      * Initialize the regular scanner for the scripts.
@@ -2612,7 +2922,7 @@ int main (int argc, char *argv[])
      * Scan scripts found in the command line to be able to resolve
      * all dependcies given within those scripts.
      */
-    if (argc > 1) for (c = 0; c < argc; c++) {
+    for (c = 0; c < argc; c++) {
 	const char *const name = argv[c];
 	service_t * first = (service_t*)0;
 	char * provides, * begin, * token;
@@ -3000,8 +3310,10 @@ int main (int argc, char *argv[])
 		    if (!del || (del && !isarg))
 			warn("script %s: service %s already provided!\n", d->d_name, token);
 
-		    if (!del && !ignore && isarg)
-			error("exiting now!\n");
+		    if (!del && !ignore && isarg) {
+			waserr = true;
+			continue;
+		    }
 
 		    if (!del || (del && !ignore && !isarg))
 			continue;
@@ -3064,9 +3376,9 @@ int main (int argc, char *argv[])
 			if (del)
 			    ok = chkdependencies(service);
 			else
-			    ok = chkrequired(service);
+			    ok = chkrequired(service, recursive);
 			if (!ok && !ignore)
-			    error("exiting now!\n");
+			    waserr = true;
 		    }
 
 		    if (script_inf.default_start && script_inf.default_start != empty) {
@@ -3357,10 +3669,136 @@ int main (int argc, char *argv[])
     active_script();
 
     /*
+     * Check if runlevels of required scripts are a real subset
+     * of the services handled here.
+     */
+    if (!del && !ignore) {
+	list_t * ptr;
+	list_for_each(ptr, s_start) {
+	    service_t * cur = getservice(ptr);
+	    ushort clvl = cur->start->lvl & ~LVL_SINGLE;
+	    list_t * pos;
+
+	    cur = getorig(cur);
+	    if (list_empty(&cur->sort.req))
+		continue;
+
+	    if (cur->attr.flags & SERV_SYSTEMD)
+		continue;
+
+	    np_list_for_each(pos, &cur->sort.req) {
+		req_t *req = getreq(pos);
+		service_t * must;
+
+		if ((req->flags & REQ_MUST) == 0)
+		    continue;
+		must = req->serv;
+		must = getorig(must);
+
+		if (must->attr.flags & SERV_SYSTEMD)
+		    continue;
+
+		/*
+		 * Check for recursive mode the existence of the required services
+		 */
+		if (cur->attr.flags & SERV_CMDLINE) {
+
+		    if (must->attr.flags & SERV_ENABLED) {
+			ushort mlvl = must->start->lvl & ~LVL_SINGLE;
+
+			if ((mlvl & LVL_BOOT) && (clvl & LVL_BOOT) == 0)
+			    continue;
+
+			if ((mlvl & clvl) == clvl)
+			    continue;
+			if (recursive) {
+			    must->start->lvl |= clvl;
+			    must->stopp->lvl |= clvl;
+			    continue;
+			}
+			clvl &= ~mlvl;
+			if ((must->attr.flags & SERV_WARNED) == 0)
+#ifdef OSCBUILD
+			    warn("Service %s is missed in the runlevels %s to use service %s\n",
+				must->name, lvl2str(clvl), cur->name);
+#else
+			    warn("FATAL: service %s is missed in the runlevels %s to use service %s\n",
+				must->name, lvl2str(clvl), cur->name);
+			waserr = true;
+#endif
+			must->attr.flags |= SERV_WARNED;
+			continue;
+		    }
+		    if ((must->attr.flags & (SERV_ENFORCE|SERV_KNOWN)) == SERV_ENFORCE) {
+			if ((must->attr.flags & SERV_WARNED) == 0)
+#ifdef OSCBUILD
+			    warn("Service %s has to exists for service %s\n",
+				must->name, cur->name);
+#else
+			    warn("FATAL: service %s has to exists for service %s\n",
+				must->name, cur->name);
+			waserr = true;
+#endif
+			must->attr.flags |= SERV_WARNED;
+			continue;
+		    }
+		    if (recursive) {
+			must->start->lvl |= clvl;
+			must->stopp->lvl |= clvl;
+			continue;
+		    }
+		    continue;
+		}
+		if ((cur->attr.flags & SERV_ENABLED) == 0)
+		    continue;
+		if ((must->attr.flags & (SERV_CMDLINE|SERV_KNOWN)) == 0) {
+		    if ((must->attr.flags & SERV_WARNED) == 0)
+#ifdef OSCBUILD
+			warn("Service %s has to exists for service %s\n",
+			    must->name, cur->name);
+#else
+			warn("FATAL: service %s has to exists for service %s\n",
+			    must->name, cur->name);
+		    waserr = true;
+#endif
+		    must->attr.flags |= SERV_WARNED;
+		    continue;
+		}
+		if (must->attr.flags & SERV_ENABLED) {
+		    ushort mlvl = must->start->lvl & ~LVL_SINGLE;
+
+		    if ((mlvl & LVL_BOOT) && (clvl & LVL_BOOT) == 0)
+			continue;
+
+		    if ((mlvl & clvl) == clvl)
+			continue;
+		    clvl &= ~mlvl;
+		    if ((must->attr.flags & SERV_WARNED) == 0)
+#ifdef OSCBUILD
+			warn("Service %s is missed in the runlevels %s to use service %s\n",
+			    must->name, lvl2str(clvl), cur->name);
+#else
+			warn("FATAL: service %s is missed in the runlevels %s to use service %s\n",
+			    must->name, lvl2str(clvl), cur->name);
+		    waserr = true;
+#endif
+		    must->attr.flags |= SERV_WARNED;
+		}
+	    }
+	}
+    }
+
+    if (waserr)
+	error("exiting now!\n");
+
+    /*
      * Sorry but we support only [KS][0-9][0-9]<name>
      */
     if (maxstart > MAX_DEEP || maxstop > MAX_DEEP)
 	error("Maximum of %u in ordering reached\n", MAX_DEEP);
+
+    if (showall)
+	show_all();
 
 #if defined(DEBUG) && (DEBUG > 0)
     printf("Maxorder %d/%d\n", maxstart, maxstop);
@@ -3368,7 +3806,7 @@ int main (int argc, char *argv[])
 #else
 # ifdef SUSE	/* SuSE's SystemV link scheme */
     pushd(path);
-    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
+    for (runlevel = 0; runlevel < RUNLEVELS; runlevel++) {
 	const ushort lvl = map_runlevel_to_lvl(runlevel);
 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
 	const char * rcd = (char*)0;
@@ -3435,12 +3873,15 @@ int main (int argc, char *argv[])
 
 	script = (char*)0;
 	while ((serv = listscripts(&script, 'X', lvl))) {
-	    const boolean this = chkfor(script, argv, argc);
+	    boolean this = chkfor(script, argv, argc);
 	    boolean found, slink;
 	    char * clink;
 
 	    if (*script == '$')		/* Do not link in virtual dependencies */
 		continue;
+
+	    if ((serv->attr.flags & (SERV_ENFORCE|SERV_ENABLED)) == SERV_ENFORCE)
+		this = true;
 
 	    slink = false;
 	    if ((serv->start->lvl & lvl) == 0)
@@ -3551,7 +3992,7 @@ int main (int argc, char *argv[])
     * approach a new directory halt.d/ whould be an idea.
     */
     pushd(path);
-    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
+    for (runlevel = 0; runlevel < RUNLEVELS; runlevel++) {
 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
 	const char * rcd = (char*)0;
 	const char * script;
@@ -3606,23 +4047,27 @@ int main (int argc, char *argv[])
 			serv->attr.flags &= ~SERV_ENABLED;
 #  endif /* USE_KILL_IN_BOOT */
 		} else if (del && ignore) {
-		    if (serv && (serv->attr.flags & SERV_ALREADY))
+		    if (serv && (serv->attr.flags & SERV_ALREADY)) {
 			xremove(dfd, d->d_name);
 			if (--serv->attr.ref <= 0)
 			    serv->attr.flags &= ~SERV_ENABLED;
+		    }
 		}
 	    }
 	}
 
 	script = (char*)0;
 	while ((serv = listscripts(&script, 'X', seek))) {
-	    const boolean this = chkfor(script, argv, argc);
+	    boolean this = chkfor(script, argv, argc);
 	    boolean found;
 	    char * clink;
 	    char mode;
 
 	    if (*script == '$')		/* Do not link in virtual dependencies */
 		continue;
+
+	    if ((serv->attr.flags & (SERV_ENFORCE|SERV_ENABLED)) == SERV_ENFORCE) 
+		this = true;
 
 	    sprintf(olink, "../init.d/%s", script);
 	    if (serv->stopp->lvl & lvl) {
