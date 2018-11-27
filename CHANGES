@@ -1,4 +1,82 @@
 -------------------------------------------------------------------
+Wed Apr 28 15:29:23 CEST 2010 - werner@suse.de
+
+- Use savannah as primary site
+
+-------------------------------------------------------------------
+Fri Feb 19 13:36:50 CET 2010 - werner@suse.de
+
+- Adopt upstart-job patch to be able to support traditional sysv
+  rc execution of upstart jobs. Patch from Petter Reinholdtsen.
+- Defend against symlinks in init.d/ to other scripts in init.d/
+  Patch from Kel Modderman found at the Debian SVN server.
+
+-------------------------------------------------------------------
+Sat Nov 14 20:50:10 CEST 2009 - pere@hungry.com
+
+- Add simple test case checking the ordering of three scripts.  Run
+  the test suite before installing.
+
+-------------------------------------------------------------------
+Wed Aug 19 12:07:58 CEST 2009 - werner@suse.de
+
+- Use dependency sorting for scripts using $all
+
+-------------------------------------------------------------------
+Tue Aug 18 14:16:05 CEST 2009 - werner@suse.de
+
+- Make $all available for stopping order
+
+-------------------------------------------------------------------
+Mon Aug 17 14:55:39 CEST 2009 - werner@suse.de
+
+- Loops within /etc/insserv.conf are real errors
+- The system facility $all is special
+
+-------------------------------------------------------------------
+Thu Jul 23 11:28:08 CEST 2009 - werner@suse.de
+
+- Fix expansion of the system facilties
+
+-------------------------------------------------------------------
+Mon Jun 29 14:26:57 CEST 2009 - werner@suse.de
+
+- Make it possible to mark a script as interactive in the LSB
+  header its self (patch from Petter Reinholdtsen).
+
+-------------------------------------------------------------------
+Mon Mar  9 13:12:17 CET 2009 - werner@suse.de
+
+- Add service in .depend.start even if $all only is used
+
+-------------------------------------------------------------------
+Mon Feb 23 13:04:00 CET 2009 - werner@suse.de
+
+- Allow overriding level on the command line
+
+-------------------------------------------------------------------
+Thu Feb 12 14:15:22 CET 2009 - werner@suse.de
+
+- Do not be fooled by inexistent /proc
+
+-------------------------------------------------------------------
+Fri Sep 12 12:33:29 CEST 2008 - werner@suse.de
+
+- Don't be fooled by broken symlinks (Patch from Kel Modderman)
+
+-------------------------------------------------------------------
+Thu Sep 11 15:28:29 CEST 2008 - werner@suse.de
+
+- Load first script in argument list before all other scripts. This
+  avoids problems with loading scripts in underterministic sequence
+  returned by readdir(3) (Patch from Kel Modderman)
+
+-------------------------------------------------------------------
+Tue Aug 12 13:40:43 CEST 2008 - werner@suse.de
+
+- Mention the $null facility
+
+-------------------------------------------------------------------
 Tue Jul 29 15:23:43 CEST 2008 - werner@suse.de
 
 - Resolve server minor problems on openSUSE and Debian
@@ -105,7 +183,7 @@ Thu Jan 24 18:59:14 CET 2008 - werner@suse.de
   Petter Reinholdtsen
   * Make it possible to set the path at runtime, to make it easier
     to write test suites
-  * Support for reading LSB headers info from override directroy
+  * Support for reading LSB headers info from override directory
   * Accept script names like 'rc.local' for Debian build
   * Use other defaults on Debian systems (start, stop levels)
   * Put redundant level informations in one API

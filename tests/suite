@@ -79,6 +79,22 @@ else
 	$time		hwclock
 	<interactive>	udev mountdevsubfs checkroot checkfs console-screen
 	EOF
+    update_conf ()
+    {
+	set +C
+	cat <<-'EOF' > $insconf
+	$local_fs       +mountall +umountfs
+	$network        +networking +ifupdown
+	$named          +named +dnsmasq +lwresd +bind9 $network
+	$remote_fs      $local_fs +mountnfs +mountnfs-bootclean +umountnfs +sendsigs
+	$syslog         +syslog +sysklogd
+	$portmap        portmap
+	$time           hwclock
+	<interactive>   udev mountdevsubfs checkroot checkfs console-screen
+	EOF
+	set -C
+    }
+
 fi
 chmod u+w,a+r $insconf
 
@@ -92,6 +108,12 @@ insserv_del ()
 {
     script=$(printf "${initddir}/%s\n" ${1+"$@"})
     $insserv $debug -c $insconf -p $initddir -o $overridedir -r $script
+}
+
+initdir_purge ()
+{
+    rm -rf ${initddir}/../rc*.d ${initddir}
+    mkdir -p ${initddir}
 }
 
 relpath ()
@@ -201,6 +223,13 @@ addscript ()
     chmod u+w,a+rx $script
 }
 
+remscript ()
+{
+    local scriptname=$1
+    local script=${initddir}/$scriptname
+    rm -f $script
+}
+
 insertscript ()
 {
     local scriptname=$1
@@ -212,8 +241,12 @@ present_ok ()
 {
     local rcdpath=$(runlevel_path $1); shift
     local script=$1;   shift
-    local ret=0
-    test -L ${rcdpath}/[KS][0-9][0-9]$script || ret=1
+    local ret=1
+    for f in ${rcdpath}/[KS][0-9][0-9]$script ; do
+	if [ -L $f ] ; then
+	    ret=0
+	fi
+    done
     counttest
     return $ret
 }

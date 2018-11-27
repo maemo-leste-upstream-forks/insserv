@@ -4,6 +4,7 @@
 # Author: Werner Fink,  <werner@suse.de>
 #
 
+PACKAGE	 =	insserv
 INITDIR  =	/etc/init.d
 INSCONF  =	/etc/insserv.conf
 #DESTDIR =	/tmp/root
@@ -11,7 +12,7 @@ INSCONF  =	/etc/insserv.conf
 DEBUG	 =
 ISSUSE	 =	-DSUSE
 DESTDIR	 =
-VERSION	 =	1.12.0
+VERSION	 =	1.14.0
 DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
 
 #
@@ -41,14 +42,14 @@ endif
 	     RM = rm -f
 	  MKDIR = mkdir -p
 	  RMDIR = rm -rf
-   INSTBINFLAGS = -m 0700
+   INSTBINFLAGS = -m 0755
 	INSTBIN = install $(INSTBINFLAGS)
-   INSTSRPFLAGS = -m 0700
+   INSTSRPFLAGS = -m 0755
 	INSTSRP = install $(INSTSRPFLAGS)
-   INSTDOCFLAGS = -c -m 0444
+   INSTDOCFLAGS = -c -m 0644
 	INSTDOC = install $(INSTDOCFLAGS)
    INSTCONFLAGS = -c -m 0644
-	INSTCON = install $(INSTDOCFLAGS)
+	INSTCON = install $(INSTCONFLAGS)
 	   LINK = ln -sf
 #
 	SDOCDIR = $(DESTDIR)/usr/share/man/man8
@@ -59,7 +60,7 @@ endif
 
 #
 # Determine if a library provides a specific function
-# Fist argument is the function to test, the second
+# First argument is the function to test, the second
 # one is the library its self.
 #
 	  CTEST = $(CC) -nostdinc -fno-builtin -o /dev/null -xc
@@ -125,7 +126,15 @@ ifneq ($(MAKECMDGOALS),clean)
 
 endif
 
-install:	$(TODO)
+check: insserv
+ifeq ($(ISSUSE),-DSUSE)
+	issuse=true tests/common
+#	issuse=true tests/suse
+else
+	tests/common
+endif
+
+install:	$(TODO) check
 	$(MKDIR)   $(SBINDIR)
 	$(MKDIR)   $(SDOCDIR)
 	$(MKDIR)   $(CONFDIR)
@@ -158,11 +167,17 @@ FILES	= README         \
 	  init-functions \
 	  remove_initd   \
 	  install_initd  \
+	  tests/common   \
 	  tests/suite    \
 	  insserv-$(VERSION).lsm
 
-dest:	clean
-	$(MKDIR) insserv-$(VERSION)/tests
+SVLOGIN=$(shell svn info | sed -rn '/Repository Root:/{ s|.*//(.*)\@.*|\1|p }')
+override TMP:=$(shell mktemp -d $(PACKAGE)-$(VERSION).XXXXXXXX)
+override TARBALL:=$(TMP)/$(PACKAGE)-$(VERSION).tar.bz2
+override SFTPBATCH:=$(TMP)/$(VERSION)-sftpbatch
+override LSM=$(TMP)/$(PACKAGE)-$(VERSION).lsm
+
+$(LSM):	$(TMP)/$(PACKAGE)-$(VERSION)
 	@echo -e "Begin3\n\
 Title:		insserv tool for boot scripts\n\
 Version:	$(VERSION)\n\
@@ -172,21 +187,41 @@ x 		by scanning comment headers which are LSB conform.\n\
 Keywords:	boot service control, LSB\n\
 Author:		Werner Fink <werner@suse.de>\n\
 Maintained-by:	Werner Fink <werner@suse.de>\n\
-Primary-site:	sunsite.unc.edu /pub/Linux/system/daemons/init\n\
-x		@UNKNOWN insserv-$(VERSION).tar.gz\n\
+Primary-site:	http://download.savannah.gnu.org/releases/sysvinit/\n\
+x		@UNKNOWN $(PACKAGE)-$(VERSION).tar.bz2\n\
 Alternate-site:	ftp.suse.com /pub/projects/init\n\
 Platforms:	Linux with System VR2 or higher boot scheme\n\
 Copying-policy:	GPL\n\
-End" | sed 's@^ @@g;s@^x@@g' > insserv-$(VERSION).lsm
-	for file in $(FILES) ; do \
-	    case "$$file" in \
-	    tests/*) cp -p $$file insserv-$(VERSION)/tests/ ;; \
-	    *)	     cp -p $$file insserv-$(VERSION)/ ;; \
-	    esac; \
-	done
-	tar -cps -zf  insserv-$(VERSION).tar.gz insserv-$(VERSION)/
-	$(RMDIR)    insserv-$(VERSION)
-	set -- `gzip -l insserv-$(VERSION).tar.gz | tail -1` ; \
-	sed "s:@UNKNOWN:$$1:" < insserv-$(VERSION).lsm > \
-	insserv-$(VERSION).lsm.tmp ; \
-	mv insserv-$(VERSION).lsm.tmp insserv-$(VERSION).lsm
+End" | sed 's@^ @@g;s@^x@@g' > $(LSM)
+
+dest: $(LSM)
+
+upload: $(SFTPBATCH)
+	@sftp -b $< $(SVLOGIN)@dl.sv.nongnu.org:/releases/sysvinit
+	mv $(TARBALL) $(LSM) .
+	rm -rf $(TMP)
+
+$(SFTPBATCH): $(TARBALL).sig
+	@echo progress > $@
+	@echo put $(TARBALL) >> $@
+	@echo chmod 644 $(notdir $(TARBALL)) >> $@
+	@echo put $(TARBALL).sig >> $@
+	@echo chmod 644 $(notdir $(TARBALL)).sig >> $@
+	@echo rm  $(PACKAGE)-latest.tar.bz2 >> $@
+	@echo symlink $(notdir $(TARBALL)) $(PACKAGE)-latest.tar.bz2 >> $@
+	@echo quit >> $@
+
+$(TARBALL).sig: $(TARBALL)
+	@gpg -q -ba --use-agent -o $@ $<
+
+$(TARBALL): $(TMP)/$(PACKAGE)-$(VERSION) $(LSM)
+	@tar --bzip2 --owner=nobody --group=nobody -cf $@ -C $(TMP) $(PACKAGE)-$(VERSION)
+	@set -- `find $@ -printf '%s'` ; \
+	 sed "s:@UNKNOWN:$$1:" < $(LSM) > $(LSM).tmp ; \
+	 mv $(LSM).tmp $(LSM)
+
+$(TMP)/$(PACKAGE)-$(VERSION): .svn
+	svn export . $@
+	@chmod -R a+r,u+w,og-w $@
+	@find $@ -type d | xargs -r chmod a+rx,u+w,og-w
+
