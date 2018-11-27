@@ -1,9 +1,11 @@
 /*
  * insserv(.c)
  *
- * Copyright 2000-2004 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany,
+ * Copyright 2000-2005 Werner Fink, 2000 SuSE GmbH Nuernberg, Germany,
  *				    2003 SuSE Linux AG, Germany.
  *				    2004 SuSE LINUX AG, Germany.
+ *				    2005 SUSE LINUX Products GmbH
+ * Copyright 2005 Petter Reinholdtsen
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +29,10 @@
 #include <limits.h>
 #include <getopt.h>
 #include "listing.h"
+
+static char *map_runlevel_to_location(const int runlevel);
+static const int map_runlevel_to_lvl (const int runlevel) __attribute__ ((unused));
+static const int map_runlevel_to_seek(const int runlevel) __attribute__ ((unused));
 
 #ifndef  INITDIR
 # define INITDIR	"/etc/init.d"
@@ -192,17 +198,21 @@ typedef struct sort_struct {
     list_t req, rev;
 } sort_t;
 
-typedef struct serv_struct {
+struct serv_struct;
+typedef struct serv_struct serv_t;
+
+struct serv_struct {
     list_t	   id;
     sort_t	 sort;
     unsigned int opts;
     char	order;
     char       * name;
+    serv_t     * main;
     unsigned int lvls;
 #ifndef SUSE
     unsigned int lvlk;
 #endif
-} serv_t;
+};
 #define getserv(arg)	list_entry((arg), struct serv_struct, id)
 
 static list_t serv = { &(serv), &(serv) }, *serv_start = &(serv);
@@ -235,6 +245,7 @@ static serv_t * addserv(const char *const serv)
 
 	this->opts  = 0;
 	this->name  = xstrdup(serv);
+	this->main  = (serv_t *)0;
 	this->order = 0;
 	this->lvls  = 0;
 #ifndef SUSE
@@ -621,7 +632,6 @@ static inline void makedep(void)
     fprintf(start, "INTERACTIVE =");
     list_for_each(srv, serv_start) {
 	serv_t * cur = getserv(srv);
-	serv_t * chk;
 
 	if (!cur || list_empty(&(cur->sort.req)))
 	    continue;
@@ -634,10 +644,8 @@ static inline void makedep(void)
 	if ((name = getscript(cur->name)) == 0)
 	    name = cur->name;
 
-	if ((chk = findserv(name)) && (cur != chk)) {
-	    cur->opts |= SERV_DUPLET;		/* Duplet */
-	    continue;
-	}
+	if (cur->opts & SERV_DUPLET)
+	    continue;				/* Duplet */
 
 	if (cur->opts & SERV_ACTIVE)
 	    fprintf(out, " %s", name);
@@ -676,11 +684,13 @@ static inline void makedep(void)
 		    continue;
 
 		/*
-		 * Skip not existing services even if they do not exist
+		 * Skip not existing services even if they are used
 		 * otherwise the make call will skip all dependencies
 		 */
-		if (!dep || (dep->opts & SERV_DUPLET))
-		    continue;			/* Duplet */
+		if (!dep) continue;
+
+		if ((dep->opts & SERV_DUPLET) && dep->main)
+		    dep = dep->main;		/* Duplet */
 
 		if ((name = getscript(dep->name)) == NULL)
 		    name = dep->name;
@@ -702,11 +712,13 @@ static inline void makedep(void)
 		reverse(req->serv, cur->name);
 
 		/*
-		 * Skip not existing services even if they do not exist
+		 * Skip not existing services even if they are used
 		 * otherwise the make call will skip all dependencies
 		 */
-		if (!dep || (dep->opts & SERV_DUPLET))
-		    continue;			/* Duplet */
+		if (!dep) continue;
+
+		if ((dep->opts & SERV_DUPLET) && dep->main)
+		    dep = dep->main;		/* Duplet */
 
 		if ((name = getscript(req->serv)) == NULL)
 		    name = req->serv;
@@ -763,8 +775,10 @@ static inline void makedep(void)
 		pr++;
 	    }
 
-	    if (!dep || (dep->opts & SERV_DUPLET))
-		continue;			/* Duplet */
+	    if (!dep) continue;
+
+	    if ((dep->opts & SERV_DUPLET) && dep->main)
+		dep = dep->main;		/* Duplet */
 
 	    if ((name = getscript(rev->serv)) == NULL)
 		name = rev->serv;
@@ -850,8 +864,12 @@ static DIR * openrcdir(const char *const  rcpath)
 	    error("can not stat(%s): %s\n", rcpath, strerror(errno));
     }
 
-    if ((rcdir = opendir(rcpath)) == NULL)
-	error("can not opendir(%s): %s\n", rcpath, strerror(errno));
+    if ((rcdir = opendir(rcpath)) == NULL) {
+	if (dryrun)
+	    warn ("can not opendir(%s): %s\n", rcpath, strerror(errno));
+	else
+	    error("can not opendir(%s): %s\n", rcpath, strerror(errno));
+    }
 
     return rcdir;
 }
@@ -920,6 +938,7 @@ static boolean scan_script_defaults(const char *const path)
 #define default_stop	script_inf.default_stop
 #define description	script_inf.description
 
+    info("Loading %s\n", path);
     script = fopen(path, "r");
     if (!script)
 	error("fopen(%s): %s\n", path, strerror(errno));
@@ -1039,6 +1058,51 @@ static inline void scan_script_regfree()
     regfree(&reg.desc);
 }
 
+static struct {
+    char *location;
+    const int lvl;
+    const int seek;
+} runlevel_locations[] = {
+#ifdef SUSE	/* SuSE's SystemV link scheme */
+    {"rc0.d/",    LVL_HALT,   LVL_NORM},
+    {"rc1.d/",    LVL_ONE,    LVL_NORM},
+    {"rc2.d/",    LVL_TWO,    LVL_NORM},
+    {"rc3.d/",    LVL_THREE,  LVL_NORM},
+    {"rc4.d/",    LVL_FOUR,   LVL_NORM},
+    {"rc5.d/",    LVL_FIVE,   LVL_NORM},
+    {"rc6.d/",    LVL_REBOOT, LVL_NORM},
+    {"rcS.d/",    LVL_SINGLE, LVL_NORM}, /* runlevel S */
+    {"boot.d/",   LVL_BOOT,   LVL_BOOT}, /* runlevel B */
+#else		/* not SUSE (actually, Debian) */
+    {"../rc0.d/", LVL_HALT,   LVL_NORM},
+    {"../rc1.d/", LVL_SINGLE, LVL_NORM},
+    {"../rc2.d/", LVL_TWO,    LVL_NORM},
+    {"../rc3.d/", LVL_THREE,  LVL_NORM},
+    {"../rc4.d/", LVL_FOUR,   LVL_NORM},
+    {"../rc5.d/", LVL_FIVE,   LVL_NORM},
+    {"../rc6.d/", LVL_REBOOT, LVL_NORM},
+    {"../rcS.d/", LVL_BOOT,   LVL_BOOT}, /* runlevel S */
+		/* On e.g. Debian there exist no boot.d */
+#endif
+};
+
+#define RUNLEVLES (sizeof(runlevel_locations)/sizeof(runlevel_locations[0]))
+
+static char *map_runlevel_to_location(const int runlevel)
+{
+    return runlevel_locations[runlevel].location;
+}
+
+static const int map_runlevel_to_lvl(const int runlevel)
+{
+    return runlevel_locations[runlevel].lvl;
+}
+
+static const int map_runlevel_to_seek(const int runlevel)
+{
+    return runlevel_locations[runlevel].seek;
+}
+
 /*
  * Scan current service structure
  */
@@ -1047,28 +1111,17 @@ static void scan_script_locations(const char *const  path)
     int runlevel;
 
     pushd(path);
-    for (runlevel = 0; runlevel < 9; runlevel++) {
+    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
 	char * rcd = NULL;
 	DIR  * rcdir;
 	struct dirent *d;
 	char * token;
 	struct stat st_script;
 
-	switch (runlevel) {
-	    case 0: rcd = "rc0.d/";  break;
-	    case 1: rcd = "rc1.d/";  break;
-	    case 2: rcd = "rc2.d/";  break;
-	    case 3: rcd = "rc3.d/";  break;
-	    case 4: rcd = "rc4.d/";  break;
-	    case 5: rcd = "rc5.d/";  break;
-	    case 6: rcd = "rc6.d/";  break;
-	    case 7: rcd = "rcS.d/";  break;  /* runlevel S */
-	    case 8: rcd = "boot.d/"; break;  /* runlevel B */
-	    default:
-		error("Wrong runlevel %d\n", runlevel);
-	}
-
+	rcd = map_runlevel_to_location(runlevel);
 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
+	if (rcdir == NULL)
+	    break;
 	pushd(rcd);
 	while ((d = readdir(rcdir)) != NULL) {
 	    char * ptr = d->d_name;
@@ -1164,6 +1217,8 @@ static void scan_conf_file(const char* file)
     regcompiler(&reg_conf,  CONFLINE,  REG_EXTENDED|REG_ICASE);
     regcompiler(&reg_conf2, CONFLINE2, REG_EXTENDED|REG_ICASE);
 
+    info("Loading %s\n", file);
+
     do {
 	const char * fptr = file;
 	if (*fptr == '/')
@@ -1256,7 +1311,7 @@ static int cfgfile_filter(const struct dirent* d)
     if ((end = strrchr(d->d_name, '.'))) {
 	end++;
 	if (!strcmp(end,  "local")	||
-	    !strncmp(end, "rpm", 3)	|| /* .rmporig, .rpmnew, .rmpsave, ... */
+	    !strncmp(end, "rpm", 3)	|| /* .rpmorig, .rpmnew, .rmpsave, ... */
 	    !strncmp(end, "ba", 2)	|| /* .bak, .backup, ... */
 	    !strcmp(end,  "old")	||
 	    !strcmp(end,  "new")	||
@@ -1526,7 +1581,6 @@ int main (int argc, char *argv[])
     pushd(path);
     while ((d = readdir(initdir)) != NULL) {
 	serv_t * service = NULL;
-	char * end;
 	char * token;
 	char* begin = (char*)NULL;  /* Remember address of ptr handled by strsep() */
 	boolean lsb = false;
@@ -1573,27 +1627,21 @@ int main (int argc, char *argv[])
 	    continue;
 	}
 
-	if (!strcmp(d->d_name, "boot") || !strcmp(d->d_name, "rc")) {
+#ifdef SUSE
+	if (!strcmp(d->d_name, "boot") || !strcmp(d->d_name, "rc"))
+#else
+	if (!strcmp(d->d_name, "rcS") || !strcmp(d->d_name, "rc"))
+#endif
+	{
 	    if (chkfor(d->d_name, argv, argc))
 		warn("script name %s is not valid, skipped!\n", d->d_name);
 	    continue;
 	}
 
-	if ((end = strrchr(d->d_name, '.'))) {
-	    end++;
-	    if (!strcmp(end,  "local")	||
-		!strncmp(end, "rpm", 3)	|| /* .rmporig, .rpmnew, .rmpsave, ... */
-		!strncmp(end, "ba", 2)	|| /* .bak, .backup, ... */
-		!strcmp(end,  "old")	||
-		!strcmp(end,  "new")	||
-		!strcmp(end,  "save")	||
-		!strcmp(end,  "swp")	|| /* Used by vi like editors */
-		!strcmp(end,  "core"))	   /* modern core dump */
-	    {
-		if (chkfor(d->d_name, argv, argc))
-		    warn("script name %s is not valid, skipped!\n", d->d_name);
-		continue;
-	    }
+	if (cfgfile_filter(d) == 0) {
+	    if (chkfor(d->d_name, argv, argc))
+		warn("script name %s is not valid, skipped!\n", d->d_name);
+	    continue;
 	}
 
 	/* Leaved by emacs like editors */
@@ -1705,6 +1753,7 @@ int main (int argc, char *argv[])
 	 * (by using the list from the first scan for script locations).
 	 */
 	if (!service) {
+	    int count = 0;
 	    char * provides = xstrdup(script_inf.provides);
 
 	    begin = provides;
@@ -1737,10 +1786,32 @@ int main (int argc, char *argv[])
 
 		if (!(service = findserv(token)))
 		    service = addserv(token);
+		count++;					/* Count token */
 
 		if (service) {
 		    boolean known = (service->opts & SERV_KNOWN);
 		    service->opts |= SERV_KNOWN;
+
+		    if (!provides && (count > 1)) {		/* Last token */ 
+			const char * script = getscript(service->name);
+
+			if (script) {
+			    list_t * srv;
+
+			    list_for_each(srv, serv_start) {
+				serv_t * cur = getserv(srv);
+				const char * chk;
+
+				if (!cur || !(chk = getscript(cur->name)))
+				    continue;
+
+				if (!strcmp(chk, script) && (service != cur)) {
+				    cur->opts |= SERV_DUPLET; 
+				    cur->main = service;	/* Remember main service */
+				}
+			    }
+			}
+		    }
 
 		    if (!known && script_inf.required_start && script_inf.required_start != empty) {
 			rememberreq(service, REQ_MUST, script_inf.required_start);
@@ -1912,8 +1983,10 @@ int main (int argc, char *argv[])
 	    /*
 	     * default_stop arn't used in SuSE Linux.
 	     */
-	    if (!service || !del)
-		service->lvlk = str2lvl(script_inf.default_stop);
+	    if (script_inf.default_stop && script_inf.default_stop != empty) {
+		if (!service || !del)
+		    service->lvlk = str2lvl(script_inf.default_stop);
+	    }
 #endif
 	}
 	script_inf.provides = begin;
@@ -2004,22 +2077,12 @@ int main (int argc, char *argv[])
 	char * rcd = NULL;
 	DIR  * rcdir;
 
-	switch (runlevel) {
-	    case 0: rcd = "rc0.d/";  break;
-	    case 1: rcd = "rc1.d/";  break;
-	    case 2: rcd = "rc2.d/";  break;
-	    case 3: rcd = "rc3.d/";  break;
-	    case 4: rcd = "rc4.d/";  break;
-	    case 5: rcd = "rc5.d/";  break;
-	    case 6: rcd = "rc6.d/";  break;
-	    case 7: rcd = "rcS.d/";  break;  /* runlevel S */
-	    case 8: rcd = "boot.d/"; break;  /* runlevel B */
-	    default:
-		error("Wrong runlevel %d\n", runlevel);
-	}
+	rcd = map_runlevel_to_location(runlevel);
 
 	script = NULL;
 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
+	if (rcdir == NULL)
+	    break;
 	pushd(rcd);
 
 	/*
@@ -2152,9 +2215,6 @@ int main (int argc, char *argv[])
     * a traditional standard SystemV link scheme.  Maybe for such an
     * approach a new directory halt.d/ whould be an idea.
     */
-#  ifndef  RUNLEVLES
-#   define RUNLEVLES 8		/* On e.g. Debian there exist no boot.d */
-#  endif
     pushd(path);
     for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
 	int lvl = 0, seek = 0;
@@ -2163,24 +2223,14 @@ int main (int argc, char *argv[])
 	char * rcd = NULL;
 	DIR  * rcdir;
 
-	switch (runlevel) {		/* LVL_NORM:  nearly all but not BOOT and not SINGLE */
-	    case 0: rcd = "rc0.d/";  lvl = LVL_HALT;   seek = LVL_NORM; break;
-	    case 1: rcd = "rc1.d/";  lvl = LVL_ONE;    seek = LVL_NORM; break;
-	    case 2: rcd = "rc2.d/";  lvl = LVL_TWO;    seek = LVL_NORM; break;
-	    case 3: rcd = "rc3.d/";  lvl = LVL_THREE;  seek = LVL_NORM; break;
-	    case 4: rcd = "rc4.d/";  lvl = LVL_FOUR;   seek = LVL_NORM; break;
-	    case 5: rcd = "rc5.d/";  lvl = LVL_FIVE;   seek = LVL_NORM; break;
-	    case 6: rcd = "rc6.d/";  lvl = LVL_REBOOT; seek = LVL_NORM; break;
-	    case 7: rcd = "rcS.d/";  lvl = LVL_SINGLE; seek = LVL_NORM; break; /* runlevel S */
-#  if defined(RUNLEVLES) && (RUNLEVLES > 8)
-	    case 8: rcd = "boot.d/"; lvl = LVL_BOOT;   seek = LVL_BOOT; break; /* runlevel B */
-#  endif
-	    default:
-		error("Wrong runlevel %d\n", runlevel);
-	}
+	rcd = map_runlevel_to_location(runlevel);
+	lvl  = map_runlevel_to_lvl(runlevel);
+	seek = map_runlevel_to_seek(runlevel);
 
 	script = NULL;
 	rcdir = openrcdir(rcd); /* Creates runlevel directory if necessary */
+	if (rcdir == NULL)
+	    break;
 	pushd(rcd);
 
 	/*

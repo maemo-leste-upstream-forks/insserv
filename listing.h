@@ -109,11 +109,11 @@ static inline char * xstrdup(const char *s)
 #define xremove(x) ({ if ((dryrun ? 0 : (remove(x) < 0))) \
 	warn ("can not remove(%s%s): %s\n", rcd, x, strerror(errno)); \
 	else \
-	info("remove service %s%s%s\n", path, rcd, x); })
+	info("remove service %s/%s%s\n", path, rcd, x); })
 #define xsymlink(x,y) ({ if ((dryrun ? 0 : (symlink(x, y) < 0))) \
 	warn ("can not symlink(%s, %s%s): %s\n", x, rcd, y, strerror(errno)); \
 	else \
-	info("enable service %s -> %s%s%s\n", x, path, rcd, y); })
+	info("enable service %s -> %s/%s%s\n", x, path, rcd, y); })
 
 /*
  * Bits of the runlevels
