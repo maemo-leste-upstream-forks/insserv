@@ -9,6 +9,8 @@
  * (at your option) any later version.
  */
 
+#include <stddef.h>
+
 typedef struct list_struct {
     struct list_struct * next, * prev;
 } list_t;
@@ -60,8 +62,9 @@ static inline int list_empty(list_t *head)
         return head->next == head;
 }
 
-#define list_entry(ptr, type, member)	\
-	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+#define list_entry(ptr, type, member)	({			\
+	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
+	((type *)( (char *)(__mptr) - offsetof(type,member) )); })
 #define list_for_each(pos, head)	\
 	for (pos = (head)->next; pos != (head); pos = pos->next)
 #define list_for_each_prev(pos, head)	\

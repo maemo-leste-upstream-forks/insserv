@@ -51,6 +51,8 @@ by reading the comment header of the script, e.g.:
  # Required-Stop:  boot_facility_1 [ boot_facility_2 ...]
  # Should-Start:   boot_facility_1 [ boot_facility_2 ...]
  # Should-Stop:    boot_facility_1 [ boot_facility_2 ...]
+ # X-Start-Before: boot_facility_1 [ boot_facility_2 ...]
+ # X-Stop-After:   boot_facility_1 [ boot_facility_2 ...]
  # Default-Start:  run_level_1 [ run_level_2 ...]
  # Default-Stop:   run_level_1 [ run_level_2 ...]
  # Description:    multiline_description
@@ -62,11 +64,19 @@ and calculating the dependencies between all scripts.
 Please note, that the
 .BR Required-Stop,
 .BR Should-Stop ,
+.BR X-Stop-After,
 and
 .B Default\-Stop
 are ignored in SuSE Linux, because the SuSE boot script concept
 uses a differential link scheme (see
 .IR init.d (7)).
+The optional
+.B X\-Start\-Before
+keyword implies that the script using this keyword
+should be started
+.B before
+the specified service names. This implies that those
+services now depend on the specifying script.
 With known dependencies and runlevel(s)
 .B insserv
 sets and reorders the corresponding symbolic links
@@ -145,6 +155,17 @@ is the only know keyword for marking a service
 as an interactive one, e.g. a service which requires
 a passphrase or password input during boot
 or runlevel change.
+.P
+Beside the defined
+.B System Facilities
+in the configuration file
+.IR /etc/insserv.conf ,
+.B insserv
+also knows the special facility
+.BR $all .
+This facility indicates that a service should be inserted
+at the end of all services.  Clearly all services using
+this facility will be grouped into one starting order.
 .\"
 .SH OPTIONS
 Currently there are only four options for
@@ -240,6 +261,8 @@ boot script file names will be not accepted by
         *.ba*
         *.old
         *.new
+        *.org
+        *.orig
         *.save
         *.swp
         *.core
