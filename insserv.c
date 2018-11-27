@@ -211,7 +211,7 @@ struct serv_struct {
     unsigned int lvls;
 #ifndef SUSE
     unsigned int lvlk;
-#endif
+#endif /* not SUSE */
 };
 #define getserv(arg)	list_entry((arg), struct serv_struct, id)
 
@@ -250,7 +250,7 @@ static serv_t * addserv(const char *const serv)
 	this->lvls  = 0;
 #ifndef SUSE
 	this->lvlk  = 0;
-#endif
+#endif /* not SUSE */
 	ptr = serv_start->prev;
 	goto out;
     }
@@ -460,7 +460,7 @@ static inline void nonlsb_script(void)
 		    continue;
 		if (!(getserv(pos)->lvls & getserv(tmp)->lvls))
 		    continue;
-		if (getserv(tmp)->order > getserv(pos)->order)
+		if (getserv(tmp)->order >= getserv(pos)->order)
 		    continue;
 		if (max < getserv(tmp)->order) {
 		    max = getserv(tmp)->order;
@@ -470,57 +470,81 @@ static inline void nonlsb_script(void)
 
 	    if (req)
 		requiresv(getserv(pos)->name, getserv(req)->name);
-
 	}
     }
 }
 
 /*
  * This helps us to get interactive scripts to be the only service
- * within on start or stop service group.
+ * within on start or stop service group. Remaining problem is that
+ * if required scripts are missed the order can be wrong.
  */
 static inline void active_script(void)
 {
     list_t * pos;
+    int deep = 1;
 
-    list_for_each(pos, serv_start) {
-	serv_t * serv = getserv(pos);
-	list_t * tmp;
+    for (deep = 0; deep < 100; deep++) {
+	list_for_each(pos, serv_start) {
+	    serv_t * serv = getserv(pos);
+	    list_t * tmp;
 
-	if (!(serv->opts & SERV_ACTIVE))
-	    continue;
-
-	/* Should not happen */
-	if (list_empty(&(serv->sort.req)))
-	    continue;
-
-	list_for_each(tmp, serv_start) {
-	    serv_t * cur = getserv(tmp);
-	    list_t * req;
-
-	    if (!(serv->lvls & cur->lvls))
+	    if (!(serv->opts & SERV_ACTIVE))
 		continue;
 
-	    if (cur == serv)
+	    if (serv->order != deep)
 		continue;
 
-	    /*
-	     * Ignore services which the active service requires
-	     */
-	    list_for_each(req, &(serv->sort.req))
-		if (!strcmp(getreq(req)->serv, cur->name))
-		    goto out;
+	    list_for_each(tmp, serv_start) {
+		serv_t * cur = getserv(tmp);
+		serv_t * chk = NULL;
+		list_t * req;
+		const char *name;
+		boolean ignore = false;
 
-	    /*
-	     * Increase order of members of the same start
-	     * group and recalculate dependency order (`true')
-	     */
-	    if ((serv->order = getorder(serv->name)) ==
-		(cur->order  = getorder(cur->name )))
-		setorder(cur->name, ++cur->order, true);
+		if (!(serv->lvls & cur->lvls))
+		    continue;
 
-	    out:
-	    continue;	/* Make the compiler happy */
+		if (cur->opts & SERV_DUPLET)
+		   continue;		/* Duplet */
+
+		if (cur == serv)
+		    continue;
+
+		if (serv->main && (serv->main == cur))
+		    continue;		/* Duplet */
+
+		/*
+		 * Expand aliases to the real script name
+		 */
+		if ((name = getscript(cur->name)) == NULL)
+		    name = cur->name;
+
+		/*
+		 * Ignore services which the active service requires
+		 */
+		list_for_each(req, &(serv->sort.req)) {
+		    if (!strcmp(getreq(req)->serv, cur->name))
+			ignore = true;
+		    if (!strcmp(getreq(req)->serv, name))
+			ignore = true;
+		}
+		if (ignore) continue;
+
+		/*
+		 * Increase order of members of the same start
+		 * group and recalculate dependency order (`true')
+		 */
+		serv->order = getorder(serv->name);
+		cur->order  = getorder(name);
+
+		if (serv->order == cur->order)
+		    setorder(name, ++cur->order, true);
+
+		/* Remember the order even for the alias */
+		if ((chk = findserv(name)) && (cur != chk))
+		    chk->order = cur->order;
+	    }
 	}
     }
 }
@@ -983,7 +1007,7 @@ static boolean scan_script_defaults(const char *const path)
 	    } else
 		required_stop = empty;
 	}
-#endif
+#endif /* not SUSE */
 	if (!should_start && regexecutor(&reg.shl_start,   COMMON_SHD_ARGS) == true) {
 	    if (shl->rm_so < shl->rm_eo) {
 		*(pbuf+shl->rm_eo) = '\0';
@@ -999,7 +1023,7 @@ static boolean scan_script_defaults(const char *const path)
 	    } else
 		should_stop = empty;
 	}
-#endif
+#endif /* not SUSE */
 	if (!default_start  && regexecutor(&reg.def_start, COMMON_ARGS) == true) {
 	    if (val->rm_so < val->rm_eo) {
 		*(pbuf+val->rm_eo) = '\0';
@@ -1015,7 +1039,7 @@ static boolean scan_script_defaults(const char *const path)
 	    } else
 		default_stop = empty;
 	}
-#endif
+#endif /* not SUSE */
 	if (!description    && regexecutor(&reg.desc,      COMMON_ARGS) == true) {
 	    if (val->rm_so < val->rm_eo) {
 		*(pbuf+val->rm_eo) = '\0';
@@ -1032,7 +1056,35 @@ static boolean scan_script_defaults(const char *const path)
 #undef COMMON_SHD_ARGS
 
     fclose(script);
-    ret = begin && provides && required_start && end;
+    ret = begin && end;
+
+    if (begin && !end) {
+	char *name = basename(path);
+	if (*name == 'S' || *name == 'K')
+	    name += 3;
+	warn("script %s is broken: missing end of LSB comment.\n", name);
+	error("exiting now!\n");
+    }
+
+#ifdef SUSE
+    if (verbose && (begin && end && (!provides || !required_start)))
+#else
+    if (verbose && (begin && end && (!provides || !required_start || !required_stop)))
+#endif
+    {
+	char *name = basename(path);
+	if (*name == 'S' || *name == 'K')
+	    name += 3;
+	warn("script %s could be broken: incomplete LSB comment.\n", name);
+	if (!provides)
+	    warn("Missing entry for Provides: please add even if empty.\n", name);
+	if (!required_start)
+	    warn("Missing entry for Required-Start: please add even if empty.\n", name);
+#ifndef SUSE
+	if (!required_stop)
+	    warn("Missing entry for Required-Stop: please add even if empty.\n", name);
+#endif
+    }
 
 #undef provides
 #undef required_start
@@ -1083,7 +1135,7 @@ static struct {
     {"../rc6.d/", LVL_REBOOT, LVL_NORM},
     {"../rcS.d/", LVL_BOOT,   LVL_BOOT}, /* runlevel S */
 		/* On e.g. Debian there exist no boot.d */
-#endif
+#endif		/* not SUSE */
 };
 
 #define RUNLEVLES (sizeof(runlevel_locations)/sizeof(runlevel_locations[0]))
@@ -1106,7 +1158,7 @@ static const int map_runlevel_to_seek(const int runlevel)
 /*
  * Scan current service structure
  */
-static void scan_script_locations(const char *const  path)
+static void scan_script_locations(const char *const path)
 {
     int runlevel;
 
@@ -1184,7 +1236,7 @@ static void scan_script_locations(const char *const  path)
 		    rememberreq(service, REQ_SHLD, script_inf.should_stop);
 		    requiresv(token, script_inf.should_stop);
 		}
-#endif
+#endif /* not SUSE */
 	    }
 	    script_inf.provides = begin;
 
@@ -1315,6 +1367,7 @@ static int cfgfile_filter(const struct dirent* d)
 	    !strncmp(end, "ba", 2)	|| /* .bak, .backup, ... */
 	    !strcmp(end,  "old")	||
 	    !strcmp(end,  "new")	||
+	    !strncmp(end, "dpkg", 3)	|| /* .dpkg-old, .dpkg-new ... */
 	    !strcmp(end,  "save")	||
 	    !strcmp(end,  "swp")	|| /* Used by vi like editors */
 	    !strcmp(end,  "core"))	   /* modern core dump */
@@ -1571,6 +1624,9 @@ int main (int argc, char *argv[])
      * Scan always for the runlevel links to see the current
      * link scheme of the services.
      */
+#if 0
+    if (!defaults)
+#endif
     scan_script_locations(path);
 
     if ((initdir = opendir(path)) == NULL)
@@ -1629,9 +1685,9 @@ int main (int argc, char *argv[])
 
 #ifdef SUSE
 	if (!strcmp(d->d_name, "boot") || !strcmp(d->d_name, "rc"))
-#else
+#else  /* not SUSE */
 	if (!strcmp(d->d_name, "rcS") || !strcmp(d->d_name, "rc"))
-#endif
+#endif /* not SUSE */
 	{
 	    if (chkfor(d->d_name, argv, argc))
 		warn("script name %s is not valid, skipped!\n", d->d_name);
@@ -1835,7 +1891,7 @@ int main (int argc, char *argv[])
 			rememberreq(service, REQ_SHLD, script_inf.should_stop);
 			requiresv(token, script_inf.should_stop);
 		    }
-#endif
+#endif /* not SUSE */
 		    /*
 		     * Use information from symbolic link structure to
 		     * check if all services are around for this script.
@@ -1924,18 +1980,22 @@ int main (int argc, char *argv[])
 			 * Do _not_ set default stop levels
 			 */
 		    }
-#endif
+#endif /* not SUSE */
 		}
 	    }
 	    free(begin);
 	}
 
+#ifdef SUSE
 	/* Ahh ... set default multiuser with network */
-	if (!script_inf.default_start)
+	if (!script_inf.default_start || script_inf.default_start == empty)
 	    script_inf.default_start = xstrdup("3 5");
-#ifndef SUSE
-	/* Do _not_ set default stop levels */
-#endif
+#else  /* not SUSE */
+	if (!script_inf.default_start || script_inf.default_start == empty)
+	    script_inf.default_start = xstrdup("2 3 4 5");	/* for Debian*/
+	if (!script_inf.default_stop  || script_inf.default_start == empty)
+	    script_inf.default_stop  = xstrdup("S 0 1 6");	/* for Debian*/
+#endif /* not SUSE */
 
 	if (chkfor(d->d_name, argv, argc) && !defaults) {
 	    if (argr[curr_argc]) {
@@ -1984,10 +2044,10 @@ int main (int argc, char *argv[])
 	     * default_stop arn't used in SuSE Linux.
 	     */
 	    if (script_inf.default_stop && script_inf.default_stop != empty) {
-		if (!service || !del)
+		if (service && !del)
 		    service->lvlk = str2lvl(script_inf.default_stop);
 	    }
-#endif
+#endif /* not SUSE */
 	}
 	script_inf.provides = begin;
 
@@ -2291,7 +2351,7 @@ int main (int argc, char *argv[])
 		order = (maxorder + 1) - order;
 	    }
 
-	    sprintf(olink, "../%s",    script);
+	    sprintf(olink, "../init.d/%s", script);
 	    sprintf(nlink, "%c%.2d%s", mode, order, script);
 
 	    found = false;
