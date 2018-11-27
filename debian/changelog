@@ -12,6 +12,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
     + Refresh `140_debian_test_suite.patch'
     + Refresh `150_core_string_test.patch'
     + Refresh `160_manual_page_update.patch'
+    + Refresh `180_MAXSYMLINKS.patch'
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
