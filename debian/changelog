@@ -8,6 +8,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
     + Refresh `21_tweak_warnings.patch'
     + Refresh `92_m68k_alignment.patch'
     + Drop `100_show.patch' -- upstream accepted `--showall' option
+    + Refresh `130_crossbuild_fixes.patch'
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
