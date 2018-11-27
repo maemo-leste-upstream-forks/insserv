@@ -2,6 +2,8 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
   * Update `debian/watch' to match `xz' archives
+  * Update and refresh patches
+    + Drop `10_nosuse.patch' -- upstream now have -DSUSE commented-out
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
