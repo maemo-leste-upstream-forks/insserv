@@ -2,7 +2,6 @@
 20_manpage_spelling.patch
 21_tweak_warnings.patch
 92_m68k_alignment.patch
-100_show.patch
 110_portmap.patch
 130_crossbuild_fixes.patch
 140_debian_test_suite.patch
