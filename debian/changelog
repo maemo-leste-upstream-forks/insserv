@@ -5,6 +5,8 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
   * Update and refresh patches
     + Drop `10_nosuse.patch' -- upstream now have -DSUSE commented-out
     + Drop `30_interactive_regexp_match_fix.patch' -- applied upstream
+    + Refresh `21_tweak_warnings.patch'
+    + Refresh `92_m68k_alignment.patch'
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
