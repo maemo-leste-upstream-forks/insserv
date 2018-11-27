@@ -65,6 +65,9 @@
 #ifdef SUSE
 # include <sys/mount.h>
 #endif /* SUSE */
+#ifndef NEED_RUNLEVELS_DEF
+#define NEED_RUNLEVELS_DEF
+#endif
 #include "listing.h"
 #include "systemd.h"
 
@@ -212,7 +215,7 @@ typedef struct creg_struct {
 static lsb_t script_inf;
 static reg_t reg;
 static creg_t creg;
-static char empty[1] = "";
+char empty[1] = "";
 
 /* Delimeters used for spliting results with strsep(3) */
 const char *const delimeter = " ,;\t";
@@ -319,6 +322,7 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
 	    token++;
 	    bit &= ~REQ_MUST;
 	    bit |=  REQ_SHLD;
+	    /* fall through */
 	default:
 	    req = addservice(token);
 	    if (bit & REQ_KILL) {
@@ -397,6 +401,7 @@ static void reversereq(service_t *restrict serv, uint bit, const char *restrict 
 	    token++;
 	    bit &= ~REQ_MUST;
 	    bit |=  REQ_SHLD;
+	    /* fall through */
 	default:
 	    rev = addservice(token);
 	    rememberreq(rev, bit, serv->name);
@@ -424,8 +429,13 @@ static boolean chkrequired(service_t *restrict serv, const boolean recursive)
     boolean ret = true;
     list_t * pos;
 
+    /* Technically, it is not possible for this function to be called if serv is
+       NULL, which makes the compiler complain about this check. Commenting it
+       out since neither of these conditions is likely to change given program's
+       mature/legacy nature. -- Jesse
     if (!serv)
-	goto out;
+	return ret;
+    */
     serv = getorig(serv);
 
     np_list_for_each(pos, &serv->sort.req) {
@@ -472,7 +482,6 @@ static boolean chkrequired(service_t *restrict serv, const boolean recursive)
 	}
     }
 #endif
-out:
     return ret;
 }
 
@@ -806,8 +815,6 @@ static inline void makedep(void)
     target = (char*)0;
     fprintf(boot, "TARGETS =");
     while ((serv = listscripts(&target, 'S', LVL_BOOT))) {
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -819,8 +826,6 @@ static inline void makedep(void)
     target = (char*)0;
     fprintf(start, "TARGETS =");
     while ((serv = listscripts(&target, 'S', LVL_ALL))) {	/* LVL_ALL: nearly all but not BOOT */
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -834,8 +839,6 @@ static inline void makedep(void)
 
     target = (char*)0;
     while ((serv = listscripts(&target, 'S', LVL_BOOT|LVL_ALL))) {
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -864,8 +867,6 @@ static inline void makedep(void)
 	boolean mark;
 	list_t * pos;
 
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_RULES) && (MINIMAL_RULES != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -976,8 +977,6 @@ static inline void makedep(void)
     target = (char*)0;
     fprintf(stop, "TARGETS =");
     while ((serv = listscripts(&target, 'K', LVL_NORM))) {	/* LVL_NORM: nearly all but not BOOT and not SINGLE */
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -990,8 +989,6 @@ static inline void makedep(void)
     target = (char*)0;
     fprintf(halt, "TARGETS =");
     while ((serv = listscripts(&target, 'K', LVL_BOOT))) {
-	if (!serv)
-	    continue;
 # if defined(MINIMAL_MAKE) && (MINIMAL_MAKE != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -1010,8 +1007,6 @@ static inline void makedep(void)
 	boolean mark;
 	list_t * pos;
 
-	if (!serv)
-	    continue;
 #if defined(MINIMAL_RULES) && (MINIMAL_RULES != 0)
 	if (serv->attr.ref <= 0)
 	    continue;
@@ -1107,7 +1102,8 @@ char *myname = (char*)0;
 static void _logger (const char *restrict const fmt, va_list ap);
 static void _logger (const char *restrict const fmt, va_list ap)
 {
-    extension char buf[strlen(myname)+2+strlen(fmt)+1];
+    /* extension char buf[strlen(myname)+2+strlen(fmt)+1]; */
+    char buf[strlen(myname)+2+strlen(fmt)+1];
     strcat(strcat(strcpy(buf, myname), ": "), fmt);
     vfprintf(stderr, buf, ap);
     return;
@@ -1194,7 +1190,8 @@ static DIR * openrcdir(const char *restrict const rcpath)
 	if (errno == ENOENT) {
 	    info(1, "creating directory '%s'\n", rcpath);
 	    if (!dryrun)
-		mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH));
+	        if (0 > mkdir(rcpath, (S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)))
+		    error("mkdir(%s, ...) failed: %s", rcpath, strerror(errno));
 	} else
 	    error("can not stat(%s): %s\n", rcpath, strerror(errno));
     }
@@ -1509,14 +1506,16 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
 
     if (upstart_job) {
 	pclose(script);
-	free(upstart_job);
-	upstart_job = 0;
+	xreset(upstart_job);
     } else {
 #if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
 	if (cache) {
 	    off_t deep = ftello(script);
-	    (void)posix_fadvise(fd, 0, deep, POSIX_FADV_WILLNEED);
-	    (void)posix_fadvise(fd, deep, 0, POSIX_FADV_DONTNEED);
+	    if (-1 != deep) {
+	        (void)posix_fadvise(fd, 0, deep, POSIX_FADV_WILLNEED);
+		(void)posix_fadvise(fd, deep, 0, POSIX_FADV_DONTNEED);
+	    } else
+	        warn("ftello(%s) failed: %s\n", path, strerror(errno));
 	} else
 	    (void)posix_fadvise(fd, 0, 0, POSIX_FADV_NOREUSE);
 #endif
@@ -1675,6 +1674,7 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
 {
     char * name = scriptname(dfd, path, first);
     uchar ret = 0;
+    char *upstart_job = (char*)0;
 
     if (!name)
 	return ret;
@@ -1712,7 +1712,8 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
 	}
     }
 
-    if (is_upstart_job(path) != (char*)0) {
+    if (NULL != (upstart_job = is_upstart_job(path))) {
+	xreset(upstart_job);
 	/*
 	 * Do not override the upstarts defaults, if we allow this
 	 * we have to change name to the link name otherwise the
@@ -1764,83 +1765,6 @@ static inline void scan_script_regfree()
     regfree(&reg.interact);
 }
 
-static struct {
-    char *location;
-    const ushort lvl;
-    const ushort seek;
-    const char key;
-} attribute((aligned(sizeof(char*)))) runlevel_locations[] = {
-#ifdef SUSE	/* SuSE's SystemV link scheme */
-    {"rc0.d/",    LVL_HALT,   LVL_NORM, '0'},
-    {"rc1.d/",    LVL_ONE,    LVL_NORM, '1'}, /* runlevel 1 switch over to single user mode */
-    {"rc2.d/",    LVL_TWO,    LVL_NORM, '2'},
-    {"rc3.d/",    LVL_THREE,  LVL_NORM, '3'},
-    {"rc4.d/",    LVL_FOUR,   LVL_NORM, '4'},
-    {"rc5.d/",    LVL_FIVE,   LVL_NORM, '5'},
-    {"rc6.d/",    LVL_REBOOT, LVL_NORM, '6'},
-    {"rcS.d/",    LVL_SINGLE, LVL_NORM, 'S'}, /* runlevel S is for single user mode */
-    {"boot.d/",   LVL_BOOT,   LVL_BOOT, 'B'}, /* runlevel B is for system initialization */
-#else		/* not SUSE (actually, Debian) */
-    {"../rc0.d/", LVL_HALT,   LVL_NORM, '0'},
-    {"../rc1.d/", LVL_ONE,    LVL_NORM, '1'}, /* runlevel 1 switch over to single user mode */
-    {"../rc2.d/", LVL_TWO,    LVL_NORM, '2'},
-    {"../rc3.d/", LVL_THREE,  LVL_NORM, '3'},
-    {"../rc4.d/", LVL_FOUR,   LVL_NORM, '4'},
-    {"../rc5.d/", LVL_FIVE,   LVL_NORM, '5'},
-    {"../rc6.d/", LVL_REBOOT, LVL_NORM, '6'},
-    {"../rcS.d/", LVL_BOOT,   LVL_BOOT, 'S'}, /* runlevel S is for system initialization */
-		/* On e.g. Debian there exist no boot.d */
-#endif		/* not SUSE */
-};
-
-#define RUNLEVLES (int)(sizeof(runlevel_locations)/sizeof(runlevel_locations[0]))
-
-int map_has_runlevels(void)
-{
-    return RUNLEVLES;
-}
-
-char map_runlevel_to_key(const int runlevel)
-{
-    if (runlevel >= RUNLEVLES) {
-	warn("Wrong runlevel %d\n", runlevel);
-    }
-    return runlevel_locations[runlevel].key;
-}
-
-ushort map_key_to_lvl(const char key)
-{
-    int runlevel;
-    const char uckey = toupper(key);
-    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
-	if (uckey == runlevel_locations[runlevel].key)
-	    return runlevel_locations[runlevel].lvl;
-    }
-    warn("Wrong runlevel key '%c'\n", uckey);
-    return 0;
-}
-
-const char *map_runlevel_to_location(const int runlevel)
-{
-    if (runlevel >= RUNLEVLES) {
-	warn("Wrong runlevel %d\n", runlevel);
-    }
-    return runlevel_locations[runlevel].location;
-}
-
-ushort map_runlevel_to_lvl(const int runlevel)
-{
-    if (runlevel >= RUNLEVLES) {
-	warn("Wrong runlevel %d\n", runlevel);
-    }
-    return runlevel_locations[runlevel].lvl;
-}
-
-ushort map_runlevel_to_seek(const int runlevel)
-{
-    return runlevel_locations[runlevel].seek;
-}
-
 /*
  * Two helpers for runlevel bits and strings.
  */
@@ -1873,7 +1797,7 @@ char * lvl2str(const ushort lvl)
 
     last = ptr = &str[0];
     memset(ptr, '\0', sizeof(str));
-    for (num = 0; num < RUNLEVLES; num++) {
+    for (num = 0; num < RUNLEVELS; num++) {
 	if (bit & lvl) {
 	    if (ptr > last)
 		*ptr++ = ' ';
@@ -1911,7 +1835,7 @@ static void scan_script_locations(const char *const path, const char *const over
     int runlevel;
 
     pushd(path);
-    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
+    for (runlevel = 0; runlevel < RUNLEVELS; runlevel++) {
 	const char * rcd = (char*)0;
 	struct stat st_script;
 	struct dirent *d;
@@ -2189,9 +2113,9 @@ static int cfgfile_filter(const struct dirent *restrict d)
     const char * name = d->d_name;
     const char * end;
 
-    if (*name == '.')
-	goto out;
     if (!name || (*name == '\0'))
+	goto out;
+    if (*name == '.')
 	goto out;
     if ((end = strrchr(name, '.'))) {
 	end++;
@@ -2675,6 +2599,7 @@ static struct option long_options[] =
     {"verbose",	    0, (int*)0, 'v'},
     {"config",	    1, (int*)0, 'c'},
     {"dryrun",	    0, (int*)0, 'n'},
+    {"dry-run",	    0, (int*)0, 'n'},
     {"default",	    0, (int*)0, 'd'},
     {"remove",	    0, (int*)0, 'r'},
     {"force",	    0, (int*)0, 'f'},
@@ -2683,6 +2608,7 @@ static struct option long_options[] =
     {"upstart-job", 1, (int*)0, 'u'},
     {"recursive",   0, (int*)0, 'e'},
     {"showall",	    0, (int*)0, 's'},
+    {"show-all",    0, (int*)0, 's'},
     {"help",	    0, (int*)0, 'h'},
     { 0,	    0, (int*)0,  0 },
 };
@@ -2699,8 +2625,8 @@ static void help(const char *restrict const  name)
     printf("  -p <path>, --path <path>  Path to replace " INITDIR ".\n");
     printf("  -o <path>, --override <path> Path to replace " OVERRIDEDIR ".\n");
     printf("  -c <config>, --config <config>  Path to config file.\n");
-    printf("  -n, --dryrun     Do not change the system, only talk about it.\n");
-    printf("  -s, --showall    Output runlevel and sequence information.\n");
+    printf("  -n, --dry-run     Do not change the system, only talk about it.\n");
+    printf("  -s, --show-all    Output runlevel and sequence information.\n");
     printf("  -u <path>, --upstart-job <path> Path to replace existing upstart job path.\n");
     printf("  -e, --recursive  Expand and enable all required services.\n");
     printf("  -d, --default    Use default runlevels a defined in the scripts\n");
@@ -2715,7 +2641,8 @@ int main (int argc, char *argv[])
     DIR * initdir;
     struct dirent *d;
     struct stat st_script;
-    extension char * argr[argc];
+    /* extension char * argr[argc]; */
+    char * argr[argc]; 
     char * path = INITDIR;
     char * override_path = OVERRIDEDIR;
     char * insconf = INSCONF;
@@ -2863,7 +2790,11 @@ int main (int argc, char *argv[])
 	char * tmp;
 	if (*path != '/') {
 	    char * pwd = getcwd((char*)0, 0);
-	    size_t len = strlen(pwd)+1+strlen(path);
+	    size_t len;
+	    if (NULL == pwd)
+	      error("unable to find current working directory: %s",
+		    strerror(errno));
+	    len = strlen(pwd)+2+strlen(path);
 	    root = (char*)malloc(len);
 	    if (!root)
 		error("%s", strerror(errno));
@@ -2942,32 +2873,10 @@ int main (int argc, char *argv[])
     if (systemd)
 	import_systemd_facilities();
 
-    {
-	list_t *ptr;
-	list_for_each(ptr, sysfaci_start) {
-	    list_t *iptr, *head = &getfaci(ptr)->replace;
-	    printf("%s : ", getfaci(ptr)->name);
-	    np_list_for_each(iptr, head)
-		printf("%s ", getrepl(iptr)->name);
-	    printf("\n");
-	}
-    }
-
     /*
      * Expand system facilities to real services
      */
     expand_conf();
-
-    {
-	list_t *ptr;
-	list_for_each(ptr, sysfaci_start) {
-	    list_t *iptr, *head = &getfaci(ptr)->replace;
-	    printf("%s : ", getfaci(ptr)->name);
-	    np_list_for_each(iptr, head)
-		printf("%s ", getrepl(iptr)->name);
-	    printf("\n");
-	}
-    }
 
     /*
      * Handle Systemd services (<name>.service -> <name>)
@@ -3897,7 +3806,7 @@ int main (int argc, char *argv[])
 #else
 # ifdef SUSE	/* SuSE's SystemV link scheme */
     pushd(path);
-    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
+    for (runlevel = 0; runlevel < RUNLEVELS; runlevel++) {
 	const ushort lvl = map_runlevel_to_lvl(runlevel);
 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
 	const char * rcd = (char*)0;
@@ -4083,7 +3992,7 @@ int main (int argc, char *argv[])
     * approach a new directory halt.d/ whould be an idea.
     */
     pushd(path);
-    for (runlevel = 0; runlevel < RUNLEVLES; runlevel++) {
+    for (runlevel = 0; runlevel < RUNLEVELS; runlevel++) {
 	char nlink[PATH_MAX+1], olink[PATH_MAX+1];
 	const char * rcd = (char*)0;
 	const char * script;
@@ -4138,10 +4047,11 @@ int main (int argc, char *argv[])
 			serv->attr.flags &= ~SERV_ENABLED;
 #  endif /* USE_KILL_IN_BOOT */
 		} else if (del && ignore) {
-		    if (serv && (serv->attr.flags & SERV_ALREADY))
+		    if (serv && (serv->attr.flags & SERV_ALREADY)) {
 			xremove(dfd, d->d_name);
 			if (--serv->attr.ref <= 0)
 			    serv->attr.flags &= ~SERV_ENABLED;
+		    }
 		}
 	    }
 	}
