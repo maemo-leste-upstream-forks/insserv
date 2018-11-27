@@ -1,4 +1,21 @@
 -------------------------------------------------------------------
+Thu Sep 15 16:54:40 CEST 2005 - werner@suse.de
+
+- Add dryrun changes from Petter Reinholdtsen
+- First step for support of traditional SystemV link scheme
+
+-------------------------------------------------------------------
+Wed May 25 17:33:30 CEST 2005 - werner@suse.de
+
+- Include confdir patch from Ludwig Nussel
+- Bounce version to 1.01.0
+
+-------------------------------------------------------------------
+Mon Nov 29 16:32:04 CET 2004 - werner@suse.de
+
+- Add some comments about boot script file names.
+
+-------------------------------------------------------------------
 Thu Nov 25 18:24:35 CET 2004 - werner@suse.de
 
 - Update to 1.00.8 : use correct listing head (bug #48415)

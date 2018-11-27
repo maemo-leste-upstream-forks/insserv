@@ -49,8 +49,8 @@ by reading the comment header of the script, e.g.:
  # Provides:       boot_facility_1 [ boot_facility_2 ...]
  # Required-Start: boot_facility_1 [ boot_facility_2 ...]
  # Required-Stop:  boot_facility_1 [ boot_facility_2 ...]
- # X-UnitedLinux-Should-Start: boot_facility_1 [ boot_facility_2 ...]
- # X-UnitedLinux-Should-Stop:  boot_facility_1 [ boot_facility_2 ...]
+ # Should-Start:   boot_facility_1 [ boot_facility_2 ...]
+ # Should-Stop:    boot_facility_1 [ boot_facility_2 ...]
  # Default-Start:  run_level_1 [ run_level_2 ...]
  # Default-Stop:   run_level_1 [ run_level_2 ...]
  # Description:    multiline_description
@@ -61,8 +61,7 @@ by reading the comment header of the script, e.g.:
 and calculating the dependencies between all scripts.
 Please note, that the
 .BR Required-Stop,
-.\" .BR Should-Stop ,
-.BR X\-UnitedLinux\-Should\-Stop ,
+.BR Should-Stop ,
 and
 .B Default\-Stop
 are ignored in SuSE Linux, because the SuSE boot script concept
@@ -94,7 +93,9 @@ Known runlevels are:
 scans for
 .B System Facilities
 in the configuration file
-.IR /etc/insserv.conf .
+.I /etc/insserv.conf
+and each file in the directory
+.IR /etc/insserv.conf.d/ .
 Each line which begins with
 .B $
 and a following name defines a system facility
@@ -151,6 +152,9 @@ Currently there are only four options for
 .TP
 .BR \-v ,\  \-\-verbose
 Write out what is currently going on.
+.TP
+.BR \-n ,\  \-\-dryrun
+Do not update symlinks.
 .TP
 .BR \-r ,\  \-\-remove
 Remove the listed scripts from all runlevels.
@@ -224,6 +228,37 @@ Service was successfully installed or removed
 Service was not installed or removed
 .RE
 .RS 5
+.SH NOTE
+Please be aware that the following patterns of
+boot script file names will be not accepted by
+.BR insserv:
+.sp 1
+.in +1l
+.nf
+        *.local
+        *.rpm*
+        *.ba*
+        *.old
+        *.new
+        *.save
+        *.swp
+        *.core
+        *~
+.fi
+.in -1l
+.sp 1
+with the wildcard character
+.BR * .
+Beside this all boot script file names beginning with one
+of the following characters
+.sp 1
+.in +1l
+.nf
+        $.#%_+-\\*[]^:()~
+.fi
+.in -1l
+.sp 1
+will be ignored.
 .SH BUGS
 Boot script sometimes misses comments.
 .SH FILES
@@ -232,6 +267,10 @@ Boot script sometimes misses comments.
 configuration file for
 .B insserv
 which defines the LSB System Facilities.
+.TP
+.I /etc/insserv.conf.d/
+directory for further configuration files for declaring
+LSB System Facilities.
 .TP
 .I /etc/init.d/
 path to the SuSE boot script base directory as

@@ -11,8 +11,9 @@ INSCONF  =	/etc/insserv.conf
 #DEBUG	 =	-DDEBUG=1
 #LOOPS	 =	-DIGNORE_LOOPS=1
 DEBUG	 =
+ISSUSE	 =	-DSUSE
 DESTDIR	 =
-VERSION	 =	1.00.8
+VERSION	 =	1.02.0
 DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
 
 #
@@ -32,7 +33,7 @@ else
 endif
 endif
 	 CFLAGS = -Wall $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
-		  -DSUSE -DINITDIR=\"$(INITDIR)\" -DINSCONF=\"$(INSCONF)\" -pipe
+		  $(ISSUSE) -DINITDIR=\"$(INITDIR)\" -DINSCONF=\"$(INSCONF)\" -pipe
 	  CLOOP = -funroll-loops
 	     CC = gcc
 	     RM = rm -f
