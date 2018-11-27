@@ -12,8 +12,9 @@ INSCONF  =	/etc/insserv.conf
 DEBUG	 =
 ISSUSE	 =	-DSUSE
 DESTDIR	 =
-VERSION	 =	1.14.0
+VERSION	 =	1.16.0
 DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
+CFLDBUS	 =	$(shell pkg-config --cflags dbus-1)
 
 #
 # Architecture
@@ -38,6 +39,7 @@ ifdef USE_RPMLIB
 	LDFLAGS += -Wl,--as-needed
 	   LIBS += -lrpm
 endif
+	   LIBS += $(shell pkg-config --libs dbus-1)
 	     CC = gcc
 	     RM = rm -f
 	  MKDIR = mkdir -p
@@ -74,14 +76,17 @@ TODO	=	insserv insserv.8
 
 all:		$(TODO)
 
-insserv:	insserv.o listing.o
+insserv:	insserv.o listing.o systemd.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 listing.o:	listing.c listing.h config.h .system
 	$(CC) $(CFLAGS) $(CLOOP) -c $<
 
-insserv.o:	insserv.c listing.h config.h .system
-	$(CC) $(CFLAGS) $(CLOOP) -c $<
+insserv.o:	insserv.c listing.h systemd.h config.h .system
+	$(CC) $(CFLAGS) $(CLOOP) $(CFLDBUS) -c $<
+
+systemd.o:	systemd.c listing.h systemd.h config.h .system
+	$(CC) $(CFLAGS) $(CLOOP) $(CFLDBUS) -c $<
 
 listing.h:	.system
 
@@ -161,6 +166,8 @@ FILES	= README         \
 	  Makefile       \
 	  listing.c      \
 	  listing.h      \
+	  systemd.c      \
+	  systemd.h      \
 	  insserv.8.in   \
 	  insserv.c      \
 	  insserv.conf   \
@@ -172,6 +179,7 @@ FILES	= README         \
 	  insserv-$(VERSION).lsm
 
 SVLOGIN=$(shell svn info | sed -rn '/Repository Root:/{ s|.*//(.*)\@.*|\1|p }')
+ifeq ($(MAKECMDGOALS),upload)
 override TMP:=$(shell mktemp -d $(PACKAGE)-$(VERSION).XXXXXXXX)
 override TARBALL:=$(TMP)/$(PACKAGE)-$(VERSION).tar.bz2
 override SFTPBATCH:=$(TMP)/$(VERSION)-sftpbatch
@@ -224,4 +232,4 @@ $(TMP)/$(PACKAGE)-$(VERSION): .svn
 	svn export . $@
 	@chmod -R a+r,u+w,og-w $@
 	@find $@ -type d | xargs -r chmod a+rx,u+w,og-w
-
+endif

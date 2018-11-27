@@ -54,6 +54,9 @@ typedef unsigned int uint;
 #ifndef  attribute
 # define attribute(attr)	__attribute__(attr)
 #endif
+#ifndef offsetof
+# define offsetof(type,memb)	__builtin_offsetof(type,memb)
+#endif
 
 /*
  * This is lent from the kernel by e.g. using
@@ -64,8 +67,7 @@ typedef unsigned int uint;
  *
  * on the appropiate architecture (here on i686 for i586).
  */
-static inline void prefetch(const void *restrict x) attribute((used,always_inline));
-static inline void prefetch(const void *restrict x)
+extern inline void attribute((used,__gnu_inline__,always_inline,__artificial__)) prefetch(const void *restrict x)
 {
 #if   defined(__x86_64__)
     asm volatile ("prefetcht0 %0"  :: "m" (*(unsigned long *)x))
@@ -91,6 +93,8 @@ static inline void prefetch(const void *restrict x)
 		  "   \n664:\n"
 		  ".previous"
 		  :: "i" ((0*32+25)), "r" (x))
+#else
+    __builtin_prefetch ((x), 0, 1);
 #endif
     ;
 }
@@ -158,6 +162,18 @@ static inline void delete(list_t *restrict entry)
     initial(entry);
 }
 
+/*
+ * Replace an entry by a new one.
+ */
+static inline void replace(list_t *restrict old, list_t *restrict new) attribute((always_inline,nonnull(1,2)));
+static inline void replace(list_t *restrict old, list_t *restrict new)
+{
+    new->next = old->next;
+    new->next->prev = new;
+    new->prev = old->prev;
+    new->prev->next = new;
+}
+
 static inline void join(list_t *restrict list, list_t *restrict head) attribute((always_inline,nonnull(1,2)));
 static inline void join(list_t *restrict list, list_t *restrict head)
 {
@@ -165,20 +181,38 @@ static inline void join(list_t *restrict list, list_t *restrict head)
 
     if (first != list) {
 	list_t * last = list->prev;
-       	list_t * at = head->next;
+	list_t * at = head->next;
 
-       	first->prev = head;
-       	head->next = first;
+	first->prev = head;
+	head->next = first;
 
-       	last->next = at;
-       	at->prev = last;
+	last->next = at;
+	at->prev = last;
     }
 }
 
-static inline boolean list_empty(list_t *restrict head) attribute((always_inline,nonnull(1)));
-static inline boolean list_empty(list_t *restrict head)
+static inline boolean list_empty(const list_t *restrict const head) attribute((always_inline,nonnull(1)));
+static inline boolean list_empty(const list_t *restrict const head)
 {
      return head->next == head;
+}
+
+static inline void move_head(list_t *restrict entry, list_t *restrict head) attribute((always_inline,nonnull(1,2)));
+static inline void move_head(list_t *restrict entry, list_t *restrict head)
+{
+    list_t * prev = entry->prev;
+    list_t * next = entry->next;
+
+    next->prev = prev;		/* remove enty from old list */
+    prev->next = next;
+
+    prev = head;
+    next = head->next;
+
+    next->prev = entry;		/* and add it at head of new list */
+    entry->next = next;
+    entry->prev = prev;
+    prev->next = entry;
 }
 
 static inline void move_tail(list_t *restrict entry, list_t *restrict head) attribute((always_inline,nonnull(1,2)));
@@ -379,6 +413,9 @@ static inline char * xstrdup(const char *restrict s)
 #define SERV_NOSTOP	0x0100
 #define SERV_CMDLINE	0x0200
 #define SERV_FIRST	0x0400
+#define SERV_ENFORCE	0x0800
+#define SERV_WARNED	0x1000
+#define SERV_SYSTEMD	0x2000
 
 /*
  * Bits of the runlevels
