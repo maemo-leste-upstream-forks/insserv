@@ -6,8 +6,10 @@ Description: rollup of updates to insserv.8:
  * use the package short summary in the manual page too, it mentions the
    keyword "dependency" (Closes: #609655)
 Author: Kel Modderman <kel@otaku42.de>
---- a/insserv.8.in
-+++ b/insserv.8.in
+Index: insserv/insserv.8.in
+===================================================================
+--- insserv.orig/insserv.8.in
++++ insserv/insserv.8.in
 @@ -26,7 +26,7 @@
  .UC 8
  @@END_SUSE@@
@@ -43,14 +45,7 @@ Author: Kel Modderman <kel@otaku42.de>
  @@BEGIN_SUSE@@
  Please note, that the
  .B Default\-Stop
-@@ -456,13 +462,14 @@ with the help of
- @@BEGIN_SUSE@@
- .BR init.d (7),
- @@END_SUSE@@
--.BR init (7),
-+.BR init (8),
- @@BEGIN_SUSE@@
- .BR startproc (8),
+@@ -465,7 +471,8 @@ with the help of
  .BR checkproc (8),
  .BR killproc (8),
  @@END_SUSE@@

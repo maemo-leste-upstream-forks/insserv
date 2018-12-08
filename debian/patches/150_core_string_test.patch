@@ -10,9 +10,11 @@ Description: improve detection of old style core dumps
 Author: Ben Harris <bjh21@cam.ac.uk>
 Bug-Debian: bugs.debian.org/611292
 ---
---- a/insserv.c
-+++ b/insserv.c
-@@ -2768,7 +2768,7 @@ int main (int argc, char *argv[])
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c
++++ insserv/insserv.c
+@@ -3078,7 +3078,7 @@ int main (int argc, char *argv[])
  	    continue;
  	}
  

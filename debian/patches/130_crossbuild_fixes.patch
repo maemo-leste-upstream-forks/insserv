@@ -7,9 +7,11 @@ Description: Separate check from install so checks can be made optional
 Author: Wookey <wookey@linaro.org>
 Last-Update: 2012-04-09
 
---- a/Makefile
-+++ b/Makefile
-@@ -25,20 +25,20 @@ else
+Index: insserv/Makefile
+===================================================================
+--- insserv.orig/Makefile
++++ insserv/Makefile
+@@ -27,13 +27,13 @@ else
  ifeq ($(ARCH),i386)
  	  COPTS = -g -O3 -mcpu=i586 -mtune=i686
  else
@@ -17,23 +19,15 @@ Last-Update: 2012-04-09
 +	  COPTS ?= -g -O2
  endif
  endif
- 	 CFLAGS = -W -Wall $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
- 		  $(ISSUSE) -DINITDIR=\"$(INITDIR)\" -DINSCONF=\"$(INSCONF)\" -pipe
- 	  CLOOP = -falign-loops=0
+ 	 CFLAGS = -W -Wall -Wunreachable-code $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
+ 		  $(ISSUSE) -DINITDIR=\"$(INITDIR)\" -DINSCONF=\"$(INSCONF)\" -pipe 
+ 	  CLOOP = # -falign-loops=0
 -	LDFLAGS = -Wl,-O,3,--relax
 +	LDFLAGS ?= -Wl,-O,3,--relax
  	   LIBS =
  ifdef USE_RPMLIB
  	 CFLAGS += -DUSE_RPMLIB=1
- 	LDFLAGS += -Wl,--as-needed
- 	   LIBS += -lrpm
- endif
--	     CC = gcc
-+	     CC ?= gcc
- 	     RM = rm -f
- 	  MKDIR = mkdir -p
- 	  RMDIR = rm -rf
-@@ -134,7 +134,7 @@ else
+@@ -144,7 +144,7 @@ else
  	tests/common
  endif
  

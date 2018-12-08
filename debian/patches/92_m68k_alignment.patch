@@ -3,11 +3,13 @@ Purpose: Get insserv building on m68k, dropping some problematic
 Fixes:   #493637
 Status:  Not yet submitted upstream.
 ---
---- a/insserv.c
-+++ b/insserv.c
-@@ -53,6 +53,10 @@
- #endif /* SUSE */
+Index: insserv/insserv.c
+===================================================================
+--- insserv.orig/insserv.c
++++ insserv/insserv.c
+@@ -71,6 +71,10 @@
  #include "listing.h"
+ #include "systemd.h"
  
 +#ifdef __m68k__ /* Fix #493637 */
 +#  define aligned(a)
