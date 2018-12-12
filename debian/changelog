@@ -17,6 +17,9 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
   * Add patch to disable systemd integration and remove dbus dependency
   * Drop failing test, concerning script with no LSB header.
   * wrap-and-sort -sta
+  * Fix whitespace errors in following files:
+    + debian/changelog
+    + debian/run-testsuite
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
@@ -157,7 +160,7 @@ insserv (1.14.0-2) unstable; urgency=low
     area of code which other similar defines live.
 
   [ Petter Reinholdtsen ]
-  * Improve the output from make-testsuite. 
+  * Improve the output from make-testsuite.
   * Adjust the test_x_interactive behaviour to make sure it fails with
     a fatal error if X-Interactive: true do not work.
 

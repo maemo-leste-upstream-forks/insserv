@@ -610,7 +610,7 @@ list_rclinks
 
 # #458582
 check_order S startfirst_stopfirst startsecond_stoplast
-check_order 6 startfirst_stopfirst startsecond_stoplast 
+check_order 6 startfirst_stopfirst startsecond_stoplast
 }
 ##########################################################################
 test_badscript() {
@@ -1588,7 +1588,7 @@ rm -f ${initddir}/../outsider
 test_deterministic_order() {
 echo
 echo "info: test two or more initscripts providing same facility, making sure"
-echo "info: that the first script can be registered with insserv, but others fail." 
+echo "info: that the first script can be registered with insserv, but others fail."
 echo
 
 initdir_purge
@@ -1833,7 +1833,7 @@ echo
 echo "info: Check if X-Interactive header work"
 echo "BTS #458224, #580564"
 echo
-  
+
 initdir_purge
 
 # Insert a few scripts to flesh out $initdir
@@ -1900,7 +1900,7 @@ if grep INTERACTIVE ${initddir}/.depend.start | grep -q alone1 &&
     grep INTERACTIVE ${initddir}/.depend.start | grep -q alone1 ; then
     counttest
 else
-    error "scripts alone1 and alone2 are not flagged as interactive" 
+    error "scripts alone1 and alone2 are not flagged as interactive"
 fi
 }
 ##########################################################################
@@ -2100,7 +2100,7 @@ cat > $upstartjob <<EOF
 cat <<END
 ### BEGIN INIT INFO
 # Provides:          upstart-test
-# Required-Start:    
+# Required-Start:
 # Required-Stop:
 # Default-Start:     1
 # Default-Stop:
