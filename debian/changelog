@@ -28,6 +28,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
   * Build-depend on `debhelper-compat' (obsoletes `debian/compat')
   * Update Vcs-* fields in `debian/control'
   * Set mailing list to Maintainer field, add myself to Uploaders list
+  * Do not create obsolete `/etc/bash_completion.d'
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
