@@ -20,6 +20,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
   * Fix whitespace errors in following files:
     + debian/changelog
     + debian/run-testsuite
+  * Update standards version to 4.2.1 (no changes needed)
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 

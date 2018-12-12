@@ -8,7 +8,7 @@ Build-Depends:
  bash-completion,
  debhelper (>= 8),
  po-debconf,
-Standards-Version: 3.9.3
+Standards-Version: 4.2.1
 Homepage: http://savannah.nongnu.org/projects/sysvinit
 Vcs-Svn: svn://svn.debian.org/initscripts-ng/trunk/src/insserv
 Vcs-Browser: http://svn.debian.org/wsvn/initscripts-ng/trunk/src/insserv/
