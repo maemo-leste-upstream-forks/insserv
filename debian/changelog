@@ -29,6 +29,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
   * Update Vcs-* fields in `debian/control'
   * Set mailing list to Maintainer field, add myself to Uploaders list
   * Do not create obsolete `/etc/bash_completion.d'
+  * Do not use absolute path to commands in maintainer script
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
