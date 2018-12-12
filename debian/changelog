@@ -1,4 +1,4 @@
-insserv (1.18.0-1) UNRELEASED; urgency=medium
+insserv (1.18.0-1) unstable; urgency=medium
 
   * New upstream release
   * Update `debian/watch':
@@ -33,7 +33,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
   * Do not set dpkg-architecture variables in `debian/rules'. They
     are managed as apporiate by debhelper.
 
- -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
+ -- Dmitry Bogatov <KAction@debian.org>  Wed, 12 Dec 2018 22:32:47 +0000
 
 insserv (1.14.0-5.4) unstable; urgency=medium
 
