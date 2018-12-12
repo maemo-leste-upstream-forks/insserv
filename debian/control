@@ -1,9 +1,11 @@
 Source: insserv
 Section: misc
 Priority: optional
-Maintainer: Petter Reinholdtsen <pere@debian.org>
+Maintainer: Debian sysvinit maintainers <debian-init-diversity@chiark.greenend.org.uk>
 Uploaders:
  Kel Modderman <kel@otaku42.de>,
+ Dmitry Bogatov <KAction@debian.org>,
+ Petter Reinholdtsen <pere@debian.org>,
 Build-Depends:
  bash-completion,
  debhelper-compat (= 11),

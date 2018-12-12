@@ -24,6 +24,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
   * Update debhelper compat to 11
   * Build-depend on `debhelper-compat' (obsoletes `debian/compat')
   * Update Vcs-* fields in `debian/control'
+  * Set mailing list to Maintainer field, add myself to Uploaders list
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
