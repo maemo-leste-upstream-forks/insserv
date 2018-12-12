@@ -1,7 +1,10 @@
 insserv (1.18.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
-  * Update `debian/watch' to match `xz' archives
+  * Update `debian/watch':
+    + match `xz' upstream archives
+    + bump uscan compat version to 4
+    + use secure protocol
   * Update and refresh patches
     + Drop `10_nosuse.patch' -- upstream now have -DSUSE commented-out
     + Drop `30_interactive_regexp_match_fix.patch' -- applied upstream
