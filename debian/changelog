@@ -15,6 +15,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
     + Refresh `180_MAXSYMLINKS.patch'
     + Refresh `warn_in_ignore_mode.patch'
   * Add patch to disable systemd integration and remove dbus dependency
+  * Drop failing test, concerning script with no LSB header.
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
