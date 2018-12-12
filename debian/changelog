@@ -23,6 +23,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
   * Update standards version to 4.2.1 (no changes needed)
   * Update debhelper compat to 11
   * Build-depend on `debhelper-compat' (obsoletes `debian/compat')
+  * Update Vcs-* fields in `debian/control'
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 
