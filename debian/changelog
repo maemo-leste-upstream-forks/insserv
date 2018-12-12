@@ -21,6 +21,7 @@ insserv (1.18.0-1) UNRELEASED; urgency=medium
     + debian/changelog
     + debian/run-testsuite
   * Update standards version to 4.2.1 (no changes needed)
+  * Update debhelper compat to 11
 
  -- Dmitry Bogatov <KAction@debian.org>  Tue, 27 Nov 2018 19:23:26 +0000
 

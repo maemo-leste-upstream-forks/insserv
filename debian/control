@@ -6,7 +6,7 @@ Uploaders:
  Kel Modderman <kel@otaku42.de>,
 Build-Depends:
  bash-completion,
- debhelper (>= 8),
+ debhelper (>= 11~),
  po-debconf,
 Standards-Version: 4.2.1
 Homepage: http://savannah.nongnu.org/projects/sysvinit
