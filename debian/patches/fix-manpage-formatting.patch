@@ -1,0 +1,446 @@
+>From 53d01b3c74363e9b3b50c9624d3e341a6f647f57 Mon Sep 17 00:00:00 2001
+From: Bjarni Ingi Gislason <bjarniig@rhi.hi.is>
+Date: Sun, 20 Jan 2019 17:14:40 +0000
+Subject: [PATCH] insserv.8.in: Formatting and spelling corrections to the manual
+
+  There are eleven options, not nine.
+
+###
+
+  ".in 1l".  There is no unit with the symbol 'l' (ell).  Changed to 'm'
+as 'l' is interpreted as beeing the default unit 'm' (emm).
+
+###
+
+  Correct spelling: begining -> beginning
+
+###
+
+mandoc: insserv.8.in:117:28: STYLE: whitespace at end of input line
+mandoc: insserv.8.in:141:46: STYLE: whitespace at end of input line
+mandoc: insserv.8.in:22:15: STYLE: normalizing date format to: July 29, 2008
+mandoc: insserv.8.in:25:15: STYLE: normalizing date format to: July 29, 2008
+mandoc: insserv.8.in:378:2: WARNING: empty block: RS
+
+#######
+
+Remove space characters at the end of lines.
+
+117:the service declared in the
+141:services now depend on the specifying script.
+
+#####
+
+<insserv.8.in>:59 (macro RB): only 1 argument, but more are expected
+<insserv.8.in>:62 (macro RB): only 1 argument, but more are expected
+<insserv.8.in>:338 (macro IR): only 1 argument, but more are expected
+<insserv.8.in>:351 (macro IR): only 1 argument, but more are expected
+<insserv.8.in>:353 (macro IR): only 1 argument, but more are expected
+<insserv.8.in>:382 (macro BR): only 1 argument, but more are expected
+an-end-check:<insserv.8.in>: Warning: Nonequal number of .RS and .RE calls, an-RS-open=1 at end of file
+
+####
+
+Change '-' (\-) to '\(en' (en-dash) for a numeric range.
+
+insserv.8.in:470:2000\-2009 Werner Fink,
+insserv.8.in:474:2000\-2003 SuSE GmbH Nuernberg, Germany,
+insserv.8.in:476:2007\-2009 SuSE Linux Products GmbH Nuernberg, Germany.
+
+#####
+
+Reduce space between words.
+
+446:.I  /etc/init.d/.depend.stop
+
+#####
+
+Use the correct macro for the font change of a single argument.
+
+59:.RB /usr/lib/lsb/install_initd
+62:.RB /usr/lib/lsb/remove_initd
+
+#####
+
+Use "\e" to print the escape character instead of "\\" (which gets
+interpreted in copy mode).
+
+410:        $.#%_+-\\*[]^:()~
+
+#####
+
+Test nr. 21:
+
+Use a macro to change to the italic font, instead of \fI [1], if
+possible.
+The macros have the italic corrections, but "\c" removes them.
+
+147:directories (see \fI init.d\fR (7)).
+
+#####
+
+Add a comma (or \&) after "e.g." and "i.e.", or use English words
+(man-pages(7) [package "manpages"]).
+
+223:as an interactive one, e.g. a service which requires
+
+#####
+
+Wrong distance between sentences or protect the indicator.
+
+a) Separate the sentences and subordinate clauses; each begins on a new
+line.  See man-pages(7) [package "manpages"] and "info groff".
+
+Or
+
+b) Adjust space between sentences (two spaces),
+
+c) or protect the indicator by adding "\&" after it.
+
+The "indicator" is an "end-of-sentence character" (.!?).
+
+  The amount of space in the output can then be controlled with the
+".ss" request.
+
+119:tag. In both cases the script system should avoid stopping services
+140:the specified service names. Both implies that those
+223:as an interactive one, e.g. a service which requires
+274:Output runlevel and sequence information. Do not update symlinks.
+284:Ignore if a required service is missed. Beside this if start and or
+321:the runlevels. If a path is used it
+343:the runlevels. If a path is used it
+416:Boot scripts sometimes lack a LSB comment header. Contact a package
+
+#####
+
+Split a punctuation mark from a single argument for a two-fonts marco
+
+382:.BR insserv:
+Signed-off-by: Bjarni Ingi Gislason <bjarniig@rhi.hi.is>
+
+#####
+---
+ insserv.8.in | 92 +++++++++++++++++++++++++++-------------------------
+ 1 file changed, 47 insertions(+), 45 deletions(-)
+
+diff --git a/insserv.8.in b/insserv.8.in
+index 771d74b..f152574 100644
+--- a/insserv.8.in
++++ b/insserv.8.in
+@@ -19,10 +19,10 @@
+ .\" Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ .\"
+ @@BEGIN_SUSE@@
+-.TH INSSERV 8 "Jul 29, 2008" "Version 1.11" "The SuSE boot concept"
++.TH INSSERV 8 "July 29, 2008" "Version 1.11" "The SuSE boot concept"
+ .UC 8
+ @@ELSE_SUSE@@
+-.TH INSSERV 8 "Jul 29, 2008" "Version 1.11"
++.TH INSSERV 8 "July 29, 2008" "Version 1.11"
+ .UC 8
+ @@END_SUSE@@
+ .SH NAME
+@@ -37,12 +37,14 @@ insserv \- Enable an installed system init script
+ .RB [ \-f ]
+ .RI [[ / ] path/to/init.d/ ] script \ ...
+ .PP
++.ad l
+ .B insserv
+ .RB [ \-v ]
+ .RB [ \-c\ <config> ]
+ .RB [ \-p\ <path> ]
+ .RI [[ / ] path/to/init.d/ ] script [ ,start=<lvl1,lvl2,...>,stop=<lvl1,lvl2,...> ]
+ .PP
++.ad
+ .B insserv
+ .RB [ \-v ]
+ .RB [ \-c\ <config> ]
+@@ -56,10 +58,10 @@ insserv \- Enable an installed system init script
+ .B \-h
+ .PP
+ @@BEGIN_SUSE@@
+-.RB /usr/lib/lsb/install_initd
++.B /usr/lib/lsb/install_initd
+ .RI [[ / ] path/to/init.d/script ]
+ .PP
+-.RB /usr/lib/lsb/remove_initd
++.B /usr/lib/lsb/remove_initd
+ .RI [[ / ] path/to/init.d/script ]
+ @@END_SUSE@@
+ .SH DESCRIPTION
+@@ -67,7 +69,7 @@ insserv \- Enable an installed system init script
+ enables an installed system init script (`boot script')
+ by reading the comment header of the script, e.g.:
+ .sp 1
+-.in +1l
++.in +1m
+ .nf
+  ### BEGIN INIT INFO
+  # Provides:          boot_facility_1 [ boot_facility_2 ...]
+@@ -84,7 +86,7 @@ by reading the comment header of the script, e.g.:
+  # Description:       multiline_description
+  ### END INIT INFO
+ .fi
+-.in -1l
++.in -1m
+ .sp 1
+ and calculating the dependencies between all scripts.
+ @@BEGIN_SUSE@@
+@@ -92,31 +94,31 @@ Please note, that the
+ .B Default\-Stop
+ are ignored in SuSE Linux, because the SuSE boot script concept
+ uses a differential link scheme (see
+-.IR init.d (7)).
++.BR init.d (7)).
+ @@ELSE_SUSE@@
+ Please be aware that the line
+ .sp 1
+-.in +1l
++.in +1m
+ .nf
+  # Required-Stop:  boot_facility_1 [ boot_facility_2 ...]
+ .fi
+-.in -1l
++.in -1m
+ .sp 1
+ declares facilities which must be available during shutdown of the service
+ declared in the
+ .B Provides
+ tag.  Same holds true for
+ .sp 1
+-.in +1l
++.in +1m
+ .nf
+  # Should-Stop:    boot_facility_1 [ boot_facility_2 ...]
+ .fi
+-.in -1l
++.in -1m
+ .sp 1
+ which declares facilities which should be available during shutdown of
+-the service declared in the 
++the service declared in the
+ .B Provides
+-tag. In both cases the script system should avoid stopping services
++tag.  In both cases the script system should avoid stopping services
+ which are declared by these two Stop tags until the script including
+ these tags is stopped.
+ @@END_SUSE@@
+@@ -137,21 +139,22 @@ Whereas the optional
+ keyword implies that the script using this keyword
+ should be stopped
+ .B after
+-the specified service names. Both implies that those
+-services now depend on the specifying script. 
++the specified service names.  Both implies that those
++services now depend on the specifying script.
+ With known dependencies and runlevel(s)
+ .B insserv
+ sets and reorders the corresponding symbolic links
+ of the concerned runlevels
+ @@BEGIN_SUSE@@
+-directories (see \fI init.d\fR (7)).
++directories (see
++.BR init.d (7)).
+ @@ELSE_SUSE@@
+ directories.
+ @@END_SUSE@@
+ @@BEGIN_SUSE@@
+ Known runlevels are:
+ .sp 1
+-.in +1l
++.in +1m
+ .nf
+  \fB0\fR\   used for System halt
+  \fB1\fR\   used for single user mode
+@@ -163,7 +166,7 @@ Known runlevels are:
+  \fBS\fR\   used during boot into single user mode
+  \fBB\fR\   used during boot before any other runlevel
+ .fi
+-.in -1l
++.in -1m
+ .sp 1
+ @@END_SUSE@@
+ .PP
+@@ -183,7 +186,7 @@ will declare the required dependencies of the facility.
+ Here is an example for
+ .IR /etc/insserv.conf :
+ .sp 1
+-.in +1l
++.in +1m
+ .nf
+  # All local filesystems are mounted
+  # (done during boot phase)
+@@ -208,7 +211,7 @@ Here is an example for
+  # Services which need to be interactive
+  <interactive>   boot.crypto
+ .fi
+-.in -1l
++.in -1m
+ .sp 1
+ Names starting with a `+' sign are marked as optional.
+ If the service with the name after the plus sign is
+@@ -220,7 +223,7 @@ and ending with
+ are keywords.  Currently
+ .B <interactive>
+ is the only know keyword for marking a service
+-as an interactive one, e.g. a service which requires
++as an interactive one, e.g., a service which requires
+ a passphrase or password input during boot
+ or runlevel change.  The special facility
+ .B $null
+@@ -244,12 +247,12 @@ in the configuration file
+ also knows the special facility
+ .BR $all .
+ This facility indicates that a service should be inserted
+-at the end of all services at starting and at the very begining
++at the end of all services at starting and at the very beginning
+ at stopping.  Clearly all services using this facility will be
+ grouped into one starting or stopping order.
+ .\"
+ .SH OPTIONS
+-Currently there exists nine options for
++Currently there exists eleven options for
+ .BR insserv .
+ .TP
+ .BR \-v ,\  \-\-verbose
+@@ -271,7 +274,7 @@ Specify path to init.d directory.  Useful for testing.
+ Do not update symlinks.
+ .TP
+ .BR \-s ,\  \-\-showall, \ \-\-show\-all
+-Output runlevel and sequence information. Do not update symlinks.
++Output runlevel and sequence information.  Do not update symlinks.
+ .TP
+ .BR \-r ,\  \-\-remove
+ Remove the listed scripts from all runlevels.
+@@ -281,7 +284,7 @@ Use default runlevels as defined in the scripts.
+ This may restore an edited runlevel link scheme.
+ .TP
+ .BR \-f ,\  \-\-force
+-Ignore if a required service is missed. Beside this if start and or
++Ignore if a required service is missed.  Beside this if start and or
+ stop levels are specified on the command line the default levels of
+ the script will be ignored.
+ .TP
+@@ -318,7 +321,7 @@ has to be called from the root directory.
+ .TP
+ .RI [[ / ] path/to/init.d/ ] script\ ...
+ List of scripts which have to be added to
+-the runlevels. If a path is used it
++the runlevels.  If a path is used it
+ should point to the absolute or relative
+ location of the boot scripts.
+ .B insserv
+@@ -335,12 +338,12 @@ Note that
+ .BR lvl1 ,\  lvl2 ,\ ...
+ are the known runlevels explained above.
+ The extension
+-.IR ,stop=<lvl1,lvl2,...>
++.I ,stop=<lvl1,lvl2,...>
+ is also possible.
+ .TP
+ .RI \fB\-r\fR\ [[ / ] path/to/init.d/ ] script\ ...
+ List of scripts which should be removed from
+-the runlevels. If a path is used it
++the runlevels.  If a path is used it
+ should point to the absolute or relative
+ location of the boot scripts.
+ .B insserv
+@@ -348,9 +351,9 @@ checks for the existence of these scripts.
+ .\"
+ .SH OVERRIDES
+ Beside using the extensions
+-.IR ,start=<lvl1,lvl2,...>
++.I ,start=<lvl1,lvl2,...>
+ and
+-.IR ,stop=<lvl1,lvl2,...>
++.I ,stop=<lvl1,lvl2,...>
+ it is possible to use override files replace a LSB comment header
+ or simple provide a missing LSB comment header.  This can be done
+ by placing a file with the new LSB comment header using the same
+@@ -375,13 +378,12 @@ Service was successfully installed or removed
+ .IP 1 5
+ Service was not installed or removed
+ .RE
+-.RS 5
+ .SH NOTE
+ Please be aware that the following patterns of
+ boot script file names will be not accepted by
+-.BR insserv:
++.BR insserv :
+ .sp 1
+-.in +1l
++.in +1m
+ .nf
+ @@BEGIN_SUSE@@
+         *.local
+@@ -398,22 +400,22 @@ boot script file names will be not accepted by
+         *.core
+         *~
+ .fi
+-.in -1l
++.in -1m
+ .sp 1
+ with the wildcard character
+ .BR * .
+ Beside this all boot script file names beginning with one
+ of the following characters
+ .sp 1
+-.in +1l
++.in +1m
+ .nf
+-        $.#%_+-\\*[]^:()~
++        $.#%_+-\e*[]^:()~
+ .fi
+-.in -1l
++.in -1m
+ .sp 1
+ will be ignored.
+ .SH BUGS
+-Boot scripts sometimes lack a LSB comment header. Contact a package
++Boot scripts sometimes lack a LSB comment header.  Contact a package
+ maintainer or developer of the software which provides the script to
+ have a LSB comment header added to it.
+ .SH FILES
+@@ -443,8 +445,8 @@ required by the Linux Standard Base Specification (LSB).
+ .br
+ .IR /etc/init.d/.depend.start ,
+ .br
+-.I  /etc/init.d/.depend.stop
+-.in +7
++.I /etc/init.d/.depend.stop
++.in +\n(INu
+ The
+ .BR make (1)
+ like dependency files produced by
+@@ -453,7 +455,7 @@ for
+ .IR booting ", " starting ", and " stopping
+ with the help of
+ .BR startpar (8).
+-.in -7
++.in -\n(INu
+ .\"
+ .SH SEE ALSO
+ @@BEGIN_SUSE@@
+@@ -467,15 +469,15 @@ with the help of
+ @@END_SUSE@@
+ .BR startpar (8).
+ .SH COPYRIGHT
+-2000\-2009 Werner Fink,
++2000\(en2009 Werner Fink,
+ .br
+ 2009 SuSE Linux Products GmbH Nuernberg, Germany.
+ .br
+-2000\-2003 SuSE GmbH Nuernberg, Germany,
++2000\(en2003 SuSE GmbH Nuernberg, Germany,
+ .br
+-2007\-2009 SuSE Linux Products GmbH Nuernberg, Germany.
++2007\(en2009 SuSE Linux Products GmbH Nuernberg, Germany.
+ .br
+-2018\-     Jesse Smith
++2018\(en     Jesse Smith
+ .SH AUTHOR
+ Werner Fink <feedback@suse.de>
+ .SH CONTRIBUTORS
+-- 
+2.20.1
+

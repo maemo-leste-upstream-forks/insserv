@@ -1,3 +1,4 @@
+fix-manpage-formatting.patch
 11_debian_conf.patch
 20_manpage_spelling.patch
 21_tweak_warnings.patch

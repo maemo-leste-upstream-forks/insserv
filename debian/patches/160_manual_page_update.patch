@@ -19,7 +19,7 @@ Index: insserv/insserv.8.in
  .SH SYNOPSIS
  .\"
  .B insserv
-@@ -64,8 +64,10 @@ insserv \- Enable an installed system in
+@@ -66,8 +66,10 @@ insserv \- Enable an installed system in
  @@END_SUSE@@
  .SH DESCRIPTION
  .B insserv
@@ -30,11 +30,11 @@ Index: insserv/insserv.8.in
 +which enables an installed system
 +init script (`boot script') by reading the comment header of the script, e.g.:
  .sp 1
- .in +1l
+ .in +1m
  .nf
-@@ -86,7 +88,11 @@ by reading the comment header of the scr
+@@ -88,7 +90,11 @@ by reading the comment header of the scr
  .fi
- .in -1l
+ .in -1m
  .sp 1
 -and calculating the dependencies between all scripts.
 +and calculating the dependencies between all scripts. It is not recommended to
@@ -45,7 +45,7 @@ Index: insserv/insserv.8.in
  @@BEGIN_SUSE@@
  Please note, that the
  .B Default\-Stop
-@@ -465,7 +471,8 @@ with the help of
+@@ -467,7 +473,8 @@ with the help of
  .BR checkproc (8),
  .BR killproc (8),
  @@END_SUSE@@
@@ -53,5 +53,5 @@ Index: insserv/insserv.8.in
 +.BR startpar (8),
 +.BR update\-rc.d (8).
  .SH COPYRIGHT
- 2000\-2009 Werner Fink,
+ 2000\(en2009 Werner Fink,
  .br
