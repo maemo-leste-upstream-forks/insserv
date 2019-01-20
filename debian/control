@@ -10,7 +10,7 @@ Build-Depends:
  bash-completion,
  debhelper-compat (= 11),
  po-debconf,
-Standards-Version: 4.2.1
+Standards-Version: 4.3.0
 Homepage: http://savannah.nongnu.org/projects/sysvinit
 Vcs-Browser: https://salsa.debian.org/debian/insserv
 Vcs-Git: https://salsa.debian.org/debian/insserv.git
