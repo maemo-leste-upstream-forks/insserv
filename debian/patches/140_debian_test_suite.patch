@@ -8,10 +8,10 @@ Subject: Execute the Debian test suite on `make check'.
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/Makefile b/Makefile
-index 7d0c2bb..17f1d0f 100644
+index d4c991b..15ea28e 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -141,7 +141,8 @@ ifeq ($(ISSUSE),-DSUSE)
+@@ -148,7 +148,8 @@ ifeq ($(ISSUSE),-DSUSE)
  	issuse=true tests/common
  #	issuse=true tests/suse
  else
@@ -20,4 +20,4 @@ index 7d0c2bb..17f1d0f 100644
 +	debian/run-testsuite
  endif
  
- install:	$(TODO)
+ install:	$(TODO) 

@@ -2,6 +2,16 @@ insserv (1.19.0-1) UNRELEASED; urgency=medium
 
   * New upstream release
     (Closes: #573571, #775912, #661314, #547717, #547609, #601054)
+  * Drop patches, applied upstream; refresh rest. Patches applied upstream:
+    + 92_m68k_alignment.patch
+    + 130_crossbuild_fixes.patch
+    + 150_core_string_test.patch
+    + 21_tweak_warnings.patch
+    + 180_MAXSYMLINKS.patch
+    + remove-systemd-integration.patch
+    + 160_manual_page_update.patch
+    + 20_manpage_spelling.patch
+    + fix-manpage-formatting.patch
 
  -- Dmitry Bogatov <KAction@debian.org>  Fri, 05 Apr 2019 20:11:47 +0000
 
