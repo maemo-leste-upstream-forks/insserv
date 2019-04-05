@@ -1,3 +1,56 @@
+November 2018 - jsmith@resonatingmedia.com
+
+- Applied distro-independent patches from Debian to
+  upstream code and manual page.
+  Mostly introduces typo fixes and more flexible
+  Makefile options.
+  The following patches are no longer needed downstream:
+  20_manpage_spelling
+  21_tweak_warnings
+  30_interactive_regexp_match
+  92_m68k_alignment
+  100_show
+  130_crossbuild_fixes
+  150_core_string_test
+  160_manual_page_update
+  170_undeclared_extension
+  180_maxsymlinks
+
+- Minor update to manual page to fix typo.
+- Added patch from Dmitry Bogatov which makes communicating
+  with D-bus optional at compile time. This feature is
+  enabled by compiling with WANT_SYSTEMD defined.
+- Migrated Debian testsuite into the "tests" directory.
+- Fixed typo in warning messages.
+- Cause Makefile to create link needed for testing in "tests"
+  directory when building insserv. Running distclean removes
+  link to avoid cluttering archive.
+- Fixed pushd() and popd() functions to avoid terminating insserv
+  if the current working directory is inaccessible.
+  Fixes Debian bugs #573571 and #785687.
+- Updated warning message insserv disables when an init.d script
+  is not executable, to better indicate the script will not
+  be enabled at boot/entering runlevel.
+  Closes Debian bug 661314.
+- Applied patch from Bloeslaw Tokarski which should improve
+  performance of insserv in some cases by bypassing unnecessary
+  some fadvise calls.
+  Closes Debian bug #775912
+- Updated manual page with format changes. Applied
+  patch from Bjarni Ingi Gislason which closes Debian
+  bug #919610
+- Applied two new memory checks to avoid potential segfault.
+- Print full path names when giving status updates on creating
+  (or failing to create) files such as .depend.boot, .depend.start
+  and .depend.stop.
+  Addresses Debian bug #547609
+- Minor fix to Makefile to make sure it cleans up after
+  creating tarball.
+- Added patch to make automated builds not require re-building source
+  on Debian. (Patch provided by Helmut.)
+  Closes Debian bug #922870
+
+
 -------------------------------------------------------------------
 October 2018 - jsmith@resonatingmedia.com
 

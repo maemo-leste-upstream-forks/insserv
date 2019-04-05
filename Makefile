@@ -12,7 +12,7 @@ INSCONF  =	/etc/insserv.conf
 DEBUG	 =
 #ISSUSE	 =	-DSUSE
 DESTDIR	 =
-VERSION	 =	1.18.0
+VERSION	 =	1.19.0
 TARBALL  =	$(PACKAGE)-$(VERSION).tar.xz
 DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
 CFLDBUS	 =	$(shell pkg-config --cflags dbus-1)
@@ -27,13 +27,13 @@ else
 ifeq ($(ARCH),i386)
 	  COPTS = -g -O3 -mcpu=i586 -mtune=i686
 else
-	  COPTS = -g -O2
+	  COPTS ?= -g -O2
 endif
 endif
 	 CFLAGS = -W -Wall -Wunreachable-code $(COPTS) $(DEBUG) $(LOOPS) -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 \
 		  $(ISSUSE) -DINITDIR=\"$(INITDIR)\" -DINSCONF=\"$(INSCONF)\" -pipe 
 	  CLOOP = # -falign-loops=0
-	LDFLAGS = -Wl,-O,3,--relax
+	LDFLAGS ?= -Wl,-O,3,--relax
 	   LIBS =
 ifdef USE_RPMLIB
 	 CFLAGS += -DUSE_RPMLIB=1
@@ -76,6 +76,7 @@ endif
 TODO	=	insserv insserv.8
 
 all:		$(TODO)
+	$(LINK) ../insserv tests/insserv
 
 insserv:	insserv.o listing.o systemd.o map.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
@@ -113,16 +114,22 @@ insserv.8:	insserv.8.in .system
 	sed -r '\!@@BEGIN_SUSE@@!,\!@@(ELSE|END)_SUSE@@!d;\!@@(NOT|END)_SUSE@@!d' < $< > $@
 endif
 
-.system:	SYSTEM=$(shell cat .system 2> /dev/null)
-.system:	.force
-	@test "$(SYSTEM)" = "$(ISSUSE)$(DEBUG)" || echo "$(ISSUSE)$(DEBUG)" > .system
+ifneq ($(shell cat .system 2>/dev/null),$(ISSUSE)$(DEBUG))
+.system-changed = yes
+endif
+.system:	$(if $(.system-changed),.force)
+	@echo "$(ISSUSE)$(DEBUG)" > .system
 
 .force:
 
-.PHONY:		clean distclean
-distclean: clean
 clean:
 	$(RM) *.o *~ $(TODO) config.h .depend.* .system
+
+distclean: clean
+	rm -f $(TARBALL) $(TARBALL).sig
+	rm -f tests/insserv
+	rm -f insserv/
+
 
 ifneq ($(MAKECMDGOALS),clean)
 
@@ -144,7 +151,7 @@ else
 	tests/common
 endif
 
-install:	$(TODO) check
+install:	$(TODO) 
 	$(MKDIR)   $(SBINDIR)
 	$(MKDIR)   $(SDOCDIR)
 	$(MKDIR)   $(CONFDIR)
@@ -213,18 +220,15 @@ upload: $(SFTPBATCH)
 	rm -rf $(TMP)
 
 dist: $(TARBALL).sig
-
+	$(RM) -rf insserv/
 
 $(TARBALL).sig: $(TARBALL)
 	@gpg -q -ba --use-agent -o $@ $<
 
-$(TARBALL): clean
+$(TARBALL): distclean
 	mkdir -p insserv/tests
 	cp $(FILES) insserv/
 	cp tests/* insserv/tests/
 	@tar --xz --owner=nobody --group=nobody -cf $(TARBALL) insserv/
 	rm -rf insserv
-
-distclean: clean
-	rm -f $(TARBALL) $(TARBALL).sig
 

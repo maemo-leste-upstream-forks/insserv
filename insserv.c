@@ -71,6 +71,10 @@
 #include "listing.h"
 #include "systemd.h"
 
+#ifdef __m68k__ /* Fix #493637 */
+#  define aligned(a)
+#endif
+
 #if defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) >= 600
 # ifndef POSIX_FADV_SEQUENTIAL
 #  define posix_fadvise(fd, off, len, adv)  (-1)
@@ -83,6 +87,10 @@
 # else
 #  define PATH_MAX  2048
 # endif
+#endif
+
+#ifndef MAXSYMLINKS
+#define MAXSYMLINKS 20
 #endif
 
 #ifdef SUSE
@@ -118,8 +126,11 @@ static inline void oneway(char *restrict stop)
 /* Upstart suport */
 static const char *upstartjob_path = "/lib/init/upstart-job";
 
+#ifdef WANT_SYSTEMD
 /* Systemd support */
 static DBusConnection *sbus;
+
+#endif /* WANT_SYSTEMD */
 
 /*
  * For a description of regular expressions see regex(7).
@@ -174,8 +185,10 @@ static boolean set_override = false;
 static boolean set_insconf = false;
 
 /* Wether systemd is active or not */
+#if WANT_SYSTEMD
 static boolean systemd = false;
 static boolean is_overridden_by_systemd(const char *);
+#endif /* WANT_SYSTEMD */
 
 /* Search results points here */
 typedef struct lsb_struct {
@@ -238,14 +251,12 @@ static void pushd(const char *restrict const path)
 
     if (posix_memalign((void*)&dir, sizeof(void*), alignof(pwd_t)) == 0) {
 	if (!(dir->pwd = getcwd((char*)0, 0)))
-	    goto err;
-	insert(&dir->deep, topd->prev);
+           fprintf(stderr, "pushd() cannot save current working directory.\n");
+	else
+           insert(&dir->deep, topd->prev);
 	if (chdir(path) < 0)
-	    goto err;
-	return;
+           error("pushd() cannot change to directory %s: %s\n", path, strerror(errno) );
     }
-err:
-    error ("pushd() can not change to directory %s: %s\n", path, strerror(errno));
 }
 
 static void popd(void)
@@ -253,15 +264,24 @@ static void popd(void)
     pwd_t * dir;
 
     if (list_empty(topd))
-	goto out;
-    dir = getpwd(topd->prev);
-    if (chdir(dir->pwd) < 0)
-	error ("popd() can not change directory %s: %s\n", dir->pwd, strerror(errno));
-    delete(topd->prev);
-    free(dir->pwd);
-    free(dir);
-out:
-    return;
+	return;
+    if (topd->prev)
+    {
+       dir = getpwd(topd->prev);
+       if (! dir->pwd)
+       {
+          fprintf(stderr, "popd() previous directory does not exist in memory.\n");
+          return;
+       }
+       if (chdir(dir->pwd) < 0)
+       {
+   	   fprintf(stderr, "popd() can not change directory %s: %s\n", dir->pwd, strerror(errno) );
+           return;
+       }
+       delete(topd->prev);
+       free(dir->pwd);
+       free(dir);
+   }
 }
 
 /*
@@ -787,28 +807,30 @@ static inline void makedep(void)
 #endif /* USE_KILL_IN_BOOT */
     const char *target;
     const service_t *serv;
+    char current_dir[PATH_MAX];
 
+    getcwd(current_dir, PATH_MAX);
     if (dryrun) {
 #ifdef USE_KILL_IN_BOOT
-	info(1, "dryrun, not creating .depend.boot, .depend.start, .depend.halt, and .depend.stop\n");
+	info(1, "dryrun, not creating .depend.boot, .depend.start, .depend.halt, and .depend.stop in %s/\n", current_dir);
 #else  /* not USE_KILL_IN_BOOT */
-	info(1, "dryrun, not creating .depend.boot, .depend.start, and .depend.stop\n");
+	info(1, "dryrun, not creating .depend.boot, .depend.start, and .depend.stop in %s/\n", current_dir);
 #endif /* not USE_KILL_IN_BOOT */
 	return;
     }
     if (!(boot  = fopen(".depend.boot",  "w"))) {
-	warn("fopen(.depend.stop): %s\n", strerror(errno));
+	warn("fopen(%s/.depend.boot): %s\n", current_dir, strerror(errno));
 	return;
     }
 
     if (!(start = fopen(".depend.start", "w"))) {
-	warn("fopen(.depend.start): %s\n", strerror(errno));
+	warn("fopen(%s/.depend.start): %s\n", current_dir, strerror(errno));
 	fclose(boot);
 	return;
     }
 
-    info(1, "creating .depend.boot\n");
-    info(1, "creating .depend.start\n");
+    info(1, "creating %s/.depend.boot\n", current_dir);
+    info(1, "creating %s/.depend.start\n", current_dir);
 
     lsort('S');					/* Sort into start order, set new sorder */
 
@@ -957,22 +979,22 @@ static inline void makedep(void)
     fclose(start);
 
     if (!(stop  = fopen(".depend.stop",  "w"))) {
-	warn("fopen(.depend.stop): %s\n", strerror(errno));
+	warn("fopen(%s/.depend.stop): %s\n", current_dir, strerror(errno));
 	return;
     }
 
 #ifdef USE_KILL_IN_BOOT
     if (!(halt = fopen(".depend.halt", "w"))) {
-	warn("fopen(.depend.start): %s\n", strerror(errno));
+	warn("fopen(%s/.depend.start): %s\n", current_dir, strerror(errno));
 	fclose(stop);
 	return;
     }
 
-    info(1, "creating .depend.halt\n");
+    info(1, "creating %s/.depend.halt\n", current_dir);
 #endif /* USE_KILL_IN_BOOT */
-    info(1, "creating .depend.stop\n");
+    info(1, "creating %s/.depend.stop\n", current_dir);
 
-    lsort('K');					/* Sort into stop order, set new korder */
+    lsort('K');				/* Sort into stop order, set new korder */
 
     target = (char*)0;
     fprintf(stop, "TARGETS =");
@@ -1702,6 +1724,7 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
     }
 #endif /* SUSE */
 
+#ifdef WANT_SYSTEMD
     if (systemd) {
 	const char *serv;
 	serv = path;
@@ -1711,6 +1734,7 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
 	    ret |= FOUND_LSB_SYSTEMD;
 	}
     }
+#endif /* WANT_SYSTEMD */
 
     if (NULL != (upstart_job = is_upstart_job(path))) {
 	xreset(upstart_job);
@@ -1858,7 +1882,7 @@ static void scan_script_locations(const char *const path, const char *const over
 	    char * name = (char *)0;
 	    char * ptr = d->d_name;
 	    service_t * first;
-	    char * begin;		/* Remember address of ptr handled by strsep() */
+	    char * begin;	/* Remember address of ptr handled by strsep() */
 	    char order;
 	    uchar lsb;
 	    char type;
@@ -1878,7 +1902,7 @@ static void scan_script_locations(const char *const path, const char *const over
 		continue;
 	    }
 
-	    lsb = scan_script_defaults(dfd, d->d_name, override_path, &name, true, ignore);
+	    lsb = scan_script_defaults(dfd, d->d_name, override_path, &name, false, ignore);
 	    if (!name) {
 		warn("warning: script is corrupt or invalid: %s/%s%s\n", path, rcd, d->d_name);
 		continue;
@@ -1918,7 +1942,7 @@ static void scan_script_locations(const char *const path, const char *const over
 		if (!makeprov(service, name))
 		    continue;
 
-		++service->attr.ref;			/* May enabled in several levels */
+		++service->attr.ref;		/* May enabled in several levels */
 
 		if (service->attr.flags & SERV_KNOWN)
 		    continue;
@@ -1929,7 +1953,7 @@ static void scan_script_locations(const char *const path, const char *const over
 
 		if ((lsb & FOUND_LSB_HEADER) == 0) {
 		    if ((lsb & (FOUND_LSB_DEFAULT|FOUND_LSB_OVERRIDE)) == 0)
-		      warn("warning: script '%s' missing LSB tags and overrides\n", d->d_name);
+		        warn("warning: script '%s' missing LSB tags and overrides\n", d->d_name);
 		    else
   		        warn("warning: script '%s' missing LSB tags\n", d->d_name);
 		}
@@ -2193,6 +2217,7 @@ static void scan_conf(const char *restrict file)
     regfree(&creg.isactive);
 }
 
+#ifdef WANT_SYSTEMD
 /*
  * Maps between systemd and SystemV
  */
@@ -2209,6 +2234,9 @@ static const char* sdmap[] = {
     "localfs",		"boot.localfs"
 };
 
+#endif /* WANT_SYSTEMD */
+
+#ifdef WANT_SYSTEMD
 /*
  *  Here the systemd targets are imported as system facilities 
  */
@@ -2343,6 +2371,8 @@ static void import_systemd_services(void)
 	}
     }
 }
+
+#endif /* WANT_SYSTEMD */
 
 static void expand_faci(list_t *restrict rlist, list_t *restrict head,
 			int *restrict deep) attribute((noinline,nonnull(1,2,3)));
@@ -2538,6 +2568,8 @@ out:
 }
 #endif /* SUSE */
 
+#ifdef WANT_SYSTEMD
+
 /*
  * Systemd integration
  */
@@ -2593,6 +2625,8 @@ static void forward_to_systemd (const char *initscript, const char *verb, boolea
 	free (p);
     }
 }
+
+#endif /* WANT_SYSTEMD */
 
 static struct option long_options[] =
 {
@@ -2852,6 +2886,7 @@ int main (int argc, char *argv[])
     /*
      * Systemd support
      */
+#ifdef WANT_SYSTEMD
     if (access(SYSTEMD_BINARY_PATH, F_OK) == 0 && (sbus = systemd_open_conn())) {
 
 	for (c = 0; c < argc; c++)
@@ -2861,23 +2896,27 @@ int main (int argc, char *argv[])
 	systemd_close_conn(sbus);
 	systemd = true;
     }
+#endif /* WANT_SYSTEMD */
 
     /*
      * Scan and set our configuration for virtual services.
      */
     scan_conf(insconf);
 
+#ifdef WANT_SYSTEMD
     /*
      * Handle Systemd target as system facilities (<name>.target -> $<name>)
      */
     if (systemd)
 	import_systemd_facilities();
+#endif
 
     /*
      * Expand system facilities to real services
      */
     expand_conf();
 
+#ifdef WANT_SYSTEMD
     /*
      * Handle Systemd services (<name>.service -> <name>)
      */
@@ -2885,6 +2924,7 @@ int main (int argc, char *argv[])
 	import_systemd_services();
 	systemd_free();		/* Not used anymore */
     }
+#endif
 
     /*
      * Initialize the regular scanner for the scripts.
@@ -2926,7 +2966,7 @@ int main (int argc, char *argv[])
 	const char *const name = argv[c];
 	service_t * first = (service_t*)0;
 	char * provides, * begin, * token;
-	const uchar lsb = scan_script_defaults(dfd, name, override_path, (char**)0, true, ignore);
+	const uchar lsb = scan_script_defaults(dfd, name, override_path, (char**)0, false, ignore);
 
 	if ((lsb & FOUND_LSB_HEADER) == 0) {
 	    if ((lsb & (FOUND_LSB_DEFAULT|FOUND_LSB_OVERRIDE)) == 0)
@@ -3021,7 +3061,7 @@ int main (int argc, char *argv[])
 	    if (S_ISDIR(st_script.st_mode))
 		continue;
 	    if (isarg)
-		warn("script %s is not an executable regular file, skipped!\n", d->d_name);
+		warn("script %s is not an executable file, will be skipped in boot sequence!\n", d->d_name);
 	    continue;
 	}
 
@@ -3056,7 +3096,7 @@ int main (int argc, char *argv[])
 		if (S_ISDIR(st_script.st_mode))
 		    continue;
 		if (isarg)
-		    warn("script %s is not an executable regular file, skipped!\n",
+		    warn("script %s is not an executable regular file, will be skipped in boot sequence!\n",
 			 d->d_name);
 		continue;
 	    }
@@ -3074,7 +3114,7 @@ int main (int argc, char *argv[])
 	    continue;
 	}
 
-	if (!strncmp(d->d_name, "core", strlen("core"))) {
+	if (!strcmp(d->d_name, "core")) {
 	    if (isarg)
 		warn("script name %s is not valid, skipped!\n", d->d_name);
 	    continue;
@@ -3393,7 +3433,7 @@ int main (int argc, char *argv[])
 			     */
 			    if (!defaults && (deflvls != service->start->lvl)) {
 				if (!del && isarg && !(argr[curr_argc]))
-				    warn("warning: current start runlevel(s) (%s) of script `%s' overwrites defaults (%s).\n",
+				    warn("warning: current start runlevel(s) (%s) of script `%s' overrides LSB defaults (%s).\n",
 					 service->start->lvl ? lvl2str(service->start->lvl) : "empty", d->d_name, lvl2str(deflvls));
 			    }
 			} else
@@ -3412,8 +3452,9 @@ int main (int argc, char *argv[])
 			     * of the current script.
 			     */
 			    if (!defaults && service->start->lvl != 0) {
-				warn("warning: current start runlevel(s) (%s) of script `%s' overwrites defaults (empty).\n",
-				     lvl2str(service->start->lvl), d->d_name);
+				if (!del && isarg && !(argr[curr_argc]))
+				    warn("warning: current start runlevel(s) (%s) of script `%s' overrides LSB defaults (empty).\n",
+					 lvl2str(service->start->lvl), d->d_name);
 				script_inf.default_start = lvl2str(service->start->lvl);
 			    }
 			}
@@ -3455,7 +3496,7 @@ int main (int argc, char *argv[])
 			     */
 			    if (!defaults && (deflvlk != service->stopp->lvl)) {
 				if (!del && isarg && !(argr[curr_argc]))
-				    warn("warning: current stop runlevel(s) (%s) of script `%s' overwrites defaults (%s).\n",
+				    warn("warning: current stop runlevel(s) (%s) of script `%s' overrides LSB defaults (%s).\n",
 					 service->stopp->lvl ? lvl2str(service->stopp->lvl) : "empty", d->d_name, lvl2str(deflvlk));
 			    }
 			} else
@@ -3474,8 +3515,9 @@ int main (int argc, char *argv[])
 			     * of the current script.
 			     */
 			    if (!defaults && service->stopp->lvl != 0) {
-				warn("warning: current stop runlevel(s) (%s) of script `%s' overwrites defaults (empty).\n",
-				     lvl2str(service->stopp->lvl), d->d_name);
+				if (!del && isarg && !(argr[curr_argc]))
+				    warn("warning: current stop runlevel(s) (%s) of script `%s' overrides LSB defaults (empty).\n",
+					 lvl2str(service->stopp->lvl), d->d_name);
 				script_inf.default_stop = lvl2str(service->stopp->lvl);
 			    }
 			}
@@ -3732,10 +3774,10 @@ int main (int argc, char *argv[])
 		    if ((must->attr.flags & (SERV_ENFORCE|SERV_KNOWN)) == SERV_ENFORCE) {
 			if ((must->attr.flags & SERV_WARNED) == 0)
 #ifdef OSCBUILD
-			    warn("Service %s has to exists for service %s\n",
+			    warn("Service %s has to exist for service %s\n",
 				must->name, cur->name);
 #else
-			    warn("FATAL: service %s has to exists for service %s\n",
+			    warn("FATAL: service %s has to exist for service %s\n",
 				must->name, cur->name);
 			waserr = true;
 #endif
@@ -3754,10 +3796,10 @@ int main (int argc, char *argv[])
 		if ((must->attr.flags & (SERV_CMDLINE|SERV_KNOWN)) == 0) {
 		    if ((must->attr.flags & SERV_WARNED) == 0)
 #ifdef OSCBUILD
-			warn("Service %s has to exists for service %s\n",
+			warn("Service %s has to exist for service %s\n",
 			    must->name, cur->name);
 #else
-			warn("FATAL: service %s has to exists for service %s\n",
+			warn("FATAL: service %s has to exist for service %s\n",
 			    must->name, cur->name);
 		    waserr = true;
 #endif
