@@ -1,3 +1,10 @@
+insserv (1.19.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release
+    (Closes: #573571, #775912, #661314, #547717, #547609, #601054)
+
+ -- Dmitry Bogatov <KAction@debian.org>  Fri, 05 Apr 2019 20:11:47 +0000
+
 insserv (1.18.0-2) unstable; urgency=medium
 
   * Apply patch to improve formatting and spelling of insserv(8) manual
