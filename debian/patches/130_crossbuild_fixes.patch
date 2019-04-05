@@ -1,16 +1,23 @@
-Description: Separate check from install so checks can be made optional
- In order to support DEB_BUILD_OPTIONS=nocheck cleanly the install and
- check targets are best separated.
- Also allow COPTS, LDFLAGS and CC to be overridden by environment
- (Kel Modderman <kel@otaku42.de>).
-. 
+From: Debian sysvinit maintainers
+ <debian-init-diversity@chiark.greenend.org.uk>
+Date: Fri, 5 Apr 2019 20:32:40 +0000
+Subject: Separate check from install so checks can be made optional
+
+In order to support DEB_BUILD_OPTIONS=nocheck cleanly the install and
+check targets are best separated.
+Also allow COPTS, LDFLAGS and CC to be overridden by environment
+(Kel Modderman <kel@otaku42.de>).
+.
 Author: Wookey <wookey@linaro.org>
 Last-Update: 2012-04-09
+---
+ Makefile | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-Index: insserv/Makefile
-===================================================================
---- insserv.orig/Makefile
-+++ insserv/Makefile
+diff --git a/Makefile b/Makefile
+index 89de21c..7d0c2bb 100644
+--- a/Makefile
++++ b/Makefile
 @@ -27,13 +27,13 @@ else
  ifeq ($(ARCH),i386)
  	  COPTS = -g -O3 -mcpu=i586 -mtune=i686

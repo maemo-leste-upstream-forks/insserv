@@ -1,13 +1,20 @@
-Description: only emit warnings about overriding LSB default with symlink
- state for the scripts in insserv arg list. Use "overrides" instead of
- "overwrites" and define defaults as "LSB defaults".
 From: Kel Modderman <kel@otaku42.de>
+Date: Fri, 5 Apr 2019 20:32:40 +0000
+Subject: only emit warnings about overriding LSB default with symlink
+
+Bug-Debian: bugs.debian.org/668559
+
+state for the scripts in insserv arg list. Use "overrides" instead of
+"overwrites" and define defaults as "LSB defaults".
 Bug-Debian: bugs.debian.org/668559
 ---
-Index: insserv/insserv.c
-===================================================================
---- insserv.orig/insserv.c
-+++ insserv/insserv.c
+ insserv.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/insserv.c b/insserv.c
+index 1fffd72..f48bc68 100644
+--- a/insserv.c
++++ b/insserv.c
 @@ -3393,7 +3393,7 @@ int main (int argc, char *argv[])
  			     */
  			    if (!defaults && (deflvls != service->start->lvl)) {

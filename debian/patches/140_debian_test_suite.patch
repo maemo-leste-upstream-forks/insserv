@@ -1,9 +1,16 @@
-Description: Execute the Debian test suite on `make check'.
-Author: Kel Modderman <kel@otaku42.de>
-Index: insserv/Makefile
+From: Kel Modderman <kel@otaku42.de>
+Date: Fri, 5 Apr 2019 20:32:41 +0000
+Subject: Execute the Debian test suite on `make check'.
+
 ===================================================================
---- insserv.orig/Makefile
-+++ insserv/Makefile
+---
+ Makefile | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 7d0c2bb..17f1d0f 100644
+--- a/Makefile
++++ b/Makefile
 @@ -141,7 +141,8 @@ ifeq ($(ISSUSE),-DSUSE)
  	issuse=true tests/common
  #	issuse=true tests/suse

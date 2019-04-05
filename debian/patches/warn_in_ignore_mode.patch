@@ -1,12 +1,18 @@
-Description: warn about dependencies in ignore mode
-Author: Felipe Sateler <fsateler@debian.org>
+From: Felipe Sateler <fsateler@debian.org>
+Date: Fri, 5 Apr 2019 20:32:42 +0000
+Subject: warn about dependencies in ignore mode
+
+Bug-Debian: https://bugs.debian.org/811441
+
 Bug-Debian: https://bugs.debian.org/811441
 ---
-This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
-Index: insserv/insserv.c
-===================================================================
---- insserv.orig/insserv.c
-+++ insserv/insserv.c
+ insserv.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/insserv.c b/insserv.c
+index 4d1ec62..bbea70c 100644
+--- a/insserv.c
++++ b/insserv.c
 @@ -3379,7 +3379,7 @@ int main (int argc, char *argv[])
  		     * Use information from symbolic link structure to
  		     * check if all services are around for this script.

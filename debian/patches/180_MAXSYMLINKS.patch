@@ -1,7 +1,17 @@
-Index: insserv/insserv.c
+From: Debian sysvinit maintainers
+ <debian-init-diversity@chiark.greenend.org.uk>
+Date: Fri, 5 Apr 2019 20:32:42 +0000
+Subject: _MAXSYMLINKS
+
 ===================================================================
---- insserv.orig/insserv.c
-+++ insserv/insserv.c
+---
+ insserv.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/insserv.c b/insserv.c
+index b47e080..4d1ec62 100644
+--- a/insserv.c
++++ b/insserv.c
 @@ -89,6 +89,10 @@
  # endif
  #endif

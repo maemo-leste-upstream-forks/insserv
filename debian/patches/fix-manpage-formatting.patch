@@ -1,7 +1,7 @@
->From 53d01b3c74363e9b3b50c9624d3e341a6f647f57 Mon Sep 17 00:00:00 2001
 From: Bjarni Ingi Gislason <bjarniig@rhi.hi.is>
 Date: Sun, 20 Jan 2019 17:14:40 +0000
-Subject: [PATCH] insserv.8.in: Formatting and spelling corrections to the manual
+Subject: [PATCH] insserv.8.in: Formatting and spelling corrections to the
+ manual
 
   There are eleven options, not nine.
 
@@ -120,7 +120,7 @@ Signed-off-by: Bjarni Ingi Gislason <bjarniig@rhi.hi.is>
 
 #####
 ---
- insserv.8.in | 92 +++++++++++++++++++++++++++-------------------------
+ insserv.8.in | 92 +++++++++++++++++++++++++++++++-----------------------------
  1 file changed, 47 insertions(+), 45 deletions(-)
 
 diff --git a/insserv.8.in b/insserv.8.in
@@ -441,6 +441,3 @@ index 771d74b..f152574 100644
  .SH AUTHOR
  Werner Fink <feedback@suse.de>
  .SH CONTRIBUTORS
--- 
-2.20.1
-

@@ -1,7 +1,19 @@
+From: Debian sysvinit maintainers
+ <debian-init-diversity@chiark.greenend.org.uk>
+Date: Fri, 5 Apr 2019 20:32:39 +0000
+Subject: _debian_conf
+
 Purpose: Adjust the insserv configuration for Debian init.d script names.
 Fixes:   None, made as part of Debian porting.
 Status:  Debian specific, showed to upstream.
+
+Status:  Debian specific, showed to upstream.
 ---
+ insserv.conf | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/insserv.conf b/insserv.conf
+index 54145fd..360afc2 100644
 --- a/insserv.conf
 +++ b/insserv.conf
 @@ -1,29 +1,29 @@

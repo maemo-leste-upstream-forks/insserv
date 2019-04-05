@@ -1,10 +1,15 @@
-Description: Fix spelling errors in insserv(8).
 From: Kel Modderman <kel@otaku42.de>
+Date: Fri, 5 Apr 2019 20:32:39 +0000
+Subject: Fix spelling errors in insserv(8).
+
 ---
-Index: insserv/insserv.8.in
-===================================================================
---- insserv.orig/insserv.8.in
-+++ insserv/insserv.8.in
+ insserv.8.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/insserv.8.in b/insserv.8.in
+index f152574..e791468 100644
+--- a/insserv.8.in
++++ b/insserv.8.in
 @@ -126,7 +126,7 @@ these tags is stopped.
  The optional X\-Interactive keyword implies that the script using this
  keyword should be started alone in a concurrent boot configuration

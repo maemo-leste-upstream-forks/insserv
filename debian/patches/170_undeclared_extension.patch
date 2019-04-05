@@ -1,9 +1,16 @@
-Description: fix FTBFS with gcc-5 and clang.
-Author: Mohit Bhakkad <mohit.bhakkad@gmail.com>
-Bug-Debian: https://bugs.debian.org/777914
+From: Mohit Bhakkad <mohit.bhakkad@gmail.com>
+Date: Fri, 5 Apr 2019 20:32:41 +0000
+Subject: fix FTBFS with gcc-5 and clang.
 
---- insserv-1.14.0.orig/listing.h
-+++ insserv-1.14.0/listing.h
+Bug-Debian: https://bugs.debian.org/777914
+---
+ listing.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/listing.h b/listing.h
+index 91dfac0..9bee653 100644
+--- a/listing.h
++++ b/listing.h
 @@ -47,9 +47,9 @@ typedef unsigned int uint;
  # ifndef  asm
  #  define asm			__asm__

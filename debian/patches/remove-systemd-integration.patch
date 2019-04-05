@@ -1,8 +1,20 @@
-Index: insserv/insserv.c
+From: Debian sysvinit maintainers
+ <debian-init-diversity@chiark.greenend.org.uk>
+Date: Fri, 5 Apr 2019 20:32:42 +0000
+Subject: remove-systemd-integration
+
 ===================================================================
---- insserv.orig/insserv.c
-+++ insserv/insserv.c
-@@ -126,9 +126,12 @@ static inline void oneway(char *restrict
+---
+ insserv.c | 23 +++++++++++++++++++++++
+ systemd.c |  2 ++
+ systemd.h |  3 +++
+ 3 files changed, 28 insertions(+)
+
+diff --git a/insserv.c b/insserv.c
+index bbea70c..18d3d98 100644
+--- a/insserv.c
++++ b/insserv.c
+@@ -126,9 +126,12 @@ static inline void oneway(char *restrict stop)
  /* Upstart suport */
  static const char *upstartjob_path = "/lib/init/upstart-job";
  
@@ -26,7 +38,7 @@ Index: insserv/insserv.c
  
  /* Search results points here */
  typedef struct lsb_struct {
-@@ -1710,6 +1715,7 @@ static uchar scan_script_defaults(int df
+@@ -1710,6 +1715,7 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
      }
  #endif /* SUSE */
  
@@ -34,7 +46,7 @@ Index: insserv/insserv.c
      if (systemd) {
  	const char *serv;
  	serv = path;
-@@ -1719,6 +1725,7 @@ static uchar scan_script_defaults(int df
+@@ -1719,6 +1725,7 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
  	    ret |= FOUND_LSB_SYSTEMD;
  	}
      }
@@ -42,7 +54,7 @@ Index: insserv/insserv.c
  
      if (NULL != (upstart_job = is_upstart_job(path))) {
  	xreset(upstart_job);
-@@ -2201,6 +2208,7 @@ static void scan_conf(const char *restri
+@@ -2201,6 +2208,7 @@ static void scan_conf(const char *restrict file)
      regfree(&creg.isactive);
  }
  
@@ -60,7 +72,7 @@ Index: insserv/insserv.c
  /*
   *  Here the systemd targets are imported as system facilities 
   */
-@@ -2352,6 +2363,8 @@ static void import_systemd_services(void
+@@ -2352,6 +2363,8 @@ static void import_systemd_services(void)
      }
  }
  
@@ -78,7 +90,7 @@ Index: insserv/insserv.c
  /*
   * Systemd integration
   */
-@@ -2602,6 +2617,8 @@ static void forward_to_systemd (const ch
+@@ -2602,6 +2617,8 @@ static void forward_to_systemd (const char *initscript, const char *verb, boolea
      }
  }
  
@@ -131,10 +143,10 @@ Index: insserv/insserv.c
  
      /*
       * Initialize the regular scanner for the scripts.
-Index: insserv/systemd.c
-===================================================================
---- insserv.orig/systemd.c
-+++ insserv/systemd.c
+diff --git a/systemd.c b/systemd.c
+index 38cc85b..c8044b3 100644
+--- a/systemd.c
++++ b/systemd.c
 @@ -1,3 +1,4 @@
 +#ifdef WANT_SYSTEMD
  /*
@@ -145,10 +157,10 @@ Index: insserv/systemd.c
      }
  }
 +#endif /* WANT_SYSTEMD */
-Index: insserv/systemd.h
-===================================================================
---- insserv.orig/systemd.h
-+++ insserv/systemd.h
+diff --git a/systemd.h b/systemd.h
+index c38e609..534eee5 100644
+--- a/systemd.h
++++ b/systemd.h
 @@ -1,3 +1,4 @@
 +#ifdef WANT_SYSTEMD
  /*

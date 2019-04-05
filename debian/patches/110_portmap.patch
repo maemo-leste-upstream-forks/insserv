@@ -1,15 +1,26 @@
+From: Debian sysvinit maintainers
+ <debian-init-diversity@chiark.greenend.org.uk>
+Date: Fri, 5 Apr 2019 20:32:40 +0000
+Subject: _portmap
+
 Drop central definition of $portmap, it's better served by the individual packages providing $portmap.
+---
+ insserv.conf | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/insserv.conf b/insserv.conf
+index 360afc2..fa52310 100644
 --- a/insserv.conf
 +++ b/insserv.conf
-@@ -26,11 +26,6 @@ $remote_fs	$local_fs +mountnfs +mountnfs
+@@ -25,11 +25,6 @@ $remote_fs	$local_fs +mountnfs +mountnfs-bootclean +umountnfs +sendsigs
+ #
  $syslog		+rsyslog +sysklogd +syslog-ng +dsyslog +inetutils-syslogd
  
- #
+-#
 -# SunRPC portmapper available
 -#
 -$portmap	portmap
 -
--#
+ #
  # The system time has been set correctly
  #
- $time		+hwclock
