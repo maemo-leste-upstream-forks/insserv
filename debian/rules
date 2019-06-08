@@ -4,5 +4,10 @@ include /usr/share/dpkg/default.mk
 export CFLAGS  += $(shell getconf LFS_CFLAGS)
 export LDFLAGS += $(shell getconf LFS_LDFLAGS)
 
+# Upstream build system does not respect $(CPPFLAGS), it has its own
+# conventions.
+export COPTS = $(CFLAGS) $(CPPFLAGS)
+
 %:
+	echo $(CFLAGS)
 	dh $@ --with=bash-completion
