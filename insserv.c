@@ -184,6 +184,17 @@ static boolean dryrun = false;
 static boolean set_override = false;
 static boolean set_insconf = false;
 
+/* Legacy and current location for dependency files */
+/* #define DEPENDENCY_PATH "/lib/insserv/" */
+#define LEGACY_DEPENDENCY_PATH "/etc/init.d/."
+char *dependency_path = LEGACY_DEPENDENCY_PATH;
+
+/* List of custom file extensions we should ignore.
+   Loaded from /etc/insserv/file-filters.
+*/
+#define FILE_FILTER_PATH "/etc/insserv/file-filters"
+char **file_filters = NULL;
+
 /* Wether systemd is active or not */
 #if WANT_SYSTEMD
 static boolean systemd = false;
@@ -284,6 +295,69 @@ static void popd(void)
    }
 }
 
+
+/*
+This function loads a list of newline-separated extensions from
+the FILE_FILTER_PATH text file.
+The function returns an array of strings (extensions) on success
+and NULL on failure.
+*/
+char **Load_File_Filters()
+{
+  FILE *my_file;
+  char **temp_strings;
+  char line[32];
+  char *status;
+  int read_lines = 0;
+  int buffer_size = 10;
+  
+  my_file = fopen(FILE_FILTER_PATH, "r");
+  if (! my_file)
+     return NULL;
+
+  temp_strings = (char **) calloc(buffer_size, sizeof(char *));
+  if (! temp_strings)
+  {
+     fclose(my_file);
+     return NULL;
+  }
+  status = fgets(line, 32, my_file);
+  while (status)
+  {
+     /* check to see if line has any contents */
+     if ( (line[0]) && (line[0] != '\n') && (line[0] != '\r') )
+     {
+        int string_length;
+        /* trim newline */
+        string_length = strlen(line);
+        if ( line[string_length - 1] == '\n' )
+           line[string_length - 1] = '\0';
+
+        temp_strings[read_lines] = strdup(line);
+        read_lines++;
+        /* buffer may be full, extend it */
+        if (read_lines >= 1000)     /* too big, bail out */
+        {
+           warn("warning: too many file extensions listed in %s\n", FILE_FILTER_PATH);
+           break;
+        } 
+        if (read_lines >= buffer_size) 
+        {
+           int index;
+           buffer_size += 10;    /* extend the buffer */
+           temp_strings = (char **) realloc(temp_strings, buffer_size * sizeof(char *));
+           for (index = read_lines; index < buffer_size; index++)
+             temp_strings[index] = NULL;   /* init memory since realloc does not */
+        }
+     }
+     status = fgets(line, 32, my_file);
+  }
+  fclose(my_file);
+  return temp_strings;
+}
+
+
+
 /*
  * Linked list of system facilities services and their replacment
  */
@@ -326,6 +400,7 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
     char * tmp = strdupa(required);
     list_t * ptr, * list;
     ushort old = bit;
+    boolean can_expand_name = false;
 
     if (!tmp)
 	error("%s", strerror(errno));
@@ -386,14 +461,19 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
 		break;
 	    }
 	    /* Expand the `$' token recursively down */
+            can_expand_name = false;
 	    list_for_each(ptr, sysfaci_start) {
 		if (!strcmp(token, getfaci(ptr)->name)) {
 		    list_t * lst;
+                    can_expand_name = true;
 		    np_list_for_each(lst, &getfaci(ptr)->replace)
 			rememberreq(serv, bit, getrepl(lst)->name);
 		    break;
 		}
 	    }
+            if (! can_expand_name)
+               warn("warning: could not find all dependencies for %s\n", token);
+
 	    break;
 	}
     }
@@ -807,32 +887,33 @@ static inline void makedep(void)
 #endif /* USE_KILL_IN_BOOT */
     const char *target;
     const service_t *serv;
-    char current_dir[PATH_MAX];
+    char current_path[PATH_MAX];
 
-    getcwd(current_dir, PATH_MAX);
     if (dryrun) {
 #ifdef USE_KILL_IN_BOOT
-	info(1, "dryrun, not creating .depend.boot, .depend.start, .depend.halt, and .depend.stop in %s/\n", current_dir);
+	info(1, "dryrun, not creating depend.boot, depend.start, depend.halt, and depend.stop in %s\n", dependency_path);
 #else  /* not USE_KILL_IN_BOOT */
-	info(1, "dryrun, not creating .depend.boot, .depend.start, and .depend.stop in %s/\n", current_dir);
+	info(1, "dryrun, not creating depend.boot, depend.start, and depend.stop in %s\n", dependency_path);
 #endif /* not USE_KILL_IN_BOOT */
 	return;
     }
-    if (!(boot  = fopen(".depend.boot",  "w"))) {
-	warn("fopen(%s/.depend.boot): %s\n", current_dir, strerror(errno));
+    snprintf(current_path, PATH_MAX, "%sdepend.boot", dependency_path);
+    if (!(boot  = fopen(current_path,  "w"))) {
+	warn("fopen(%s): %s\n", current_path, strerror(errno));
 	return;
     }
 
-    if (!(start = fopen(".depend.start", "w"))) {
-	warn("fopen(%s/.depend.start): %s\n", current_dir, strerror(errno));
+    snprintf(current_path, PATH_MAX, "%sdepend.start", dependency_path);
+    if (!(start = fopen(current_path, "w"))) {
+	warn("fopen(%s): %s\n", current_path, strerror(errno));
 	fclose(boot);
 	return;
     }
 
-    info(1, "creating %s/.depend.boot\n", current_dir);
-    info(1, "creating %s/.depend.start\n", current_dir);
+    info(1, "creating %sdepend.boot\n", dependency_path);
+    info(1, "creating %sdepend.start\n", dependency_path);
 
-    lsort('S');					/* Sort into start order, set new sorder */
+    lsort('S');				/* Sort into start order, set new sorder */
 
     target = (char*)0;
     fprintf(boot, "TARGETS =");
@@ -978,21 +1059,23 @@ static inline void makedep(void)
     fclose(boot);
     fclose(start);
 
-    if (!(stop  = fopen(".depend.stop",  "w"))) {
-	warn("fopen(%s/.depend.stop): %s\n", current_dir, strerror(errno));
+    snprintf(current_path, PATH_MAX, "%sdepend.stop", dependency_path);
+    if (!(stop  = fopen(current_path,  "w"))) {
+	warn("fopen(%s): %s\n", current_path, strerror(errno));
 	return;
     }
 
 #ifdef USE_KILL_IN_BOOT
-    if (!(halt = fopen(".depend.halt", "w"))) {
-	warn("fopen(%s/.depend.start): %s\n", current_dir, strerror(errno));
+    snprintf(current_path, PATH_MAX, "%sdepend.halt", dependency_path);
+    if (!(halt = fopen(current_path, "w"))) {
+	warn("fopen(%s): %s\n", current_path, strerror(errno));
 	fclose(stop);
 	return;
     }
 
-    info(1, "creating %s/.depend.halt\n", current_dir);
+    info(1, "creating %sdepend.halt\n", dependency_path);
 #endif /* USE_KILL_IN_BOOT */
-    info(1, "creating %s/.depend.stop\n", current_dir);
+    info(1, "creating %sdepend.stop\n", dependency_path);
 
     lsort('K');				/* Sort into stop order, set new korder */
 
@@ -2159,6 +2242,21 @@ static int cfgfile_filter(const struct dirent *restrict d)
 	{
 	    goto out;
 	}
+        /* check loaded filters */
+        else if (file_filters)
+        {
+            boolean found = false;
+            int index = 0;
+            while ( (file_filters[index]) && (! found) )
+            {
+                if (! strcmp(end, file_filters[index]) )
+                   found = true;
+                else
+                   index++;
+            }
+            if (found)
+               goto out;
+        }
     }
     if ((end = strrchr(name, ','))) {
 	end++;
@@ -2442,7 +2540,7 @@ static inline void expand_conf(void)
 
 /*
  * Scan for a Start or Kill script within a runlevel directory.
- * We start were we leave the directory, the upper level
+ * We start where we leave the directory, the upper level
  * has to call rewinddir(3) if necessary.
  */
 static inline char * scan_for(DIR *const restrict rcdir,
@@ -2628,6 +2726,30 @@ static void forward_to_systemd (const char *initscript, const char *verb, boolea
 
 #endif /* WANT_SYSTEMD */
 
+/* See if the start and stop runlevels of a script use the same
+   stop or stop levels.
+   Returns true if overlap is found and false is none is found.
+*/
+boolean Start_Stop_Overlap(char *start_levels, char *stop_levels)
+{
+   boolean found_overlap = false;
+   int string_index = 0;
+   char *found;
+
+   while (start_levels[string_index])   /* go to end of string */
+   {
+       if (start_levels[string_index] != ' ') /* skip spaces */
+       {
+           found = strchr(stop_levels, start_levels[string_index]);
+           if (found)
+              found_overlap = true;
+       }
+       string_index++;
+   }
+   return found_overlap;
+}
+
+
 static struct option long_options[] =
 {
     {"verbose",	    0, (int*)0, 'v'},
@@ -2637,6 +2759,8 @@ static struct option long_options[] =
     {"default",	    0, (int*)0, 'd'},
     {"remove",	    0, (int*)0, 'r'},
     {"force",	    0, (int*)0, 'f'},
+    {"insserv-dir", 1, (int*)0, 'i'},
+    /* {"legacy-path", 0, (int*)0, 'l'}, */
     {"path",	    1, (int*)0, 'p'},
     {"override",    1, (int*)0, 'o'},
     {"upstart-job", 1, (int*)0, 'u'},
@@ -2656,6 +2780,8 @@ static void help(const char *restrict const  name)
     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
     printf("  -f, --force      Ignore if a required service is missed.\n");
     printf("  -v, --verbose    Provide information on what is being done.\n");
+    /* printf("  -l, --legacy-path  Place dependency files in /etc/init.d instead of /lib/insserv.\n"); */
+    printf("  -i, --insserv-dir  Place dependency files in a location other than /lib/insserv\n");
     printf("  -p <path>, --path <path>  Path to replace " INITDIR ".\n");
     printf("  -o <path>, --override <path> Path to replace " OVERRIDEDIR ".\n");
     printf("  -c <config>, --config <config>  Path to config file.\n");
@@ -2689,6 +2815,9 @@ int main (int argc, char *argv[])
     boolean recursive = false;
     boolean showall = false;
     boolean waserr = false;
+    /* boolean legacy_path = false; */
+    boolean free_dependency_path = false;
+    boolean overlap;
 
     myname = basename(*argv);
 
@@ -2703,7 +2832,7 @@ int main (int argc, char *argv[])
     for (c = 0; c < argc; c++)
 	argr[c] = (char*)0;
 
-    while ((c = getopt_long(argc, argv, "c:dfrhvno:p:u:es", long_options, (int *)0)) != -1) {
+    while ((c = getopt_long(argc, argv, "c:dfrhvni:o:p:u:es", long_options, (int *)0)) != -1) {
 	size_t l;
 	switch (c) {
 	    case 'c':
@@ -2724,6 +2853,28 @@ int main (int argc, char *argv[])
 	    case 'v':
 		verbose ++;
 		break;
+            /*
+            case 'l':
+                dependency_path = LEGACY_DEPENDENCY_PATH;
+                legacy_path = true;
+                break;
+            */
+            case 'i':
+                if ( (! optarg) || (! optarg[0]) )
+                {
+                    fprintf(stderr, "Please provide a valid path\n");
+                    goto err;
+                }
+                if (optarg[0] == '/')    // absolute path
+                   asprintf(&dependency_path, "%s/", optarg);
+                else                     // relative
+                {
+                   char current_dir[PATH_MAX];
+                   getcwd(current_dir, PATH_MAX);
+                   asprintf(&dependency_path, "%s/%s/", current_dir, optarg);
+                }
+                free_dependency_path = true;
+                break;
 	    case 'n':
 		verbose ++;
 		dryrun = true;
@@ -2772,6 +2923,15 @@ int main (int argc, char *argv[])
 	loadarg = true;
     else if (del)
 	error("usage: %s [[-r] init_script|init_directory]\n", myname);
+
+    /* Make sure the target directory exists */
+    /*
+    if ( (! dryrun) && (! legacy_path) )
+       mkdir(DEPENDENCY_PATH, 0755);
+    */
+
+    /* load options from /etc/inssserv/ directory */
+    file_filters = Load_File_Filters();
 
     if (*argv) {
 	char * token = strpbrk(*argv, delimeter);
@@ -3433,8 +3593,11 @@ int main (int argc, char *argv[])
 			     */
 			    if (!defaults && (deflvls != service->start->lvl)) {
 				if (!del && isarg && !(argr[curr_argc]))
+                                {
 				    warn("warning: current start runlevel(s) (%s) of script `%s' overrides LSB defaults (%s).\n",
-					 service->start->lvl ? lvl2str(service->start->lvl) : "empty", d->d_name, lvl2str(deflvls));
+                                           service->start->lvl ? lvl2str(service->start->lvl) :
+                                           "empty", d->d_name, lvl2str(deflvls));
+                                }
 			    }
 			} else
 			    /*
@@ -3565,10 +3728,17 @@ int main (int argc, char *argv[])
 	}
 #else  /* not SUSE */
 	if (!script_inf.default_stop) {
-	    warn("Default-Stop  undefined, assuming empty stop  runlevel(s) for script `%s'\n", d->d_name);
+	    warn("Default-Stop  undefined, assuming empty stop runlevel(s) for script `%s'\n", d->d_name);
 	    script_inf.default_stop = empty;
 	}
 #endif /* not SUSE */
+
+        overlap = Start_Stop_Overlap(script_inf.default_start, script_inf.default_stop);
+        if (overlap)
+        {
+            warn("Script %s has overlapping Default-Start and Default-Stop runlevels (%s) and (%s). This should be fixed.\n",
+                  d->d_name, script_inf.default_start, script_inf.default_stop);
+        }
 
 	if (isarg && !defaults && !del) {
 	    if (argr[curr_argc]) {
@@ -4188,6 +4358,17 @@ int main (int argc, char *argv[])
      */
     if (path != ipath) free(path);
     if (root) free(root);
-
+    if ( (free_dependency_path) && (dependency_path) )
+        free(dependency_path);
+    if (file_filters)
+    {
+       int count = 0;
+       while (file_filters[count])
+       {
+           free(file_filters[count]);
+           count++;
+       }
+       free(file_filters);
+    }
     return 0;
 }

@@ -9,10 +9,10 @@ INITDIR  =	/etc/init.d
 INSCONF  =	/etc/insserv.conf
 #DESTDIR =	/tmp/root
 #DEBUG	 =	-DDEBUG=1 -Wpacked
-DEBUG	 =
+DEBUG	 =	
 #ISSUSE	 =	-DSUSE
 DESTDIR	 =
-VERSION	 =	1.19.0
+VERSION	 =	1.20.0
 TARBALL  =	$(PACKAGE)-$(VERSION).tar.xz
 DATE	 =	$(shell date +'%d%b%y' | tr '[:lower:]' '[:upper:]')
 CFLDBUS	 =	$(shell pkg-config --cflags dbus-1)
@@ -76,7 +76,6 @@ endif
 TODO	=	insserv insserv.8
 
 all:		$(TODO)
-	$(LINK) ../insserv tests/insserv
 
 insserv:	insserv.o listing.o systemd.o map.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
@@ -127,8 +126,8 @@ clean:
 
 distclean: clean
 	rm -f $(TARBALL) $(TARBALL).sig
-	rm -f tests/insserv
-	rm -f insserv/
+	rm -f insserv
+	rm -rf tests/root
 
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -144,11 +143,13 @@ ifneq ($(MAKECMDGOALS),clean)
 endif
 
 check: insserv
+	rm -rf tests/root/
 ifeq ($(ISSUSE),-DSUSE)
 	issuse=true tests/common
 #	issuse=true tests/suse
 else
-	tests/common
+	cd tests && ./common
+	cd tests && severity=check ./run-testsuite
 endif
 
 install:	$(TODO) 
@@ -162,7 +163,9 @@ ifeq ($(ISSUSE),-DSUSE)
 endif
 	$(INSTBIN) insserv        $(SBINDIR)/
 	$(INSTDOC) insserv.8      $(SDOCDIR)/
-	$(INSTCON) insserv.conf   $(CONFDIR)/
+	# Only install configuration file if it does not exist. Do not overwrite distro config.
+	if [ -f $(CONFDIR)/insserv.conf ]; then $(INSTCON) insserv.conf $(CONFDIR)/insserv.conf.sample ; fi
+	if [ ! -f $(CONFDIR)/insserv.conf ] ; then $(INSTCON) insserv.conf $(CONFDIR)/ ; fi
 ifeq ($(ISSUSE),-DSUSE)
 	$(INSTCON) init-functions $(LSBDIR)/
 	$(INSTSRP) install_initd  $(USRLSBDIR)/

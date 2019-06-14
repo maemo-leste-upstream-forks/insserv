@@ -268,6 +268,12 @@ Write out what is currently going on.
 Specify path to the insserv.conf file and the insserv.conf.d
 directory.  Useful for testing.
 .TP
+.BR \-i , \ \-\-insserv\-dir
+The insserv program will try to place dependency information
+in the /etc/init.d directory. When using the \-i flag, the
+user can specify an alternative directory for dependency information.
+This is typically used when debugging insserv.
+.TP
 .BR \-o\ <path> ,\  \-\-override\ <path>
 LSB comment headers found in this path will override existing
 LSB comment headers of scripts in the init.d directory (default path is
@@ -277,7 +283,7 @@ LSB comment headers of scripts in the init.d directory (default path is
 Specify path to init.d directory.  Useful for testing.
 .TP
 .BR \-n ,\  \-\-dryrun, \  \-\-dry\-run
-Do not update symlinks. Does not create .depend.boot, .depend.start, and .depend.stop
+Do not update symlinks. Does not create depend.boot, depend.start, and depend.stop
 files.
 .TP
 .BR \-s ,\  \-\-showall, \ \-\-show\-all
@@ -421,6 +427,15 @@ of the following characters
 .in -1l
 .sp 1
 will be ignored.
+Administrators can further filter files by extension in the /etc/init.d/ directory
+by creating a text file called /etc/insserv/file\-filters. The file\-filters configuration
+file lists (one per line) extensions which should be ignored by insserv as it parses the
+/etc/init.d/ directory. An example of /etc/insserv/file\-filters might look like this:
+.nf
+	git
+	svn
+	html
+.fi
 .SH BUGS
 Boot scripts sometimes lack a LSB comment header.  Contact a package
 maintainer or developer of the software which provides the script to
@@ -439,6 +454,10 @@ LSB System Facilities.
 .I /etc/insserv/overrides/
 path to replace existing LSB comment headers with the comment
 headers found in this path.
+.TP
+.I /etc/insserv/file\-filters
+configuration file which lists file extensions (one per line) we should ignore
+when parsing the init.d directory.
 .TP
 .I /etc/init.d/
 path to the
@@ -461,7 +480,7 @@ like dependency files produced by
 for
 .IR booting ", " starting ", and " stopping
 with the help of
-.BR startpar (8).
+.BR startpar (1).
 +.in -\n(INu
 .\"
 .SH SEE ALSO
@@ -474,7 +493,7 @@ with the help of
 .BR checkproc (8),
 .BR killproc (8),
 @@END_SUSE@@
-.BR startpar (8).
+.BR startpar (1).
 .SH COPYRIGHT
 2000\(en2009 Werner Fink,
 .br
@@ -484,7 +503,7 @@ with the help of
 .br
 2007\(en2009 SuSE Linux Products GmbH Nuernberg, Germany.
 .br
-2018\(en     Jesse Smith
+2019\(en     Jesse Smith
 .SH AUTHOR
 Werner Fink <feedback@suse.de>
 .SH CONTRIBUTORS
