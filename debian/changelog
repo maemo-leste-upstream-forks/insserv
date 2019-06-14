@@ -1,7 +1,7 @@
-insserv (1.19.0-1) UNRELEASED; urgency=medium
+insserv (1.20.0~beta2-1) UNRELEASED; urgency=medium
 
   * New upstream release
-    (Closes: #573571, #775912, #661314, #547717, #547609, #601054)
+    (Closes: #573571, #775912, #661314, #547717, #547609, #601054, #538304, #926547, #622878)
   * Drop patches, applied upstream; refresh rest. Patches applied upstream:
     + 92_m68k_alignment.patch
     + 130_crossbuild_fixes.patch
