@@ -1,5 +1,4 @@
 11_debian_conf.patch
 110_portmap.patch
-140_debian_test_suite.patch
 170_undeclared_extension.patch
 warn_in_ignore_mode.patch
