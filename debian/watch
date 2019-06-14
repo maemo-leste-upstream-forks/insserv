@@ -2,5 +2,5 @@
 # See uscan(1) for format
 
 version=4
-opts="uversionmangle=s/-beta/~beta/" \
+opts="pgpmode=auto,uversionmangle=s/-beta/~beta/" \
 https://download.savannah.gnu.org/releases/sysvinit/insserv-([0-9\.]+(?:-beta[0-9]?)?)@ARCHIVE_EXT@ debian uupdate
