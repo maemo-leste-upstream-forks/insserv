@@ -6,9 +6,10 @@ set +o posix
 unset ${!LC@}
 export LANG=POSIX
 
-: ${insserv:=${PWD}/insserv}
+: ${insserv:=${PWD}/../insserv}
 : ${tmpdir:=${PWD}/root}
 : ${initddir:=${tmpdir}/etc/init.d}
+: ${insservdir:=${tmpdir}/etc/init.d}
 : ${insconf:=${tmpdir}/etc/insserv.conf}
 : ${overridedir:=${tmpdir}/etc/insserv/override}
 : ${issuse=""}
@@ -24,13 +25,14 @@ finish_test ()
         echo "error: $testcount test executed, $checkfailed fatal tests failed, $testfailed nonfatal test failed."
     else
         echo "success: $testcount test executed, $testfailed nonfatal tests failed."
+        rm -rf ${tmpdir}
     fi
-    rm -rf ${tmpdir}
     return $retval
 }
 trap 'finish_test' EXIT
 
 mkdir -p $initddir
+mkdir -p $insservdir
 
 if test -n "${issuse}" ; then
     runlevel_path ()
@@ -101,19 +103,21 @@ chmod u+w,a+r $insconf
 insserv_reg ()
 {
     script=$(printf "${initddir}/%s\n" ${1+"$@"})
-    $insserv $debug -c $insconf -p $initddir -o $overridedir $script
+    $insserv $debug -c $insconf -i $insservdir -p $initddir -o $overridedir $script
 }
 
 insserv_del ()
 {
     script=$(printf "${initddir}/%s\n" ${1+"$@"})
-    $insserv $debug -c $insconf -p $initddir -o $overridedir -r $script
+    $insserv $debug -c $insconf -i $insservdir -p $initddir -o $overridedir -r $script
 }
 
 initdir_purge ()
 {
     rm -rf ${initddir}/../rc*.d ${initddir}
+    rm -rf ${insservdir}
     mkdir -p ${initddir}
+    mkdir -p ${insservdir}
 }
 
 relpath ()
@@ -207,12 +211,14 @@ error ()
     echo error: $@
     checkfailed=$(expr $checkfailed + 1)
     retval=1
+    exit 1
 }
 
 warning ()
 {
     echo warning: $@
     testfailed=$(expr $testfailed + 1)
+    exit 1
 }
 
 addscript ()

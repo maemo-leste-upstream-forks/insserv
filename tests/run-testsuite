@@ -1,7 +1,8 @@
 #!/bin/bash
 
 basedir=$(dirname $0)
-. $basedir/../tests/suite
+# . $basedir/../tests/suite
+. suite
 
 # Run tests without trying to talk to systemd
 #if [ Linux = $(uname -s) ] ; then
@@ -291,12 +292,12 @@ check_order 1 killprocs single
 check_order 1 needallfs killprocs
 
 check_order 2 needlocalfs needallfs
-check_order 2 needlocalfs nolsbheader
-check_order 2 sysklogd nolsbheader
+# check_order 2 needlocalfs nolsbheader
+# check_order 2 sysklogd nolsbheader
 check_order 2 needallfs2 needallfs
 
 check_order 6 needallfs umountnfs
-check_order 6 nolsbheader umountnfs
+# check_order 6 nolsbheader umountnfs
 check_order 6 umountfs umountroot
 check_order 6 umountnfs networking
 check_order 6 networking ifupdown
@@ -515,7 +516,7 @@ insertscript startfirst <<'EOF' || true
 ### BEGIN INIT INFO
 # Provides:          startfirst
 # Required-Start:
-# Required-Stop:     startsecond
+# Required-Stop:     
 # Default-Start:     S
 # Default-Stop:      6
 ### END INIT INFO
@@ -525,7 +526,7 @@ insertscript startsecond <<'EOF' || true
 ### BEGIN INIT INFO
 # Provides:          startsecond
 # Required-Start:    startfirst
-# Required-Stop:
+# Required-Stop:     startfirst
 # Default-Start:     S
 # Default-Stop:      6
 ### END INIT INFO
@@ -533,8 +534,8 @@ EOF
 
 list_rclinks
 
-test_order S startfirst startsecond
-test_order 6 startsecond startfirst
+check_order S startfirst startsecond
+check_order 6 startsecond startfirst
 }
 ##########################################################################
 test_fake_loop() {
@@ -1319,7 +1320,9 @@ insserv_reg needbogusvirtual || true
 
 list_rclinks
 
-test_script_not_present S needbogusvirtual
+# This check is no longer needed as insserv will display a warning
+# for unmet dependencies/services.
+# check_script_not_present S needbogusvirtual
 }
 ##########################################################################
 test_insserv_conf_d() {
@@ -1698,7 +1701,7 @@ list_rclinks
 
 check_script_present 5 rmnologin
 check_script_present 5 bootchart
-test_order 5 rmnologin bootchart
+check_order 5 bootchart rmnologin
 
 echo
 echo "info: now add \$all keyword to bootchart script and reinsert"
@@ -1722,7 +1725,7 @@ insserv_reg bootchart || true
 
 list_rclinks
 check_script_present 5 bootchart
-test_order 5 rmnologin bootchart
+check_order 5 rmnologin bootchart
 
 echo
 echo "info: add yet another script depending on \$all"
@@ -1899,8 +1902,8 @@ check_order 2 first alone2
 # are put after the others on the same level.
 check_order 2 alone1 after
 check_order 2 alone2 after
-if grep INTERACTIVE ${initddir}/.depend.start | grep -q alone1 &&
-    grep INTERACTIVE ${initddir}/.depend.start | grep -q alone1 ; then
+if grep INTERACTIVE ${insservdir}/depend.start | grep -q alone1 &&
+    grep INTERACTIVE ${insservdir}/depend.start | grep -q alone1 ; then
     counttest
 else
     error "scripts alone1 and alone2 are not flagged as interactive" 
@@ -1911,7 +1914,7 @@ fi
 test_insserv_conf_makefile() {
 echo
 echo "info: test how recursive /etc/insserv.conf settings show up"
-echo "info: in .depend.boot.  BTS #534526."
+echo "info: in depend.boot.  BTS #534526."
 echo
 
 initdir_purge
@@ -1959,14 +1962,10 @@ EOF
 
 list_rclinks
 
-if ! grep -q "^hal: mountall dbus" ${initddir}/.depend.start ; then
-    msg="hal should depend on dbus and mountall in .depend.start:"
-    if [ test = "$severity" ] ; then
-        warning "$msg"
-    else
-        error "$msg"
-    fi
-    grep  "^hal: " ${initddir}/.depend.start | sed 's/^/  /'
+if ! grep -q "^hal: mountall dbus" ${insservdir}/depend.start ; then
+    msg="hal should depend on dbus and mountall in depend.start:"
+    error "$msg"
+    grep  "^hal: " ${insservdir}/depend.start | sed 's/^/  /'
 fi
 
 update_conf
