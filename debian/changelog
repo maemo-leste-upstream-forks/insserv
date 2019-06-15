@@ -1,4 +1,4 @@
-insserv (1.20.0~beta2-1) UNRELEASED; urgency=medium
+insserv (1.20.0~beta2-1) experimental; urgency=medium
 
   * New upstream release
     (Closes: #573571, #775912, #661314, #547717, #547609, #601054, #538304, #926547, #622878)
@@ -14,7 +14,7 @@ insserv (1.20.0~beta2-1) UNRELEASED; urgency=medium
     + 20_manpage_spelling.patch
     + fix-manpage-formatting.patch
 
- -- Dmitry Bogatov <KAction@debian.org>  Fri, 05 Apr 2019 20:11:47 +0000
+ -- Dmitry Bogatov <KAction@debian.org>  Sat, 15 Jun 2019 01:20:11 +0000
 
 insserv (1.18.0-2) unstable; urgency=medium
 
