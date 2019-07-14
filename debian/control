@@ -8,7 +8,7 @@ Uploaders:
  Petter Reinholdtsen <pere@debian.org>,
 Build-Depends:
  bash-completion,
- debhelper-compat (= 11),
+ debhelper-compat (= 12),
  po-debconf,
 Standards-Version: 4.3.0
 Homepage: http://savannah.nongnu.org/projects/sysvinit
