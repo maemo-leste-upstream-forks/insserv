@@ -13,7 +13,7 @@ Status:  Debian specific, showed to upstream.
  1 file changed, 7 insertions(+), 7 deletions(-)
 
 diff --git a/insserv.conf b/insserv.conf
-index 54145fd..360afc2 100644
+index 54145fd..933ccad 100644
 --- a/insserv.conf
 +++ b/insserv.conf
 @@ -1,29 +1,29 @@
@@ -33,7 +33,7 @@ index 54145fd..360afc2 100644
  # Named is operational
  #
 -$named		+named +dnsmasq +lwresd $network
-+$named		+named +dnsmasq +lwresd +bind9 +unbound $network
++$named		+named +dnsmasq +lwresd +bind9 +unbound +pdns-recursor $network
  
  #
  # All remote filesystems are mounted (note in some cases /usr may

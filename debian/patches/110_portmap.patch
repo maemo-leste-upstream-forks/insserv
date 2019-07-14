@@ -9,7 +9,7 @@ Drop central definition of $portmap, it's better served by the individual packag
  1 file changed, 5 deletions(-)
 
 diff --git a/insserv.conf b/insserv.conf
-index 360afc2..fa52310 100644
+index 933ccad..138da94 100644
 --- a/insserv.conf
 +++ b/insserv.conf
 @@ -25,11 +25,6 @@ $remote_fs	$local_fs +mountnfs +mountnfs-bootclean +umountnfs +sendsigs
