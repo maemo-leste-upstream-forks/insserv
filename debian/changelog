@@ -1,8 +1,15 @@
 insserv (1.20.0-1) UNRELEASED; urgency=medium
 
   * New upstream release. (Closes: #544229)
+  * Upload to unstable.
+  * [ed123226] Drop 170_undeclared_extension.patch
+  * [a7b8f47b] Update debhelper compat to 12
+  * [d868be3c] Update standards version to 4.4.0 (no changes needed)
+  * [f5bbe191] Include 'pdns-recursor' into $named virtual facility
+    (Closes: #833126)
+  * [d7635e47] Remove /etc/init.d/.depend.* files on purge (Closes: #864279)
 
- -- Dmitry Bogatov <KAction@debian.org>  Fri, 12 Jul 2019 06:37:10 +0000
+ -- Dmitry Bogatov <KAction@debian.org>  Sun, 14 Jul 2019 15:11:00 +0000
 
 insserv (1.20.0~beta2-1) experimental; urgency=medium
 
