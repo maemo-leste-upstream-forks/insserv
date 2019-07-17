@@ -1,3 +1,4 @@
 11_debian_conf.patch
 110_portmap.patch
 warn_in_ignore_mode.patch
+0004-Fix-spurious-warnings-about-unknown-virtual-dependen.patch

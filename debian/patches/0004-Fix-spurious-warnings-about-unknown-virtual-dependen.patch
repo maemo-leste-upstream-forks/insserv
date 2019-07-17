@@ -1,0 +1,26 @@
+From: Dmitry Bogatov <KAction@debian.org>
+Date: Wed, 17 Jul 2019 18:45:45 +0000
+Subject: Fix spurious warnings about unknown virtual dependencies
+
+Do not emit warnings about unknown virtual($foo) facility soft
+dependency. It is perfectly fine to have soft (should) dependency
+on facility, provided by currently not installed package.
+
+Closes: #932199
+---
+ insserv.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/insserv.c b/insserv.c
+index 90ea1bd..0c638dd 100644
+--- a/insserv.c
++++ b/insserv.c
+@@ -471,7 +471,7 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
+ 		    break;
+ 		}
+ 	    }
+-            if (! can_expand_name)
++            if (! can_expand_name && (bit & REQ_MUST))
+                warn("warning: could not find all dependencies for %s\n", token);
+ 
+ 	    break;
