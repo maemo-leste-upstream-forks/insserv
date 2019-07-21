@@ -1,0 +1,14 @@
+#!/bin/sh -eu
+exec 2>&1
+
+# To simplify running manually.
+: ${AUTOPKGTEST_TMP:=/tmp}
+
+rm -rf   "${AUTOPKGTEST_TMP}/insserv/tests"
+mkdir -p "${AUTOPKGTEST_TMP}/insserv/tests"
+cp -r tests/* "${AUTOPKGTEST_TMP}/insserv/tests/"
+
+export insserv=/sbin/insserv
+cd "${AUTOPKGTEST_TMP}/insserv/tests/"
+./common
+severity=check ./run-testsuite
