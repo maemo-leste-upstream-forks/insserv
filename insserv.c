@@ -176,8 +176,7 @@ static char buf[LINE_MAX];
 
 /* When to be verbose, and what level of verbosity */
 static int verbose = 0;
-
-/* When to be verbose */
+static boolean silent_mode = false;
 static boolean dryrun = false;
 
 /* When paths set do not add root if any */
@@ -1207,7 +1206,6 @@ char *myname = (char*)0;
 static void _logger (const char *restrict const fmt, va_list ap);
 static void _logger (const char *restrict const fmt, va_list ap)
 {
-    /* extension char buf[strlen(myname)+2+strlen(fmt)+1]; */
     char buf[strlen(myname)+2+strlen(fmt)+1];
     strcat(strcat(strcpy(buf, myname), ": "), fmt);
     vfprintf(stderr, buf, ap);
@@ -1235,6 +1233,9 @@ void error (const char *restrict const fmt, ...)
  */
 void warn (const char *restrict const fmt, ...)
 {
+    if (silent_mode)
+        return;        /* do not print warnings in silent mode */
+
     va_list ap;
     va_start(ap, fmt);
     _logger(fmt, ap);
@@ -2764,6 +2765,7 @@ static struct option long_options[] =
     {"path",	    1, (int*)0, 'p'},
     {"override",    1, (int*)0, 'o'},
     {"upstart-job", 1, (int*)0, 'u'},
+    {"silent",      0, (int*)0, 'q'},
     {"recursive",   0, (int*)0, 'e'},
     {"showall",	    0, (int*)0, 's'},
     {"show-all",    0, (int*)0, 's'},
@@ -2780,6 +2782,7 @@ static void help(const char *restrict const  name)
     printf("  -r, --remove     Remove the listed scripts from all runlevels.\n");
     printf("  -f, --force      Ignore if a required service is missed.\n");
     printf("  -v, --verbose    Provide information on what is being done.\n");
+    printf("  -q, --silent     Do not print warnings, only fatal errors.\n");
     /* printf("  -l, --legacy-path  Place dependency files in /etc/init.d instead of /lib/insserv.\n"); */
     printf("  -i, --insserv-dir  Place dependency files in a location other than /lib/insserv\n");
     printf("  -p <path>, --path <path>  Path to replace " INITDIR ".\n");
@@ -2832,7 +2835,7 @@ int main (int argc, char *argv[])
     for (c = 0; c < argc; c++)
 	argr[c] = (char*)0;
 
-    while ((c = getopt_long(argc, argv, "c:dfrhvni:o:p:u:es", long_options, (int *)0)) != -1) {
+    while ((c = getopt_long(argc, argv, "c:dfrhqvni:o:p:u:es", long_options, (int *)0)) != -1) {
 	size_t l;
 	switch (c) {
 	    case 'c':
@@ -2850,6 +2853,9 @@ int main (int argc, char *argv[])
 	    case 'f':
 		ignore = true;
 		break;
+            case 'q':
+                silent_mode = true;
+                break;
 	    case 'v':
 		verbose ++;
 		break;
@@ -2866,12 +2872,12 @@ int main (int argc, char *argv[])
                     goto err;
                 }
                 if (optarg[0] == '/')    // absolute path
-                   asprintf(&dependency_path, "%s/", optarg);
+                   asprintf(&dependency_path, "%s/.", optarg);
                 else                     // relative
                 {
                    char current_dir[PATH_MAX];
                    getcwd(current_dir, PATH_MAX);
-                   asprintf(&dependency_path, "%s/%s/", current_dir, optarg);
+                   asprintf(&dependency_path, "%s/%s/.", current_dir, optarg);
                 }
                 free_dependency_path = true;
                 break;

@@ -1,3 +1,13 @@
+July 2019 (1.21.0) - jsmith@resonatingmedia.com
+
+- Fixed typo in insserv.8 manual page.
+- Make it clear that when --verbose (-v) flag is used,
+  status information is printed to stderr.
+- Added silent (-q) flag which blocks warning messages
+  to stderr. In this mode insserv only prints fatal
+  error messages.
+- Fixed typo when assigning directory path when -i is used.
+
 June 2019 (1.20.0) - jsmith@resonatingmedia.com
 
 - Update insserv manual page to refer to startpar(1)
