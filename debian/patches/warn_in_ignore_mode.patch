@@ -10,10 +10,10 @@ Bug-Debian: https://bugs.debian.org/811441
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/insserv.c b/insserv.c
-index 713091f..90ea1bd 100644
+index 1e43bf0..d5f6a4f 100644
 --- a/insserv.c
 +++ b/insserv.c
-@@ -3571,7 +3571,7 @@ int main (int argc, char *argv[])
+@@ -3577,7 +3577,7 @@ int main (int argc, char *argv[])
  		     * Use information from symbolic link structure to
  		     * check if all services are around for this script.
  		     */

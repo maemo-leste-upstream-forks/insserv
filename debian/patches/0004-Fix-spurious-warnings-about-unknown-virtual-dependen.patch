@@ -12,10 +12,10 @@ Closes: #932199
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/insserv.c b/insserv.c
-index 90ea1bd..0c638dd 100644
+index d5f6a4f..f949f05 100644
 --- a/insserv.c
 +++ b/insserv.c
-@@ -471,7 +471,7 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
+@@ -470,7 +470,7 @@ static void rememberreq(service_t * restrict serv, uint bit, const char * restri
  		    break;
  		}
  	    }
