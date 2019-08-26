@@ -1,0 +1,21 @@
+From: Dmitry Bogatov <KAction@debian.org>
+Date: Mon, 26 Aug 2019 22:02:47 +0000
+Subject: Fix spelling error in manpage
+
+---
+ insserv.8.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/insserv.8.in b/insserv.8.in
+index b79385a..9008b5f 100644
+--- a/insserv.8.in
++++ b/insserv.8.in
+@@ -262,7 +262,7 @@ grouped into one starting or stopping order.
+ Currently the following options are recognized by insserv:
+ .TP
+ .BR \-v ,\  \-\-verbose
+-Perform operation with more diagnotic messages printed on stderr.
++Perform operation with more diagnostic messages printed on stderr.
+ .TP
+ .BR \-q ,\  \-\-silent
+ Perform operations silently. This blocks warning messages
