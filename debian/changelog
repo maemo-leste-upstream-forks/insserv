@@ -1,10 +1,10 @@
-insserv (1.21.0~beta-1) UNRELEASED; urgency=medium
+insserv (1.21.0~beta-1) unstable; urgency=medium
 
   * New upstream release (Closes: #633858)
   * Refresh patches
   * Fix spelling error in manpage
 
- -- Dmitry Bogatov <KAction@debian.org>  Mon, 26 Aug 2019 22:11:24 +0000
+ -- Dmitry Bogatov <KAction@debian.org>  Mon, 26 Aug 2019 22:13:17 +0000
 
 insserv (1.20.0-2) unstable; urgency=medium
 
