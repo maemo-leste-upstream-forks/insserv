@@ -3,3 +3,4 @@
 warn_in_ignore_mode.patch
 0004-Fix-spurious-warnings-about-unknown-virtual-dependen.patch
 0005-Fix-spelling-error-in-manpage.patch
+0001-Support-OpenRC-initscripts-when-scanning-for-LSB.patch
