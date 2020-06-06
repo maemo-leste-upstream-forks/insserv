@@ -1,6 +1,6 @@
-From 5b6a46aee23d8222eec87b62e24ff8dad5c5bb99 Mon Sep 17 00:00:00 2001
+From 9e3923f5ede8dff8dd0b4cfb88e2bb842c6da448 Mon Sep 17 00:00:00 2001
 From: Merlijn Wajer <merlijn@wizzup.org>
-Date: Fri, 5 Jun 2020 15:16:48 +0200
+Date: Sat, 6 Jun 2020 13:56:38 +0200
 Subject: [PATCH] HACK: support openrc in insserv
 
 OpenRC scripts do not have LSB tags, so don't complain about them.
@@ -9,10 +9,10 @@ OpenRC scripts do not have LSB tags, so don't complain about them.
  1 file changed, 74 insertions(+), 23 deletions(-)
 
 diff --git a/insserv.c b/insserv.c
-index 1fffd72..262e974 100644
+index 18d3d98..bac85b5 100644
 --- a/insserv.c
 +++ b/insserv.c
-@@ -1284,6 +1284,36 @@ static inline void scan_script_reset(void)
+@@ -1297,6 +1297,36 @@ static inline void scan_script_reset(void)
      xreset(script_inf.interactive);
  }
  
@@ -49,7 +49,7 @@ index 1fffd72..262e974 100644
  /*
   * return name of upstart job if the script is a symlink to
   * /lib/init/upstart-job, or NULL if path do not point to an
-@@ -1355,6 +1385,7 @@ static char *is_upstart_job(const char *path)
+@@ -1368,6 +1398,7 @@ static char *is_upstart_job(const char *path)
  #define FOUND_LSB_OVERRIDE 0x04
  #define FOUND_LSB_UPSTART  0x08
  #define FOUND_LSB_SYSTEMD  0x10
@@ -57,7 +57,7 @@ index 1fffd72..262e974 100644
  
  static int o_flags = O_RDONLY;
  
-@@ -1385,7 +1416,10 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
+@@ -1398,7 +1429,10 @@ static uchar scan_lsb_headers(const int dfd, const char *restrict const path,
  
      info(2, "Loading %s\n", path);
  
@@ -69,9 +69,9 @@ index 1fffd72..262e974 100644
  	char cmd[PATH_MAX];
  	int len;
  	len = snprintf(cmd, sizeof(cmd), "%s %s lsb-header", upstartjob_path, upstart_job);
-@@ -1712,6 +1746,12 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
- 	}
+@@ -1727,6 +1761,12 @@ static uchar scan_script_defaults(int dfd, const char *restrict const path,
      }
+ #endif /* WANT_SYSTEMD */
  
 +    if (is_openrc_script(path)) {
 +	ret |= scan_lsb_headers(dfd, path, cache, ignore);
@@ -82,7 +82,7 @@ index 1fffd72..262e974 100644
      if (NULL != (upstart_job = is_upstart_job(path))) {
  	xreset(upstart_job);
  	/*
-@@ -1927,12 +1967,14 @@ static void scan_script_locations(const char *const path, const char *const over
+@@ -1942,12 +1982,14 @@ static void scan_script_locations(const char *const path, const char *const over
  		if (!lsb)
  		    service->attr.flags |= SERV_NOTLSB;
  
@@ -103,7 +103,7 @@ index 1fffd72..262e974 100644
  
  		if (script_inf.required_start && script_inf.required_start != empty) {
  		    rememberreq(service, REQ_MUST, script_inf.required_start);
-@@ -2928,12 +2970,14 @@ int main (int argc, char *argv[])
+@@ -2959,12 +3001,14 @@ int main (int argc, char *argv[])
  	char * provides, * begin, * token;
  	const uchar lsb = scan_script_defaults(dfd, name, override_path, (char**)0, true, ignore);
  
@@ -124,7 +124,7 @@ index 1fffd72..262e974 100644
  
  	if (!script_inf.provides || script_inf.provides == empty)
  	    script_inf.provides = xstrdup(name);
-@@ -3123,12 +3167,14 @@ int main (int argc, char *argv[])
+@@ -3154,12 +3198,14 @@ int main (int argc, char *argv[])
  	/* main scanner for LSB comment in current script */
  	lsb = scan_script_defaults(dfd, d->d_name, override_path, (char**)0, false, ignore);
  
@@ -145,7 +145,7 @@ index 1fffd72..262e974 100644
  
  #ifdef SUSE
  	/* Common script ... */
-@@ -3499,8 +3545,9 @@ int main (int argc, char *argv[])
+@@ -3532,8 +3578,9 @@ int main (int argc, char *argv[])
  #ifdef SUSE
  	/* Ahh ... set default multiuser with network */
  	if (!script_inf.default_start || script_inf.default_start == empty) {
@@ -157,7 +157,7 @@ index 1fffd72..262e974 100644
  	    script_inf.default_start = xstrdup(DEFAULT_START_LVL);
  	    xreset(script_inf.default_stop);
  	    script_inf.default_stop = xstrdup(script_inf.default_start);
-@@ -3508,7 +3555,9 @@ int main (int argc, char *argv[])
+@@ -3541,7 +3588,9 @@ int main (int argc, char *argv[])
  	}
  #else  /* not SUSE */
  	if (!script_inf.default_start) {
@@ -168,7 +168,7 @@ index 1fffd72..262e974 100644
  	    script_inf.default_start = empty;
  	}
  #endif /* not SUSE */
-@@ -3523,7 +3572,9 @@ int main (int argc, char *argv[])
+@@ -3556,7 +3605,9 @@ int main (int argc, char *argv[])
  	}
  #else  /* not SUSE */
  	if (!script_inf.default_stop) {
@@ -180,4 +180,5 @@ index 1fffd72..262e974 100644
  	}
  #endif /* not SUSE */
 -- 
-2.24.1
+2.26.2
+
