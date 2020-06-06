@@ -1,3 +1,9 @@
+insserv (1.18.0-3) unstable; urgency=medium
+
+  * Add OpenRC support.
+
+ -- Ivan J. <parazyd@dyne.org>  Sat, 06 Jun 2020 11:59:37 +0200
+
 insserv (1.18.0-2) unstable; urgency=medium
 
   * Apply patch to improve formatting and spelling of insserv(8) manual
